@@ -1,0 +1,32 @@
+[project]
+name = "rag-stack"
+version = "0.1.0"
+description = "RAG chatbot with a knowledge base agent"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest", "ruff", "pyright"]
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+markers = ["ai: evals against a real LLM (needs provider API keys)"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "TID", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"langchain_openai".msg = "Provider SDKs live only in rag_stack.llm; use its interfaces."
+
+[tool.pyright]
+include = ["src", "tests"]
