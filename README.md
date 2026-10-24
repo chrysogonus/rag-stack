@@ -13,8 +13,7 @@ embedding providers are pluggable.
 
 ```bash
 uv sync
-cp .env.example .env                              # add provider API keys
-docker run -p 127.0.0.1:6333:6333 qdrant/qdrant   # start Qdrant (localhost only)
+docker compose up -d                               # start Qdrant (localhost only)
 ```
 
 ## Tests
