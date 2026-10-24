@@ -1,0 +1,161 @@
+{
+ "langchain-core": [
+  {
+   "id": "GHSA-2g6r-c272-w58r",
+   "summary": "LangChain affected by SSRF via image_url token counting in ChatOpenAI.get_num_tokens_from_messages",
+   "details": "## Server-Side Request Forgery (SSRF) in ChatOpenAI Image Token Counting\n\n### Summary\nThe `ChatOpenAI.get_num_tokens_from_messages()` method fetches arbitrary `image_url` values without validation when computing token counts for vision-enabled models. This allows attackers to trigger Server-Side Request Forgery (SSRF) attacks by providing malicious image URLs in user input.\n\n### Severity\n**Low** - The vulnerability allows SSRF attacks but has limited impact due to:\n- Responses are not returned to the attacker (blind SSRF)\n- Default 5-second timeout limits resource exhaustion\n- Non-image responses fail at PIL image parsing\n\n### Impact\nAn attacker who can control image URLs passed to `get_num_tokens_from_messages()` can:\n- Trigger HTTP requests from the application server to arbitrary internal or external URLs\n- Cause the server to access internal network resources (private IPs, cloud metadata endpoints)\n- Cause minor resource consumption through image downloads (bounded by timeout)\n\n**Note:** This vulnerability occurs during token counting, which may happen outside of model invocation (e.g., in logging, metrics, or token budgeting flows).\n\n### Details\nThe vulnerable code path:\n1. `get_num_tokens_from_messages()` processes messages containing `image_url` content blocks\n2. For images without `detail: \"low\"`, it calls `_url_to_size()` to fetch the image and compute token counts\n3. `_url_to_size()` performs `httpx.get(image_source)` on any URL without validation\n4. Prior to the pa",
+   "aliases": [
+    "CVE-2026-26013",
+    "PYSEC-2026-2562"
+   ],
+   "modified": "2026-09-10T03:50:33.793703014Z",
+   "published": "2026-02-11T14:23:13Z",
+   "database_specific": {
+    "severity": "LOW",
+    "github_reviewed": true,
+    "github_reviewed_at": "2026-02-11T14:23:13Z",
+    "nvd_published_at": "2026-02-10T22:17:00Z",
+    "cwe_ids": [
+     "CWE-918"
+    ]
+   },
+   "references": [
+    {
+     "type": "WEB",
+     "url": "https://github.com/langchain-ai/langchain/security/advisories/GHSA-2g6r-c272-w58r"
+    },
+    {
+     "type": "ADVISORY",
+     "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-26013"
+    },
+    {
+     "type": "WEB",
+     "url": "https://github.com/langchain-ai/langchain/commit/2b4b1dc29a833d4053deba4c2b77a3848c834565"
+    },
+    {
+     "type": "PACKAGE",
+     "url": "https://github.com/langchain-ai/langchain"
+    },
+    {
+     "type": "WEB",
+     "url": "https://github.com/langchain-ai/langchain/releases/tag/langchain-core%3D%3D1.2.11"
+    }
+   ],
+   "affected": [
+    {
+     "package": {
+      "name": "langchain-core",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/langchain-core"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "fixed": "1.2.11"
+        }
+       ]
+      }
+     ],
+     "versions": [
+      "0.0.1",
+      "0.0.10",
+      "0.0.11"
+     ],
+     "database_specific": {
+      "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2026/02/GHSA-2g6r-c272-w58r/GHSA-2g6r-c272-w58r.json"
+     }
+    }
+   ],
+   "schema_version": "1.9.0",
+   "severity": [
+    {
+     "type": "CVSS_V3",
+     "score": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L"
+    }
+   ]
+  },
+  {
+   "id": "PYSEC-2026-2562",
+   "summary": "LangChain affected by SSRF via image_url token counting in ChatOpenAI.get_num_tokens_from_messages",
+   "details": "## Server-Side Request Forgery (SSRF) in ChatOpenAI Image Token Counting\n\n### Summary\nThe `ChatOpenAI.get_num_tokens_from_messages()` method fetches arbitrary `image_url` values without validation when computing token counts for vision-enabled models. This allows attackers to trigger Server-Side Request Forgery (SSRF) attacks by providing malicious image URLs in user input.\n\n### Severity\n**Low** - The vulnerability allows SSRF attacks but has limited impact due to:\n- Responses are not returned to the attacker (blind SSRF)\n- Default 5-second timeout limits resource exhaustion\n- Non-image responses fail at PIL image parsing\n\n### Impact\nAn attacker who can control image URLs passed to `get_num_tokens_from_messages()` can:\n- Trigger HTTP requests from the application server to arbitrary internal or external URLs\n- Cause the server to access internal network resources (private IPs, cloud metadata endpoints)\n- Cause minor resource consumption through image downloads (bounded by timeout)\n\n**Note:** This vulnerability occurs during token counting, which may happen outside of model invocation (e.g., in logging, metrics, or token budgeting flows).\n\n### Details\nThe vulnerable code path:\n1. `get_num_tokens_from_messages()` processes messages containing `image_url` content blocks\n2. For images without `detail: \"low\"`, it calls `_url_to_size()` to fetch the image and compute token counts\n3. `_url_to_size()` performs `httpx.get(image_source)` on any URL without validation\n4. Prior to the pa",
+   "aliases": [
+    "CVE-2026-26013",
+    "GHSA-2g6r-c272-w58r"
+   ],
+   "modified": "2026-07-13T16:31:48.686407787Z",
+   "published": "2026-07-13T14:36:35.874621Z",
+   "references": [
+    {
+     "type": "WEB",
+     "url": "https://github.com/langchain-ai/langchain/security/advisories/GHSA-2g6r-c272-w58r"
+    },
+    {
+     "type": "ADVISORY",
+     "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-26013"
+    },
+    {
+     "type": "WEB",
+     "url": "https://github.com/langchain-ai/langchain/commit/2b4b1dc29a833d4053deba4c2b77a3848c834565"
+    },
+    {
+     "type": "PACKAGE",
+     "url": "https://github.com/langchain-ai/langchain"
+    },
+    {
+     "type": "WEB",
+     "url": "https://github.com/langchain-ai/langchain/releases/tag/langchain-core%3D%3D1.2.11"
+    },
+    {
+     "type": "PACKAGE",
+     "url": "https://pypi.org/project/langchain-core"
+    },
+    {
+     "type": "ADVISORY",
+     "url": "https://github.com/advisories/GHSA-2g6r-c272-w58r"
+    }
+   ],
+   "affected": [
+    {
+     "package": {
+      "name": "langchain-core",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/langchain-core"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "fixed": "1.2.11"
+        }
+       ]
+      }
+     ],
+     "versions": [
+      "0.0.1",
+      "0.0.10",
+      "0.0.11"
+     ],
+     "database_specific": {
+      "source": "https://github.com/pypa/advisory-database/blob/main/vulns/langchain-core/PYSEC-2026-2562.yaml"
+     }
+    }
+   ],
+   "schema_version": "1.7.5",
+   "severity": [
+    {
+     "type": "CVSS_V3",
+     "score": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L"
+    }
+   ]
+  }
+ ]
+}

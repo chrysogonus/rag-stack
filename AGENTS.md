@@ -16,8 +16,9 @@ writes an answer grounded in them.
   (Responses API), `anthropic` (Messages API) or `openai-compatible` (Chat Completions at
   `LLM_BASE_URL`: Ollama, vLLM, LM Studio, gateways). Use the official `openai` and `anthropic`
   SDKs; ruff bans importing them outside `llm/`, and bans `langchain-openai` everywhere.
-- Local development runs on the sub2api gateway (`~/workspace/sub2api`, `codex/gpt-6-luna`),
-  which uses a personal ChatGPT subscription. Never deploy with it: production needs an API key.
+- The RAG chatbot runs on the OpenAI API (`gpt-6-luna`, key in `.env`, also the eval judge). The sub2api gateway
+  (`~/workspace/sub2api`, `codex/gpt-6-luna`, a personal ChatGPT subscription) is the eval's
+  live-chatbot reference (`EVAL_BASELINE_*`). Never deploy with the gateway.
 - Agent orchestration: LangGraph with a custom `StateGraph`. Nodes call our `llm/` interfaces,
   not LangChain chat models.
 - API: FastAPI with SSE streaming. Conversations are stored in Postgres (with the LangGraph
@@ -27,29 +28,38 @@ writes an answer grounded in them.
 - Users are public and anonymous: rate limits, token budgets and input caps are required,
   not optional.
 
-## Layout (planned)
+## Layout
 
 ```
 src/rag_stack/
-  ingestion/   # load, chunk, embed documents into Qdrant
-  retrieval/   # query Qdrant, rank and filter chunks
-  agent/       # knowledge base agent: LangGraph graph, prompts, guardrails
-  llm/         # provider interfaces and adapters
-  api/         # FastAPI app: chat (SSE), threads, feedback, rate limits
-  db/          # Postgres models and Alembic migrations
+  ingestion/   # fetch (polite HTTP), sha256 snapshots, one parser per source in sources/
+  retrieval/   # Qdrant index, ID detection, hybrid search + RRF + rerank + graph expansion
+  agent/       # knowledge base agent: LangGraph graph, prompts, answer footer, `ask`
+  llm/         # chat, embedding and reranker interfaces and adapters
+  api/         # FastAPI app: chat (SSE), threads, rate limits
+  db/          # Postgres: checkpointer, edge table, Alembic migrations
+  evals/       # golden-set harness: metrics, LLM judge, RAG vs. baseline report
+  cli.py       # ingest | index | ask | eval (wrapped by make)
+config/sources.yaml     # the source allowlist and pinned upstream refs
+data/                   # raw snapshots, processed chunks, HTTP cache (not committed)
 web/           # chat UI
-deploy/        # Helm chart
+deploy/        # Helm chart (planned)
 tests/
-  fakes/       # fake LLM / embedder shared by unit tests
+  fakes/       # fake LLM / embedder / reranker / retriever shared by unit tests
+  fixtures/    # small verbatim excerpts of each source (see NOTICE.md)
   unit/        # tight: no network, LLM/embeddings faked, Qdrant in-memory
   ai/          # evals against a real LLM, marked @pytest.mark.ai
   e2e/         # question -> chatbot answer, real Qdrant
-evals/datasets/<name>/  # corpus/, golden.jsonl, thresholds.yaml used by tests/ai
+evals/datasets/<name>/  # golden.jsonl, thresholds.yaml, report.md, corpus/manifest.json
+evals/rubrics/          # versioned LLM-judge rubrics
 ```
+
+Only `config/sources.yaml` sources are ingested. Retrieved text is data, never instructions: the
+corpus contains prompt-injection payloads by design (ATLAS case studies, OWASP scenarios).
 
 ## Commands
 
-`make` lists the shortcuts: `make ci` runs the CI pipeline locally, `make check-all` adds evals
+`make` lists the shortcuts: `make ci` runs the CI pipeline locally, `make check-all` adds one paid eval run, the AI tests
 and e2e (the definition of done below), and `make up` / `make down` / `make restart` run the app
 in the background (logs in `.run/`). The underlying commands:
 
@@ -58,8 +68,9 @@ uv sync
 uv run ruff check && uv run ruff format --check && uv run pyright
 uv export --frozen --no-emit-project --format requirements-txt > /tmp/req.txt && uvx pip-audit -r /tmp/req.txt --disable-pip
 uv run pytest tests/unit
-uv run pytest tests/ai     # needs provider API keys in .env
+uv run pytest tests/ai     # needs provider API keys in .env and an indexed knowledge base
 uv run pytest tests/e2e    # needs Postgres + Qdrant (docker compose up -d) and API keys
+uv run python -m rag_stack.cli ingest all && uv run python -m rag_stack.cli index
 uv run uvicorn rag_stack.api.app:create_app --factory --reload   # API on :8000
 
 cd web && npm ci

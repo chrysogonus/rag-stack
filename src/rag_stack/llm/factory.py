@@ -5,6 +5,7 @@ from openai import AsyncOpenAI  # noqa: TID251
 
 from rag_stack.llm.anthropic_messages import AnthropicModel
 from rag_stack.llm.base import ChatModel
+from rag_stack.llm.embeddings import Embedder, Reranker, SparseEmbedder
 from rag_stack.llm.openai_compatible import OpenAICompatibleModel
 from rag_stack.llm.openai_responses import OpenAIResponsesModel
 
@@ -26,3 +27,21 @@ def create_chat_model(
         client = AsyncOpenAI(api_key=api_key or "not-needed", base_url=base_url)
         return OpenAICompatibleModel(client, model)
     return AnthropicModel(AsyncAnthropic(api_key=api_key, base_url=base_url), model)
+
+
+def create_embedder(model: str) -> Embedder:
+    from rag_stack.llm.fastembed_local import FastembedDense
+
+    return FastembedDense(model)
+
+
+def create_sparse_embedder(model: str) -> SparseEmbedder:
+    from rag_stack.llm.fastembed_local import FastembedSparse
+
+    return FastembedSparse(model)
+
+
+def create_reranker(model: str) -> Reranker:
+    from rag_stack.llm.fastembed_local import FastembedReranker
+
+    return FastembedReranker(model)

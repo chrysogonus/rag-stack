@@ -1,0 +1,38 @@
+[
+ {
+  "source_id": "ai-vulns",
+  "version": "2026-10-24",
+  "sha256": "e93872890d74f270332569c52b0d6a95c85ed90a5f2d7f423493ebe0c8c189a9",
+  "retrieved_at": "2026-10-24T17:43:14+00:00"
+ },
+ {
+  "source_id": "atlas",
+  "version": "2026.09",
+  "sha256": "d76528c1355063d29b7de0f1acab6a49319b30be9a3e95c544dfc6e3b000d698",
+  "retrieved_at": "2026-10-24T18:01:38+00:00"
+ },
+ {
+  "source_id": "eu-ai-act",
+  "version": "02024R1689-20260727",
+  "sha256": "234a263859d29b93347202a5b9b08271870752b4c91be2ea73f0e095371b974c",
+  "retrieved_at": "2026-10-24T18:01:33+00:00"
+ },
+ {
+  "source_id": "ki-mig",
+  "version": "20260729215513",
+  "sha256": "136ba3312278ab9ee9274ac7af98191bd52142c48be5a398d0b36345ed33127c",
+  "retrieved_at": "2026-10-24T18:01:50+00:00"
+ },
+ {
+  "source_id": "owasp-agentic-2026",
+  "version": "2026 (2025-12-09)",
+  "sha256": "369cb8c4adb5efbb187c57ae4e0474587a0f04ddd1ce93866f167cc500f7720c",
+  "retrieved_at": "2026-10-24T18:01:47+00:00"
+ },
+ {
+  "source_id": "owasp-llm-2026",
+  "version": "2026@9253e38",
+  "sha256": "e9e6fde382e0ce274b70e784d97fe178a1b32bd533237b0a8c8741b27c045bf0",
+  "retrieved_at": "2026-10-24T18:01:45+00:00"
+ }
+]

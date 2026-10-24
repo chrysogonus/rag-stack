@@ -7,8 +7,11 @@ RUN := .run
 API_URL := http://127.0.0.1:8000/openapi.json
 WEB_URL := http://127.0.0.1:5173/
 
-.PHONY: help install format up down restart status logs services \
+.PHONY: help install format up down restart status logs services migrate ingest index ask eval \
 	ci lockfile lint secrets typecheck test audit build web-check evals e2e check-all
+
+SOURCE ?= all
+CLI := uv run python -m rag_stack.cli
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*## "} /^[a-z0-9-]+:.*## / {printf "  \033[1m%-10s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -104,6 +107,24 @@ status: ## Show what is running
 logs: ## Follow the API and web UI logs
 	tail -n 50 -f $(RUN)/api.log $(RUN)/web.log
 
+# --- Knowledge base ------------------------------------------------------------------------
+
+migrate: services ## Create or upgrade our Postgres tables (the edge table)
+	uv run alembic upgrade head
+
+ingest: ## Fetch, snapshot and chunk sources: make ingest SOURCE=<id|all> (unchanged ones are skipped)
+	$(CLI) ingest $(SOURCE)
+
+index: migrate ## Embed processed chunks into Qdrant and load edges: make index SOURCE=<id|all>
+	$(CLI) index $(SOURCE)
+
+ask: ## Answer one question from the knowledge base: make ask Q="What is AML.T0051?"
+	@[ -n "$(Q)" ] || { echo 'Usage: make ask Q="your question"' >&2; exit 1; }
+	$(CLI) ask "$(Q)"
+
+eval: ## The paid eval run (~150 LLM calls): golden set vs. the baseline, writes report.md
+	$(CLI) eval
+
 # --- Checks (same order as .github/workflows/ci.yml) -----------------------------------------
 
 ci: lockfile lint secrets typecheck test audit build web-check ## Run the CI pipeline locally
@@ -138,11 +159,11 @@ web-check: ## Lint, test and build the web UI
 	npm test --prefix web -- --run
 	npm run --prefix web build
 
-evals: ## Run AI evals against the configured LLM (see LLM_* in .env)
+evals: ## AI tests: thresholds on the saved `make eval` results (fails if stale) + injection (1 call)
 	uv run pytest tests/ai
 
-e2e: services ## Run end-to-end tests (real Postgres and LLM)
+e2e: migrate ## Run end-to-end tests (real Postgres, Qdrant and LLM)
 	uv run pytest tests/e2e
 
-check-all: ci evals e2e ## CI plus evals and e2e: the definition of done in AGENTS.md
+check-all: ci eval evals e2e ## CI, one paid eval run, AI tests and e2e: the definition of done
 	@echo "All checks passed"

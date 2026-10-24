@@ -1,0 +1,1432 @@
+[
+ {
+  "id": "id-atlas-t0051",
+  "category": "id-exact",
+  "question": "What is MITRE ATLAS technique AML.T0051?",
+  "gold_ids": [
+   "AML.T0051"
+  ],
+  "retrieved": [
+   "AML.T0051",
+   "AML.T0051.001",
+   "AML.TA0005",
+   "AML.T0051.000",
+   "AML.T0051.002",
+   "AML.M0022",
+   "AML.M0020",
+   "AML.M0021",
+   "AML.M0035",
+   "AML.M0024"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "The answer includes the expected definition and its additional details about direct, indirect, and triggered injection are supported by the sources.",
+  "baseline_judge_reason": "The answer declines to provide the key facts identifying AML.T0051 as LLM Prompt Injection and describing how it works.",
+  "answer": "**AML.T0051 is LLM Prompt Injection**: an adversary crafts malicious prompts that cause an LLM to act in unintended ways, often by making it ignore its original instructions and follow the adversary’s instead. Prompts may be injected directly, indirectly through ingested content, or triggered by a user action or system event. [AML.T0051](https://atlas.mitre.org/techniques/AML.T0051)\n\n---\n**Sources**\n\n- [AML.T0051](https://atlas.mitre.org/techniques/AML.T0051) LLM Prompt Injection. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "id-atlas-t0051-001",
+  "category": "id-exact",
+  "question": "Describe AML.T0051.001.",
+  "gold_ids": [
+   "AML.T0051.001"
+  ],
+  "retrieved": [
+   "AML.T0051.001",
+   "AML.CS0047",
+   "AML.CS0038",
+   "AML.CS0045",
+   "AML.CS0021",
+   "AML.CS0066",
+   "AML.T0100",
+   "AML.CS0046",
+   "AML.CS0039",
+   "AML.CS0067"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "The answer accurately covers the technique and its examples, concealment, purposes, privileges, and potential impacts, all supported by the sources.",
+  "baseline_judge_reason": "The answer correctly identifies indirect prompt injection and explains that malicious instructions arrive through ingested content and may be hidden from the user.",
+  "answer": "**AML.T0051.001, Indirect Prompt Injection**, is when an adversary places instructions in content—such as a document, email, database entry, or website—that an AI system later ingests. The instructions come from adversary-controlled content rather than the user and may be hidden or obfuscated. [AML.T0051.001](https://atlas.mitre.org/techniques/AML.T0051.001)\n\nThe goal may be to hijack the AI agent or make it act against an unwitting user, potentially using the privileges available to the system. Reported impacts range from pranks and search manipulation to data theft or destructive actions. [AML.T0051.001](https://atlas.mitre.org/techniques/AML.T0051.001)\n\n---\n**Sources**\n\n- [AML.T0051.001](https://atlas.mitre.org/techniques/AML.T0051.001) Indirect. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "AML.T0051.001 is MITRE ATLAS’s **LLM Prompt Injection: Indirect** technique. An attacker places malicious instructions in content from a separate source—such as a document, email, website, or database—that the LLM later ingests. The instructions may be hidden or disguised from the user, and could steer the model toward attacker-chosen actions or target an unwitting user. [MITRE ATLAS](https://atlas.mitre.org/techniques/AML.T0051.001)"
+ },
+ {
+  "id": "id-atlas-m0036",
+  "category": "id-exact",
+  "question": "What does mitigation AML.M0036 recommend?",
+  "gold_ids": [
+   "AML.M0036"
+  ],
+  "retrieved": [
+   "AML.M0036",
+   "AML.T0034.002",
+   "AML.T0034",
+   "AML.T0034.001",
+   "AML.T0029"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "The answer includes all key resource limits for AI workloads and agentic systems, and its additional details are supported by the provided source.",
+  "baseline_judge_reason": "The answer declines to provide the expected mitigation details, so it omits all key facts.",
+  "answer": "AML.M0036 recommends limiting the resources each AI request and complete workflow can consume: bound input and output size, batch size, execution time, memory, compute, and— for generative AI—context and output tokens. [AML.M0036](https://atlas.mitre.org/mitigations/AML.M0036)\n\nFor agentic systems, also limit iterations, retries, tool calls, parallel tasks, delegation depth, and downstream spending. Use timeouts, cost ceilings, circuit breakers, and safe termination conditions; these complement query-rate limits. [AML.M0036](https://atlas.mitre.org/mitigations/AML.M0036)\n\n---\n**Sources**\n\n- [AML.M0036](https://atlas.mitre.org/mitigations/AML.M0036) Limit AI Workload Resource Consumption. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "id-owasp-llm04",
+  "category": "id-exact",
+  "question": "What does LLM04:2026 cover in the OWASP Top 10 for LLM Applications?",
+  "gold_ids": [
+   "LLM04:2026"
+  ],
+  "retrieved": [
+   "LLM04:2026",
+   "LLM05:2026",
+   "LLM08:2026"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "The answer identifies LLM04:2026 as supply-chain risks and accurately summarizes the affected integrity surfaces, attack methods, and potential impacts supported by the sources.",
+  "baseline_judge_reason": "The answer declines to identify LLM04:2026 as Supply Chain or describe the supply-chain vulnerabilities it covers.",
+  "answer": "LLM04:2026 covers supply-chain risks that can undermine the integrity of LLM training data, models, adapters, conversion pipelines, and deployment platforms. These include tampering, poisoning, or malicious replacement of third-party models, datasets, and other model artifacts, potentially causing biased outputs, security breaches, or system failures. [LLM04:2026](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/9253e38ade58e959b531c0c5c9a4842272c9cd0e/2026/final/LLM04_SupplyChain.md#description)\n\n---\n**Sources**\n\n- [LLM04:2026](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/9253e38ade58e959b531c0c5c9a4842272c9cd0e/2026/final/LLM04_SupplyChain.md#prevention-and-mitigation-strategies) Supply Chain. OWASP GenAI Security Project, OWASP Top 10 for LLM Applications 2026, CC BY-SA 4.0 (CC-BY-SA-4.0)\n\nSource versions: OWASP Top 10 for LLM Applications 2026 2026@9253e38\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "id-asi06",
+  "category": "id-exact",
+  "question": "What is ASI06 in the OWASP Top 10 for Agentic Applications?",
+  "gold_ids": [
+   "ASI06"
+  ],
+  "retrieved": [
+   "ASI06",
+   "LLM04:2026"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "The answer accurately defines ASI06 and its effects, and all claims are supported by the provided source.",
+  "baseline_judge_reason": "The answer correctly identifies ASI06 as Memory and Context Poisoning and describes corruption of memory or context influencing later actions.",
+  "answer": "ASI06 is **Memory & Context Poisoning**: attackers corrupt or seed an agent’s stored or retrievable information—such as conversation summaries, memory tools, embeddings, or RAG stores—with malicious or misleading data. This can bias future reasoning, planning, or tool use, and persist across sessions. [ASI06](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)\n\n---\n**Sources**\n\n- [ASI06](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) Memory & Context Poisoning. OWASP GenAI Security Project, OWASP Top 10 for Agentic Applications for 2026, CC BY-SA 4.0 (CC-BY-SA-4.0)\n\nSource versions: OWASP Top 10 for Agentic Applications 2026 2026 (2025-12-09)\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "ASI06 is **Memory and Context Poisoning** in the OWASP Top 10 for Agentic Applications. It covers attacks that corrupt an agent’s memory or context so that later actions are influenced by malicious or misleading information."
+ },
+ {
+  "id": "id-ai-act-50-1",
+  "category": "id-exact",
+  "question": "What does Article 50(1) of the AI Act require?",
+  "gold_ids": [
+   "AI Act Art. 50(1)"
+  ],
+  "retrieved": [
+   "AI Act Art. 50(1)",
+   "AI Act Art. 50(4)",
+   "AI Act Art. 52(2)",
+   "AI Act Art. 50(5)",
+   "AI Act Art. 50(2)",
+   "AI Act Art. 112(11)",
+   "AI Act Art. 112(2)",
+   "AI Act Art. 50(7)",
+   "AI Act Art. 50(6)"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 1.0,
+  "judge_reason": "The answer accurately states the disclosure duty and criminal-offence exception, but omits the specific reasonably well-informed, observant and circumspect person standard for judging whether the interaction is obvious.",
+  "baseline_judge_reason": "The answer states the disclosure requirement, the obviousness exception, and the criminal-offence exception, including its relevant qualifications.",
+  "answer": "Article 50(1) requires providers to design and develop AI systems intended to interact directly with people so that they are informed they are interacting with AI, unless this is obvious in the circumstances. An exception applies to certain systems authorised by law for criminal-offence purposes, subject to safeguards, unless they are available for the public to report a criminal offence. [AI Act Art. 50(1)](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_50)\n\n---\n**Sources**\n\n- [AI Act Art. 50(1)](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_50) Article 50 Transparency obligations for providers and deployers of certain AI systems. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n\nSource versions: EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I’ll check the official AI Act text so I can quote Article 50(1) accurately.\n\nArticle 50(1) requires providers to design and develop AI systems intended to interact directly with people so those people are told they are interacting with AI—unless that is obvious in context to a reasonably well-informed, attentive and circumspect person.\n\nThere is an exception for systems legally authorised to detect, prevent, investigate or prosecute criminal offences, subject to safeguards for third-party rights and freedoms. That exception does not apply when such systems are available to the public for reporting a criminal offence. [AI Act Art. 50(1)] [EUR-Lex](https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=OJ%3AL_202401689)"
+ },
+ {
+  "id": "id-annex-iii-4a",
+  "category": "id-exact",
+  "question": "What does Annex III point 4(a) of the AI Act cover?",
+  "gold_ids": [
+   "Annex III 4(a)"
+  ],
+  "retrieved": [
+   "Annex III 4(a)",
+   "Annex III 4(b)",
+   "AI Act Art. 44(2)",
+   "Annex III 4",
+   "AI Act Art. 74(8)",
+   "AI Act Art. 75(1)",
+   "AI Act Art. 78(3)",
+   "AI Act Art. 49(4)",
+   "AI Act Art. 7(1)",
+   "Annex III 3"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "The answer accurately states the recruitment and selection uses and examples listed in Annex III point 4(a), all supported by the provided source.",
+  "baseline_judge_reason": "The answer describes AI systems used for essential public assistance benefits, not recruitment or selection systems and the related job-advertising, application-filtering, and candidate-evaluation tasks.",
+  "answer": "Annex III point 4(a) covers “AI systems intended to be used for the recruitment or selection of natural persons, in particular to place targeted job advertisements, to analyse and filter job applications, and to evaluate candidates.” [Annex III 4(a)](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02024R1689-20260727#anx_III)\n\n---\n**Sources**\n\n- [Annex III 4(a)](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02024R1689-20260727#anx_III) ANNEX III High-risk AI systems referred to in Article 6(2). © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n\nSource versions: EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "Annex III point 4(a) covers AI systems used to assess a person’s eligibility for essential public assistance benefits and services, including healthcare services, or to grant, reduce, revoke, or reclaim those benefits and services [AI Act, Annex III, point 4(a)](https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32024R1689)."
+ },
+ {
+  "id": "id-recital-133",
+  "category": "id-exact",
+  "question": "What does Recital 133 of the AI Act say?",
+  "gold_ids": [
+   "Recital 133"
+  ],
+  "retrieved": [
+   "Recital 133"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.75,
+  "judge_reason": "The answer includes all key facts and its additional details about technical methods and exceptions are supported by the provided source.",
+  "baseline_judge_reason": "It covers the synthetic-content concern and the marking and detection measures, but omits manipulation from the listed risks.",
+  "answer": "Recital 133 says that AI-generated content can be difficult to distinguish from human-created content, creating risks including misinformation, manipulation, fraud, impersonation and consumer deception. It therefore says providers should embed technical solutions enabling content to be marked in machine-readable form and detected as AI-generated or manipulated. These methods should be reliable, interoperable, effective and robust as far as technically feasible; examples include watermarks, metadata, cryptographic methods, logging and fingerprints. [Recital 133](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32024R1689#rct_133)\n\nIt also says the marking obligation should not cover AI systems used primarily for standard editing assistance or systems that do not substantially alter the deployer’s input data or its semantics. [Recital 133](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32024R1689#rct_133)\n\n---\n**Sources**\n\n- [Recital 133](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32024R1689#rct_133) Recital 133. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n\nSource versions: EU AI Act (Regulation (EU) 2024/1689) OJ 2024/1689\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "Recital 133 says AI systems that generate large amounts of synthetic content can make it hard to tell AI-made content from human-made content, increasing risks such as misinformation, fraud, impersonation, and consumer deception.\n\nIt says providers should use reliable, interoperable, effective and robust technical methods—such as watermarks, metadata, cryptographic provenance, logs or fingerprints—to mark AI-generated or manipulated output in a machine-readable way and make it detectable. Providers should account for technical limits and different content types. The marking obligation should not cover systems used mainly for standard editing assistance or systems that do not substantially change the deployer’s input or its meaning. [AI Act Recital 133](https://ai-act-service-desk.ec.europa.eu/en/ai-act/recital-133)"
+ },
+ {
+  "id": "id-atlas-cs0059",
+  "category": "id-exact",
+  "question": "What is MITRE ATLAS case study AML.CS0059 about?",
+  "gold_ids": [
+   "AML.CS0059"
+  ],
+  "retrieved": [
+   "AML.CS0059"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.25,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.75,
+  "judge_reason": "The answer includes all key facts and its additional claims are supported by the provided case study.",
+  "baseline_judge_reason": "It covers the attack, email retrieval into Copilot’s context, and potential data exfiltration without user action, but omits that Aim Security researchers discovered it.",
+  "answer": "AML.CS0059 is about **EchoLeak**, a zero-click vulnerability in Microsoft 365 Copilot. A malicious email could enter Copilot’s retrieval context and prompt it to access sensitive enterprise data, which could then be exfiltrated through attacker-controlled URLs without the user opening the email or clicking a link. [AML.CS0059](https://atlas.mitre.org/studies/AML.CS0059)\n\nThe attack bypassed several protections, including prompt-injection defenses, link redaction, and content security policy restrictions. The issue was assigned CVE-2025-32711 and has since been remediated; the source reports no evidence of exploitation in the wild. [AML.CS0059](https://atlas.mitre.org/studies/AML.CS0059)\n\n---\n**Sources**\n\n- [AML.CS0059](https://atlas.mitre.org/studies/AML.CS0059) EchoLeak: Zero-Click Prompt Injection Targeting M365 Copilot for Data Exfiltration. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "MITRE ATLAS [AML.CS0059] is **“EchoLeak: Zero-Click Prompt Injection Targeting M365 Copilot for Data Exfiltration.”** It describes researchers’ demonstration of an attack in which a crafted email could inject instructions into Microsoft 365 Copilot when Copilot retrieved the email, potentially exposing sensitive enterprise data without the recipient taking action. The case maps to techniques including prompt crafting [AML.T0065], retrieval content crafting [AML.T0066], and exfiltration via cyber means [AML.T0025]. [MITRE ATLAS case-study index](https://1200km.com/attack-matrix/atlas/case-studies/)"
+ },
+ {
+  "id": "id-atlas-ta0015",
+  "category": "id-exact",
+  "question": "What is MITRE ATLAS tactic AML.TA0015?",
+  "gold_ids": [
+   "AML.TA0015"
+  ],
+  "retrieved": [
+   "AML.TA0015",
+   "AML.T0052",
+   "AML.T0091.001",
+   "AML.T0052.001",
+   "AML.T0122",
+   "AML.T0012",
+   "AML.T0091.000",
+   "AML.T0091",
+   "AML.T0053",
+   "AML.T0052.000"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 0.0,
+  "judge_reason": "It correctly identifies Lateral Movement and describes moving through an AI environment by gaining access to and control of other systems, but omits the examples of AI Ops infrastructure adversaries may pivot toward.",
+  "baseline_judge_reason": "The answer incorrectly identifies AML.TA0015 as Exfiltration instead of Lateral Movement and omits the expected description.",
+  "answer": "**AML.TA0015 is Lateral Movement**: an adversary’s effort to move through an AI environment by gaining access to and control of other systems or components. [AML.TA0015](https://atlas.mitre.org/tactics/AML.TA0015)\n\n---\n**Sources**\n\n- [AML.TA0015](https://atlas.mitre.org/tactics/AML.TA0015) Lateral Movement. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "AML.TA0015 is **Exfiltration** in MITRE ATLAS. It covers techniques adversaries use to remove data from an AI system."
+ },
+ {
+  "id": "fresh-ai-honeypots",
+  "category": "freshness",
+  "question": "Which MITRE ATLAS mitigation recommends deploying decoy AI services, agents or credentials to detect reconnaissance?",
+  "gold_ids": [
+   "AML.M0039"
+  ],
+  "retrieved": [
+   "AML.M0039",
+   "AML.T0006",
+   "AML.T0006.002",
+   "AML.T0006.000",
+   "AML.T0093",
+   "AML.T0084",
+   "AML.T0006.001",
+   "AML.T0000.003",
+   "AML.T0040",
+   "AML.T0095"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "It correctly identifies AML.M0039 as AI Honeypots, matching the provided source.",
+  "baseline_judge_reason": "The answer declines to identify AML.M0039 AI Honeypots, despite the key facts specifying the mitigation.",
+  "answer": "[AML.M0039](https://atlas.mitre.org/mitigations/AML.M0039) — AI Honeypots.\n\n---\n**Sources**\n\n- [AML.M0039](https://atlas.mitre.org/mitigations/AML.M0039) AI Honeypots. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "fresh-ai-cloaking",
+  "category": "freshness",
+  "question": "What is 'AI Targeted Cloaking' in MITRE ATLAS?",
+  "gold_ids": [
+   "AML.T0134"
+  ],
+  "retrieved": [
+   "AML.T0134"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.25,
+  "judge_reason": "The answer accurately defines AML.T0134 and its selective delivery of content to AI systems, including identification via user-agent strings, consistent with the source.",
+  "baseline_judge_reason": "It identifies the technique as evasion but misses the defining split between content shown to AI systems and benign content shown to people or tools, as well as user-agent detection.",
+  "answer": "AI Targeted Cloaking is when adversaries serve manipulated or malicious content to AI systems while showing benign content to humans, crawlers, or security tools. They may identify AI clients, such as by user-agent string, and tailor the response to deliver misleading content or prompt injections. [AML.T0134](https://atlas.mitre.org/techniques/AML.T0134)\n\n---\n**Sources**\n\n- [AML.T0134](https://atlas.mitre.org/techniques/AML.T0134) AI Targeted Cloaking. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "“AI Targeted Cloaking” is an ATLAS defense evasion technique: an attacker disguises malicious AI artifacts or activity so they appear benign to security tools or reviewers, helping them avoid detection. It is listed under Defense Evasion in [MITRE ATLAS](https://atlas.mitre.org/)."
+ },
+ {
+  "id": "fresh-assistant-links",
+  "category": "freshness",
+  "question": "Which ATLAS technique covers links that open an AI assistant with an attacker-chosen prompt already filled in?",
+  "gold_ids": [
+   "AML.T0131"
+  ],
+  "retrieved": [
+   "AML.T0131",
+   "AML.CS0072",
+   "AML.TA0004"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 0.0,
+  "judge_reason": "It correctly identifies AML.T0131, though it does not mention the URL-parameter prompt behavior described in the key facts.",
+  "baseline_judge_reason": "The answer declines to identify the technique, though the expected answer is AML.T0131 Crafted AI Assistant Links.",
+  "answer": "The technique is **Crafted AI Assistant Links** [AML.T0131](https://atlas.mitre.org/techniques/AML.T0131).\n\n---\n**Sources**\n\n- [AML.T0131](https://atlas.mitre.org/techniques/AML.T0131) Crafted AI Assistant Links. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "fresh-tool-poisoning",
+  "category": "freshness",
+  "question": "How does MITRE ATLAS describe AI agent tool poisoning?",
+  "gold_ids": [
+   "AML.T0110"
+  ],
+  "retrieved": [
+   "AML.T0110",
+   "AML.T0011.002",
+   "AML.T0010.005",
+   "AML.T0110.000",
+   "AML.T0099",
+   "AML.T0115.002",
+   "AML.T0110.002"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 0.25,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 0.0,
+  "judge_reason": "It accurately describes the poisoning surfaces and distinction from data poisoning, but omits the expected examples of tools such as integrations, packages, remote services, MCP servers, and skills.",
+  "baseline_judge_reason": "The answer declines to provide any of the expected facts, and the key facts do not indicate that the question is unanswerable.",
+  "answer": "MITRE ATLAS describes AI agent tool poisoning as introducing or modifying malicious content or behavior in a tool’s model-visible definition, executable implementation, or runtime responses, while the tool appears to perform a benign function. [AML.T0110](https://atlas.mitre.org/techniques/AML.T0110)\n\nPoisoning can manipulate how an agent interprets or invokes a tool, hide malicious behavior in its implementation, or use its responses to influence the agent’s later reasoning and actions. [AML.T0110.000](https://atlas.mitre.org/techniques/AML.T0110.000) [AML.T0110.002](https://atlas.mitre.org/techniques/AML.T0110.002) Such tools may lead agents to access sensitive data, invoke other tools, execute unauthorized commands, conceal actions, or exfiltrate information. [AML.T0110](https://atlas.mitre.org/techniques/AML.T0110)\n\nATLAS distinguishes tool poisoning from malicious data that a benign tool faithfully retrieves from an external source; manipulation of that source is described as AI Agent Tool Data Poisoning. [AML.T0110](https://atlas.mitre.org/techniques/AML.T0110) [AML.T0099](https://atlas.mitre.org/techniques/AML.T0099)\n\n---\n**Sources**\n\n- [AML.T0110](https://atlas.mitre.org/techniques/AML.T0110) AI Agent Tool Poisoning. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.T0110.000](https://atlas.mitre.org/techniques/AML.T0110.000) Definition and Instructions. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.T0110.002](https://atlas.mitre.org/techniques/AML.T0110.002) Runtime Response. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.T0099](https://atlas.mitre.org/techniques/AML.T0099) AI Agent Tool Data Poisoning. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "fresh-rug-pull",
+  "category": "freshness",
+  "question": "What is an AI supply chain rug pull according to MITRE ATLAS?",
+  "gold_ids": [
+   "AML.T0109"
+  ],
+  "retrieved": [
+   "AML.T0109",
+   "AML.T0111",
+   "AML.T0010.001",
+   "AML.T0110"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.5,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 1.0,
+  "judge_reason": "It accurately describes AML.T0109 and the adoption-then-malicious-update pattern that bypasses initial scrutiny, but omits that this leads to AI Supply Chain Compromise.",
+  "baseline_judge_reason": "It states all three key facts, and the additional details do not contradict them.",
+  "answer": "An AI supply chain rug pull is when an adversary publishes a legitimate AI component or software, builds adoption, then pushes a malicious update—potentially bypassing the scrutiny applied when a dependency is first considered. [AML.T0109](https://atlas.mitre.org/techniques/AML.T0109)\n\n---\n**Sources**\n\n- [AML.T0109](https://atlas.mitre.org/techniques/AML.T0109) AI Supply Chain Rug Pull. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "MITRE ATLAS defines an **AI Supply Chain Rug Pull** as publishing legitimate AI components or software, gaining user adoption, then pushing a malicious update. The established trust can help the attacker bypass the scrutiny applied to a new dependency and lead to an AI supply chain compromise. [AML.T0109]\n\nIt can involve poisoned models, datasets, or AI agent tools; attackers may first build trust through reputation inflation. [AML.T0111] [MITRE ATLAS](https://atlas.mitre.org/)"
+ },
+ {
+  "id": "fresh-authority-expansion",
+  "category": "freshness",
+  "question": "Which MITRE ATLAS mitigation limits an AI agent's ability to obtain additional permissions while it runs?",
+  "gold_ids": [
+   "AML.M0037"
+  ],
+  "retrieved": [
+   "AML.M0037",
+   "AML.T0117",
+   "AML.T0116",
+   "AML.T0124"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 0.5,
+  "baseline_correctness": 0.0,
+  "judge_reason": "It correctly names AML.M0037 and describes its purpose, but omits the pre-runtime authority limit and treatment of newly discovered resources as outside scope unless validated.",
+  "baseline_judge_reason": "The answer declines to identify the mitigation or state any of the expected key facts.",
+  "answer": "[AI Agent Authority Expansion Controls](https://atlas.mitre.org/mitigations/AML.M0037) limits an agent’s ability to acquire additional authority during execution.\n\n---\n**Sources**\n\n- [AML.M0037](https://atlas.mitre.org/mitigations/AML.M0037) AI Agent Authority Expansion Controls. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "fresh-hidden-context",
+  "category": "freshness",
+  "question": "Which OWASP Top 10 for LLM Applications 2026 entry covers extraction of hidden system instructions from a model's context?",
+  "gold_ids": [
+   "LLM08:2026"
+  ],
+  "retrieved": [
+   "LLM08:2026",
+   "LLM04:2026"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "The answer identifies LLM08:2026 Hidden Context Exposure, which the sources define as covering unauthorized extraction of hidden system instructions and other context.",
+  "baseline_judge_reason": "The answer declines to identify the entry, despite the key facts specifying LLM08:2026 Hidden Context Exposure.",
+  "answer": "**LLM08:2026 — Hidden Context Exposure** covers extraction of hidden system instructions from a model’s context. [LLM08:2026](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/9253e38ade58e959b531c0c5c9a4842272c9cd0e/2026/final/LLM08_HiddenContextExposure.md#description)\n\n---\n**Sources**\n\n- [LLM08:2026](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/9253e38ade58e959b531c0c5c9a4842272c9cd0e/2026/final/LLM08_HiddenContextExposure.md#description) Hidden Context Exposure. OWASP GenAI Security Project, OWASP Top 10 for LLM Applications 2026, CC BY-SA 4.0 (CC-BY-SA-4.0)\n\nSource versions: OWASP Top 10 for LLM Applications 2026 2026@9253e38\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "fresh-ki-mig-authority",
+  "category": "freshness",
+  "question": "Under Germany's KI-MIG, which authority is the market surveillance authority for the AI Act?",
+  "gold_ids": [
+   "KI-MIG § 2 Abs. 1"
+  ],
+  "retrieved": [
+   "AI Act Art. 74(9)",
+   "AI Act Art. 75(1d)",
+   "AI Act Art. 74(6)",
+   "AI Act Art. 3(26)",
+   "AI Act Art. 75(1a)",
+   "AI Act Art. 75(1c)",
+   "AI Act Art. 74(3)",
+   "AI Act Art. 75a(4)",
+   "AI Act Art. 75(1)",
+   "AI Act Art. 74(11)"
+  ],
+  "recall_at_10": 0.0,
+  "mrr": 0.0,
+  "citation_precision": 0.0,
+  "baseline_citation_precision": 0.5,
+  "abstention_accuracy": 0.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 0.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "The answer declines to provide the expected authority, but the supplied excerpts do not identify Germany’s competent authority, so the refusal is supported by the provided source text.",
+  "baseline_judge_reason": "It identifies the Bundesnetzagentur as the default authority and notes that the KI-MIG provides for exceptions.",
+  "answer": "I can't answer that from the indexed sources.\n\nIndexed sources:\n\n- AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n- EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n- EU AI Act (Regulation (EU) 2024/1689) OJ 2024/1689\n- KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz) Stand 2026-07-29, BGBl. I 2026, Nr. 223\n- MITRE ATLAS 2026.09\n- OWASP Top 10 for Agentic Applications 2026 2026 (2025-12-09)\n- OWASP Top 10 for LLM Applications 2026 2026@9253e38\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "Under the KI-MIG, the **Bundesnetzagentur** is the default market surveillance authority for the AI Act [KI-MIG § 2(1)]. Other authorities handle certain cases, including product-related AI systems and specified regulated financial activities [KI-MIG § 2(2)–(3)]. [KI-MIG](https://www.gesetze-im-internet.de/ki-mig/BJNR0DF0B0026.html)"
+ },
+ {
+  "id": "fresh-art-4a",
+  "category": "freshness",
+  "question": "Under the amended AI Act, when may providers process special categories of personal data for bias detection?",
+  "gold_ids": [
+   "AI Act Art. 4a(1)"
+  ],
+  "retrieved": [
+   "AI Act Art. 4a(2)",
+   "AI Act Art. 4a(1)",
+   "Recital 70"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 0.5,
+  "citation_precision": 0.5,
+  "baseline_citation_precision": 0.5,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 0.5,
+  "judge_reason": "The answer gives the strict-necessity and safeguards requirements and its additional conditions are source-supported, but it omits the required link to Article 10(2), points (f) and (g).",
+  "baseline_judge_reason": "It captures exceptional processing, strict necessity, bias detection and correction, and safeguards, but incorrectly broadens the scope beyond high-risk AI systems and omits the Article 10(2)(f) and (g) qualification.",
+  "answer": "Providers may exceptionally process special-category personal data for bias detection and correction:\n\n- **For high-risk AI systems**, only to the extent strictly necessary, with appropriate safeguards, and when the purpose cannot be effectively achieved using other data, including synthetic or anonymised data. [AI Act Art. 4a(1)](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_4a)\n- **For other AI systems and models**, only where processing is strictly necessary to address biases likely to affect health or safety, negatively affect fundamental rights, or cause discrimination prohibited by Union law; all the safeguards and conditions in paragraph 1 must also apply. [AI Act Art. 4a(2)](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_4a)\n\n---\n**Sources**\n\n- [AI Act Art. 4a(1)](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_4a) Article 4a Processing of special categories of personal data for bias detection and correction. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n- [AI Act Art. 4a(2)](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_4a) Article 4a Processing of special categories of personal data for bias detection and correction. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n\nSource versions: EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I’ll check the amended AI Act text and cite the specific provision.\n\nProviders may process special categories of personal data only exceptionally, and only to the extent **strictly necessary** to detect and correct bias in relation to AI systems covered by the Act. They must also apply appropriate safeguards and meet all these conditions [AI Act Art. 4a(1)(a)–(f)]:\n\n- Bias detection and correction cannot be effectively achieved using other data, including synthetic or anonymised data.\n- The data must have technical limits on reuse and state-of-the-art security and privacy protections, including pseudonymisation.\n- Access must be tightly controlled and documented, limited to authorised people with confidentiality obligations.\n- The data must not be transmitted, transferred, or accessed by other parties.\n- It must be deleted when the bias is corrected or its retention period ends, whichever comes first.\n- Processing records must explain why the data was strictly necessary and why other data could not achieve the objective.\n\nThis is also subject to applicable data-protection law and appropriate safeguards for people’s rights and freedoms. [Article 4a, amended AI Act](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-4a)"
+ },
+ {
+  "id": "fresh-recommendation-poisoning",
+  "category": "freshness",
+  "question": "What did Microsoft researchers call 'AI Recommendation Poisoning'?",
+  "gold_ids": [
+   "AML.CS0072"
+  ],
+  "retrieved": [
+   "AML.CS0072"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 0.0,
+  "judge_reason": "It identifies the promotional memory-manipulation pattern and AML.CS0072, but omits that pre-filled prompts are passed through a URL query parameter.",
+  "baseline_judge_reason": "The answer declines to provide the expected name and description of AI Recommendation Poisoning.",
+  "answer": "Microsoft researchers called it a pattern of promotional AI-assistant memory manipulation using crafted links to make assistants remember an operator’s domain as a trusted or authoritative source. [AML.CS0072](https://atlas.mitre.org/studies/AML.CS0072)\n\n---\n**Sources**\n\n- [AML.CS0072](https://atlas.mitre.org/studies/AML.CS0072) AI Recommendation Poisoning via Crafted AI Assistant Links. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "join-t0051-mitigations",
+  "category": "cross-source",
+  "question": "Which ATLAS mitigations address LLM prompt injection (AML.T0051)?",
+  "gold_ids": [
+   "AML.T0051",
+   "AML.M0019",
+   "AML.M0020",
+   "AML.M0021",
+   "AML.M0022",
+   "AML.M0024",
+   "AML.M0033",
+   "AML.M0035"
+  ],
+  "retrieved": [
+   "AML.T0051",
+   "AML.M0020",
+   "AML.M0022",
+   "AML.M0021",
+   "AML.M0033",
+   "AML.M0035",
+   "AML.M0019",
+   "AML.M0024",
+   "AML.T0051.001",
+   "AML.T0051.000"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "The answer lists all seven expected mitigations, and each is identified in the provided sources as mitigating AML.T0051.",
+  "baseline_judge_reason": "The answer declines to identify any of the expected mitigations for AML.T0051.",
+  "answer": "The indexed sources identify these mitigations for LLM prompt injection (AML.T0051):\n\n- Generative AI Guardrails — [AML.M0020](https://atlas.mitre.org/mitigations/AML.M0020)\n- Generative AI Model Alignment — [AML.M0022](https://atlas.mitre.org/mitigations/AML.M0022)\n- Generative AI Guidelines — [AML.M0021](https://atlas.mitre.org/mitigations/AML.M0021)\n- Input and Output Validation for AI Agent Components — [AML.M0033](https://atlas.mitre.org/mitigations/AML.M0033)\n- AI Red Team — [AML.M0035](https://atlas.mitre.org/mitigations/AML.M0035)\n- Control Access to AI Models and Data in Production — [AML.M0019](https://atlas.mitre.org/mitigations/AML.M0019)\n- AI Telemetry Logging — [AML.M0024](https://atlas.mitre.org/mitigations/AML.M0024)\n\n---\n**Sources**\n\n- [AML.M0020](https://atlas.mitre.org/mitigations/AML.M0020) Generative AI Guardrails. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.M0022](https://atlas.mitre.org/mitigations/AML.M0022) Generative AI Model Alignment. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.M0021](https://atlas.mitre.org/mitigations/AML.M0021) Generative AI Guidelines. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.M0033](https://atlas.mitre.org/mitigations/AML.M0033) Input and Output Validation for AI Agent Components. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.M0035](https://atlas.mitre.org/mitigations/AML.M0035) AI Red Team. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.M0019](https://atlas.mitre.org/mitigations/AML.M0019) Control Access to AI Models and Data in Production. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.M0024](https://atlas.mitre.org/mitigations/AML.M0024) AI Telemetry Logging. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "join-llm01-asi",
+  "category": "cross-source",
+  "question": "Which OWASP agentic (ASI) risks are mapped to LLM01:2026 Prompt Injection?",
+  "gold_ids": [
+   "LLM01:2026",
+   "ASI01",
+   "ASI02",
+   "ASI03",
+   "ASI05",
+   "ASI06",
+   "ASI08",
+   "ASI09"
+  ],
+  "retrieved": [
+   "LLM01:2026",
+   "ASI06",
+   "ASI02",
+   "ASI01",
+   "ASI05",
+   "ASI08",
+   "ASI09",
+   "ASI03"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 0.0,
+  "judge_reason": "It correctly lists five mapped risks but omits ASI03 Identity & Privilege Abuse and ASI09 Human-Agent Trust Exploitation; the listed mappings are supported by the sources.",
+  "baseline_judge_reason": "The answer declines to provide the requested OWASP risk mappings, and the key facts do not indicate that the question is unanswerable.",
+  "answer": "LLM01:2026 Prompt Injection maps to **ASI01 Agent Goal Hijack** [ASI01](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/), **ASI02 Tool Misuse and Exploitation** [ASI02](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/), **ASI05 Unexpected Code Execution (RCE)** [ASI05](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/), **ASI06 Memory & Context Poisoning** [ASI06](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/), and **ASI08 Cascading Failures** [ASI08](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).\n\n---\n**Sources**\n\n- [ASI01](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) Agent Goal Hijack. OWASP GenAI Security Project, OWASP Top 10 for Agentic Applications for 2026, CC BY-SA 4.0 (CC-BY-SA-4.0)\n- [ASI02](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) Tool Misuse and Exploitation. OWASP GenAI Security Project, OWASP Top 10 for Agentic Applications for 2026, CC BY-SA 4.0 (CC-BY-SA-4.0)\n- [ASI05](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) Unexpected Code Execution (RCE). OWASP GenAI Security Project, OWASP Top 10 for Agentic Applications for 2026, CC BY-SA 4.0 (CC-BY-SA-4.0)\n- [ASI06](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) Memory & Context Poisoning. OWASP GenAI Security Project, OWASP Top 10 for Agentic Applications for 2026, CC BY-SA 4.0 (CC-BY-SA-4.0)\n- [ASI08](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) Cascading Failures. OWASP GenAI Security Project, OWASP Top 10 for Agentic Applications for 2026, CC BY-SA 4.0 (CC-BY-SA-4.0)\n\nSource versions: OWASP Top 10 for Agentic Applications 2026 2026 (2025-12-09)\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "join-asi04-llm",
+  "category": "cross-source",
+  "question": "Which OWASP LLM Top 10 2026 risks are related to ASI04 Agentic Supply Chain Vulnerabilities?",
+  "gold_ids": [
+   "ASI04",
+   "LLM04:2026",
+   "LLM05:2026",
+   "LLM09:2026"
+  ],
+  "retrieved": [
+   "ASI04",
+   "LLM04:2026",
+   "LLM09:2026",
+   "LLM05:2026",
+   "ASI10",
+   "LLM08:2026"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "The answer lists all three mapped risks with the correct names, and each mapping is supported by the provided sources.",
+  "baseline_judge_reason": "The answer declines to identify the mapped risks and provides none of the expected key facts.",
+  "answer": "The related OWASP LLM Top 10 2026 risks are:\n\n- **LLM04:2026 — Supply Chain** [LLM04:2026](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/9253e38ade58e959b531c0c5c9a4842272c9cd0e/2026/final/LLM04_SupplyChain.md#description)\n- **LLM05:2026 — Data and Model Poisoning** [LLM05:2026](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/9253e38ade58e959b531c0c5c9a4842272c9cd0e/2026/final/LLM05_DataModelPoisoning.md#description)\n- **LLM09:2026 — Vector and Embedding Weaknesses** [LLM09:2026](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/9253e38ade58e959b531c0c5c9a4842272c9cd0e/2026/final/LLM09_VectorAndEmbeddingWeaknesses.md#description)\n\n---\n**Sources**\n\n- [LLM04:2026](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/9253e38ade58e959b531c0c5c9a4842272c9cd0e/2026/final/LLM04_SupplyChain.md#description) Supply Chain. OWASP GenAI Security Project, OWASP Top 10 for LLM Applications 2026, CC BY-SA 4.0 (CC-BY-SA-4.0)\n- [LLM05:2026](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/9253e38ade58e959b531c0c5c9a4842272c9cd0e/2026/final/LLM05_DataModelPoisoning.md#description) Data and Model Poisoning. OWASP GenAI Security Project, OWASP Top 10 for LLM Applications 2026, CC BY-SA 4.0 (CC-BY-SA-4.0)\n- [LLM09:2026](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/blob/9253e38ade58e959b531c0c5c9a4842272c9cd0e/2026/final/LLM09_VectorAndEmbeddingWeaknesses.md#description) Vector and Embedding Weaknesses. OWASP GenAI Security Project, OWASP Top 10 for LLM Applications 2026, CC BY-SA 4.0 (CC-BY-SA-4.0)\n\nSource versions: OWASP Top 10 for LLM Applications 2026 2026@9253e38\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "join-m0037-techniques",
+  "category": "cross-source",
+  "question": "Which ATLAS techniques does mitigation AML.M0037 address?",
+  "gold_ids": [
+   "AML.M0037",
+   "AML.T0116",
+   "AML.T0117",
+   "AML.T0124"
+  ],
+  "retrieved": [
+   "AML.M0037",
+   "AML.T0116",
+   "AML.T0117",
+   "AML.T0124"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "The answer names all three techniques listed as mitigated by AML.M0037, and each is supported by the provided sources.",
+  "baseline_judge_reason": "It lists all three ATLAS techniques specified for AML.M0037.",
+  "answer": "AML.M0037 addresses:\n\n- Autonomous Reconnaissance ([AML.T0116](https://atlas.mitre.org/techniques/AML.T0116))\n- Autonomous Attack-Path Adaptation ([AML.T0117](https://atlas.mitre.org/techniques/AML.T0117))\n- Autonomous Attack Orchestration ([AML.T0124](https://atlas.mitre.org/techniques/AML.T0124))\n\n---\n**Sources**\n\n- [AML.T0116](https://atlas.mitre.org/techniques/AML.T0116) Autonomous Reconnaissance. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.T0117](https://atlas.mitre.org/techniques/AML.T0117) Autonomous Attack-Path Adaptation. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.T0124](https://atlas.mitre.org/techniques/AML.T0124) Autonomous Attack Orchestration. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "AML.M0037 addresses [AML.T0116] Autonomous Reconnaissance, [AML.T0117] Autonomous Attack-Path Adaptation, and [AML.T0124] Autonomous Attack Orchestration. [MITRE ATLAS](https://atlas.mitre.org/mitigations/AML.M0037)"
+ },
+ {
+  "id": "join-t0110-tactic",
+  "category": "cross-source",
+  "question": "Which ATLAS tactic is AML.T0110 AI Agent Tool Poisoning related to?",
+  "gold_ids": [
+   "AML.T0110",
+   "AML.TA0006"
+  ],
+  "retrieved": [
+   "AML.T0110",
+   "AML.T0110.000",
+   "AML.T0110.002",
+   "AML.T0110.001",
+   "AML.TA0006",
+   "AML.T0011.002",
+   "AML.T0115",
+   "LLM09:2026"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "The answer correctly identifies AML.TA0006 Persistence, as explicitly stated in the source relation.",
+  "baseline_judge_reason": "The answer declines to identify AML.TA0006 Persistence, which is the expected tactic.",
+  "answer": "AML.T0110 is related to the **Persistence** tactic. [AML.TA0006](https://atlas.mitre.org/tactics/AML.TA0006)\n\n---\n**Sources**\n\n- [AML.TA0006](https://atlas.mitre.org/tactics/AML.TA0006) Persistence. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "join-t0070-mitigations",
+  "category": "cross-source",
+  "question": "Which ATLAS mitigations address RAG poisoning (AML.T0070)?",
+  "gold_ids": [
+   "AML.T0070",
+   "AML.M0020",
+   "AML.M0035"
+  ],
+  "retrieved": [
+   "AML.T0070",
+   "AML.M0035",
+   "AML.M0020",
+   "LLM09:2026"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "It names both expected mitigations, and its descriptions are supported by the provided sources.",
+  "baseline_judge_reason": "It identifies both expected mitigations for AML.T0070 without adding incorrect claims.",
+  "answer": "The listed mitigations are:\n\n- **AI Red Team (AML.M0035):** recurring, authorized red-team exercises to identify and remediate vulnerabilities. [AML.M0035](https://atlas.mitre.org/mitigations/AML.M0035)\n- **Generative AI Guardrails (AML.M0020):** controls that evaluate retrieved context and other workflow stages to block, modify, or route unwanted content. [AML.M0020](https://atlas.mitre.org/mitigations/AML.M0020)\n\n---\n**Sources**\n\n- [AML.M0035](https://atlas.mitre.org/mitigations/AML.M0035) AI Red Team. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.M0020](https://atlas.mitre.org/mitigations/AML.M0020) Generative AI Guardrails. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I’ll check the indexed sources available in this workspace for AML.T0070 and its linked mitigations.\n\nRAG Poisoning [AML.T0070] is addressed by:\n\n- **Generative AI Guardrails [AML.M0020]**\n- **AI Red Team [AML.M0035]**"
+ },
+ {
+  "id": "join-art15-resilience",
+  "category": "cross-source",
+  "question": "Attackers exploit vulnerabilities to change how an AI system behaves. Which AI Act provision requires high-risk AI systems to be resilient against this?",
+  "gold_ids": [
+   "AI Act Art. 15(5)"
+  ],
+  "retrieved": [
+   "AI Act Art. 15(5)",
+   "Recital 76",
+   "AI Act Art. 15(4)",
+   "AI Act Art. 14(1)",
+   "AI Act Art. 15(1)",
+   "AI Act Art. 8(1)",
+   "AI Act Art. 16(a)",
+   "AI Act Art. 16(f)",
+   "AI Act Art. 9(6)",
+   "AI Act Art. 16(i)"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "It correctly identifies Article 15(5) and accurately states its resilience requirement, matching the provided source.",
+  "baseline_judge_reason": "The answer correctly identifies Article 15(5) and states the required resilience against third-party exploitation of system vulnerabilities.",
+  "answer": "“High-risk AI systems shall be resilient against attempts by unauthorised third parties to alter their use, outputs or performance by exploiting system vulnerabilities.” [AI Act Art. 15(5)](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_15)\n\n---\n**Sources**\n\n- [AI Act Art. 15(5)](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_15) Article 15 Accuracy, robustness and cybersecurity. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n\nSource versions: EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "High-risk AI systems must be designed to be resilient against attempts by unauthorised third parties to alter their use, outputs or performance by exploiting system vulnerabilities [AI Act Art. 15(5)]."
+ },
+ {
+  "id": "join-contact-point",
+  "category": "cross-source",
+  "question": "Article 70(2) of the AI Act requires a single point of contact. Which German authority is it under the KI-MIG?",
+  "gold_ids": [
+   "KI-MIG § 6 Abs. 1",
+   "AI Act Art. 70(2)"
+  ],
+  "retrieved": [
+   "AI Act Art. 70(2)",
+   "AI Act Art. 75(2a)",
+   "AI Act Art. 70(4)",
+   "AI Act Art. 70(7)"
+  ],
+  "recall_at_10": 0.5,
+  "mrr": 1.0,
+  "citation_precision": 0.0,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 0.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 0.0,
+  "baseline_correctness": 0.5,
+  "judge_reason": "The answer declines to identify the Bundesnetzagentur, which is the expected key fact, but correctly avoids claiming a German authority not stated in the provided source excerpts.",
+  "baseline_judge_reason": "It correctly identifies the Bundesnetzagentur under KI-MIG § 6(1), but omits that Article 70(2) requires Member States to communicate the notifying and market surveillance authorities to the Commission.",
+  "answer": "I can't answer that from the indexed sources.\n\nIndexed sources:\n\n- AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n- EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n- EU AI Act (Regulation (EU) 2024/1689) OJ 2024/1689\n- KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz) Stand 2026-07-29, BGBl. I 2026, Nr. 223\n- MITRE ATLAS 2026.09\n- OWASP Top 10 for Agentic Applications 2026 2026 (2025-12-09)\n- OWASP Top 10 for LLM Applications 2026 2026@9253e38\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I’ll check the AI Act provision and Germany’s KI-MIG implementation to identify the designated authority.\n\nIt is the **Bundesnetzagentur**. KI-MIG § 6(1) names it as Germany’s central point of contact under Article 70(2) of the AI Act. [KI-MIG § 6(1)](https://www.gesetze-im-internet.de/ki-mig/BJNR0DF0B0026.html)"
+ },
+ {
+  "id": "join-unbounded-consumption",
+  "category": "cross-source",
+  "question": "Which OWASP LLM 2026 risk and which ATLAS mitigation deal with uncontrolled resource consumption by LLM applications and agents?",
+  "gold_ids": [
+   "LLM06:2026",
+   "AML.M0036"
+  ],
+  "retrieved": [
+   "LLM06:2026",
+   "LLM04:2026",
+   "LLM08:2026",
+   "LLM10:2026",
+   "LLM03:2026"
+  ],
+  "recall_at_10": 0.5,
+  "mrr": 1.0,
+  "citation_precision": 0.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 0.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 0.0,
+  "correctness": 0.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "The answer declines despite the sources identifying LLM06:2026 Unbounded Consumption and the relevant ATLAS mitigation, and its claim that the sources cannot answer is contradicted by them.",
+  "baseline_judge_reason": "The answer declines to identify either the OWASP risk or the ATLAS mitigation.",
+  "answer": "I can't answer that from the indexed sources.\n\nIndexed sources:\n\n- AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n- EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n- EU AI Act (Regulation (EU) 2024/1689) OJ 2024/1689\n- KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz) Stand 2026-07-29, BGBl. I 2026, Nr. 223\n- MITRE ATLAS 2026.09\n- OWASP Top 10 for Agentic Applications 2026 2026 (2025-12-09)\n- OWASP Top 10 for LLM Applications 2026 2026@9253e38\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "join-context-poisoning",
+  "category": "cross-source",
+  "question": "Which ATLAS mitigations address AI agent context poisoning (AML.T0080)?",
+  "gold_ids": [
+   "AML.T0080",
+   "AML.M0031",
+   "AML.M0035"
+  ],
+  "retrieved": [
+   "AML.T0080",
+   "AML.M0031",
+   "AML.M0035",
+   "AML.T0080.001",
+   "AML.T0080.000",
+   "AML.T0108"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.5,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.5,
+  "judge_reason": "It identifies both expected mitigations, Memory Hardening (AML.M0031) and AI Red Team (AML.M0035), as supported by the sources.",
+  "baseline_judge_reason": "It identifies AI Red Team (AML.M0035) but omits Memory Hardening (AML.M0031).",
+  "answer": "The ATLAS mitigations listed for AI agent context poisoning (AML.T0080) are [Memory Hardening](https://atlas.mitre.org/mitigations/AML.M0031) and [AI Red Team](https://atlas.mitre.org/mitigations/AML.M0035).\n\n---\n**Sources**\n\n- [AML.M0031](https://atlas.mitre.org/mitigations/AML.M0031) Memory Hardening. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n- [AML.M0035](https://atlas.mitre.org/mitigations/AML.M0035) AI Red Team. MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0\n\nSource versions: MITRE ATLAS 2026.09\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "MITRE ATLAS lists **AI Red Team** [AML.M0035] as the mitigation for AI Agent Context Poisoning [AML.T0080.001] (Thread). [MITRE ATLAS mitigation mapping](https://safemode.space/reference/frameworks/mitre-atlas/controls/aml-t0080-001)\n\nI couldn’t verify a mitigation mapping for the parent technique [AML.T0080] or its Memory subtechnique [AML.T0080.000] in the indexed sources."
+ },
+ {
+  "id": "de-art-50-1",
+  "category": "german-legal",
+  "question": "Was verlangt Art. 50 Abs. 1 KI-VO von Anbietern?",
+  "gold_ids": [
+   "AI Act Art. 50(1)"
+  ],
+  "retrieved": [
+   "AI Act Art. 50(1)",
+   "AI Act Art. 50(2)",
+   "AI Act Art. 50(4)",
+   "AI Act Art. 50(5)",
+   "AI Act Art. 50(3)",
+   "AI Act Art. 50(6)",
+   "AI Act Art. 50(7)",
+   "Recital 164",
+   "AI Act Art. 4(1)",
+   "AI Act Art. 111(4)"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 1.0,
+  "judge_reason": "Die Antwort nennt die Informationspflicht und die Ausnahmen zutreffend, lässt aber den Maßstab der angemessen informierten, aufmerksamen und verständigen Person aus.",
+  "baseline_judge_reason": "Die Antwort nennt die Informationspflicht für direkte Interaktionen und die Ausnahme, wenn die Interaktion mit KI offensichtlich ist.",
+  "answer": "Anbieter müssen KI-Systeme, die für die direkte Interaktion mit natürlichen Personen bestimmt sind, so konzipieren und entwickeln, dass diese Personen über die Interaktion mit einem KI-System informiert werden. Das gilt nicht, wenn dies aufgrund der Umstände und des Nutzungskontexts offensichtlich ist. Eine Ausnahme besteht außerdem für bestimmte gesetzlich zugelassene Strafverfolgungssysteme mit geeigneten Schutzvorkehrungen – nicht jedoch, wenn sie der Öffentlichkeit zur Anzeige einer Straftat zur Verfügung stehen. [AI Act Art. 50(1)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_50)\n\n---\n**Quellen**\n\n- [AI Act Art. 50(1)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_50) Artikel 50 Transparenzpflichten für Anbieter und Betreiber bestimmter KI-Systeme. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n\nQuellenversionen: EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n\n*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
+  "baseline_answer": "Anbieter müssen sicherstellen, dass KI-Systeme, die für die direkte Interaktion mit natürlichen Personen bestimmt sind, so gestaltet und entwickelt werden, dass die betroffenen Personen darüber informiert werden, dass sie mit einem KI-System interagieren. Das gilt nicht, wenn dies aus dem Kontext und den Umständen der Nutzung offensichtlich ist [KI-VO Art. 50 Abs. 1]."
+ },
+ {
+  "id": "de-art-99-3",
+  "category": "german-legal",
+  "question": "Welche Geldbußen drohen bei Verstößen gegen die verbotenen Praktiken nach Artikel 5 der KI-Verordnung?",
+  "gold_ids": [
+   "AI Act Art. 99(3)"
+  ],
+  "retrieved": [
+   "AI Act Art. 5(1)",
+   "AI Act Art. 5(1a)",
+   "AI Act Art. 5(1b)",
+   "AI Act Art. 5(2)",
+   "AI Act Art. 99(3)",
+   "AI Act Art. 100(2)",
+   "AI Act Art. 100(3)",
+   "Recital 169"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 0.2,
+  "citation_precision": 0.3333333333333333,
+  "baseline_citation_precision": 0.5,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 0.5,
+  "correctness": 1.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "Die genannten Höchstbeträge entsprechen den erwarteten Fakten; die zusätzliche Aussage, für welche Stellen die 1,5-Millionen-Euro-Grenze gilt, wird im bereitgestellten Quelltext nicht ausdrücklich belegt.",
+  "baseline_judge_reason": "Die Antwort nennt beide zutreffenden Höchstbeträge und die Regel, dass der jeweils höhere Betrag gilt; die ergänzenden Angaben sind korrekt.",
+  "answer": "Bei Verstößen gegen die Verbote nach Artikel 5 drohen Geldbußen von bis zu **35 Millionen Euro oder – bei Unternehmen – bis zu 7 % des weltweiten Jahresumsatzes des vorangegangenen Geschäftsjahres, je nachdem, welcher Betrag höher ist**. [AI Act Art. 99(3](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_99)\n\nFür Organe, Einrichtungen und sonstige Stellen der Union beträgt die Geldbuße bis zu **1,5 Millionen Euro**. [AI Act Art. 100(2)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_100)\n\n---\n**Quellen**\n\n- [AI Act Art. 99(3)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_99) Artikel 99 Sanktionen. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n- [AI Act Art. 100(2)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_100) Artikel 100 Verhängung von Geldbußen gegen Organe, Einrichtungen und sonstige Stellen der Union. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n\nQuellenversionen: EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n\n*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
+  "baseline_answer": "Bei Verstößen gegen die Verbote in Artikel 5 drohen Geldbußen von **bis zu 35 Millionen Euro oder – bei Unternehmen – bis zu 7 % des weltweiten Jahresumsatzes des vorangegangenen Geschäftsjahres, je nachdem, welcher Betrag höher ist** [KI-Verordnung, Art. 99 Abs. 3].\n\nFür KMU, einschließlich Start-ups, gilt jeweils der niedrigere der beiden Höchstbeträge. Die konkrete Geldbuße hängt von den Umständen des Einzelfalls ab [Art. 99 Abs. 6–7]. [Amtlicher Verordnungstext](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689)"
+ },
+ {
+  "id": "de-kimig-2-1",
+  "category": "german-legal",
+  "question": "Welche Behörde ist nach dem KI-MIG die zuständige Marktüberwachungsbehörde für die KI-Verordnung?",
+  "gold_ids": [
+   "KI-MIG § 2 Abs. 1"
+  ],
+  "retrieved": [
+   "KI-MIG § 2 Abs. 1",
+   "KI-MIG § 2 Abs. 3",
+   "KI-MIG § 2 Abs. 5",
+   "KI-MIG § 2 Abs. 7",
+   "KI-MIG § 5",
+   "KI-MIG § 7 Abs. 1",
+   "KI-MIG § 2 Abs. 2",
+   "KI-MIG § 3 Abs. 2",
+   "KI-MIG § 10 Abs. 4",
+   "KI-MIG § 20 Abs. 4"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 0.5,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "Die Antwort nennt die Bundesnetzagentur als grundsätzlich zuständige Behörde und beschreibt die belegte BaFin-Ausnahme für bestimmte finanzbezogene KI-Systeme.",
+  "baseline_judge_reason": "Die Antwort nennt die Bundesnetzagentur als grundsätzlich zuständige Marktüberwachungsbehörde und berücksichtigt, dass das Gesetz Ausnahmen vorsieht.",
+  "answer": "Grundsätzlich ist die Bundesnetzagentur zuständig. Das KI-MIG bestimmt: „Die Bundesnetzagentur ist die für die Einhaltung der Verordnung (EU) 2024/1689 zuständige Marktüberwachungsbehörde, soweit in diesem Gesetz nichts anderes bestimmt ist.“ [KI-MIG § 2 Abs. 1](https://www.gesetze-im-internet.de/ki-mig/__2.html)\n\nFür bestimmte KI-Systeme im Zusammenhang mit regulierten Finanztätigkeiten ist stattdessen die BaFin zuständig. [KI-MIG § 2 Abs. 3](https://www.gesetze-im-internet.de/ki-mig/__2.html)\n\n---\n**Quellen**\n\n- [KI-MIG § 2 Abs. 1](https://www.gesetze-im-internet.de/ki-mig/__2.html) § 2 Zuständige Marktüberwachungsbehörden. Amtliches Werk (§ 5 UrhG), Quelle: https://www.gesetze-im-internet.de/ki-mig/ (LicenseRef-UrhG-5)\n- [KI-MIG § 2 Abs. 3](https://www.gesetze-im-internet.de/ki-mig/__2.html) § 2 Zuständige Marktüberwachungsbehörden. Amtliches Werk (§ 5 UrhG), Quelle: https://www.gesetze-im-internet.de/ki-mig/ (LicenseRef-UrhG-5)\n\nQuellenversionen: KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz) Stand 2026-07-29, BGBl. I 2026, Nr. 223\n\n*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
+  "baseline_answer": "Nach § 2 Abs. 1 KI-MIG ist grundsätzlich die **Bundesnetzagentur** zuständige Marktüberwachungsbehörde für die KI-Verordnung. Das Gesetz sieht Ausnahmen vor, etwa für bestimmte Finanzsysteme, einzelne Hochrisiko-KI-Systeme und KI-Systeme öffentlicher Stellen der Länder."
+ },
+ {
+  "id": "de-kimig-2-3",
+  "category": "german-legal",
+  "question": "Wofür ist die BaFin nach § 2 Abs. 3 KI-MIG zuständig?",
+  "gold_ids": [
+   "KI-MIG § 2 Abs. 3"
+  ],
+  "retrieved": [
+   "KI-MIG § 2 Abs. 3",
+   "KI-MIG § 2 Abs. 4",
+   "KI-MIG § 6 Abs. 5",
+   "KI-MIG § 3 Abs. 2",
+   "KI-MIG § 2 Abs. 6",
+   "KI-MIG § 2 Abs. 1",
+   "KI-MIG § 2 Abs. 7",
+   "KI-MIG § 3 Abs. 1"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "Die Antwort nennt die zuständige Behörde und den maßgeblichen Zusammenhang mit regulierter Finanztätigkeit sowie die relevanten Unternehmen und Sonderfälle zutreffend und quellenbasiert.",
+  "baseline_judge_reason": "Die Antwort nennt die BaFin als zuständige Marktüberwachungsbehörde und gibt sowohl den Bezug zur regulierten Finanztätigkeit als auch die relevanten Handlungen beaufsichtigter Unternehmen korrekt wieder.",
+  "answer": "Die BaFin ist zuständige Marktüberwachungsbehörde für KI-Systeme, die in direktem Zusammenhang mit einer regulierten Finanztätigkeit stehen und von den in Absatz 3 aufgezählten, von ihr beaufsichtigten Unternehmen in Verkehr gebracht, in Betrieb genommen oder verwendet werden. § 2 Abs. 3 erfasst unter anderem Banken, Versicherungsunternehmen, Zahlungs- und E-Geld-Institute sowie Verwaltungsgesellschaften. [KI-MIG § 2 Abs. 3](https://www.gesetze-im-internet.de/ki-mig/__2.html)\n\nDie Zuständigkeit gilt außerdem in den dort geregelten Fällen, in denen die EZB Aufsichtsbehörde ist, sowie für „in direktem Zusammenhang mit einer regulierten Finanztätigkeit stehende Hochrisiko-KI-Systeme der Versorgungsanstalt des Bundes und der Länder“. [KI-MIG § 2 Abs. 3](https://www.gesetze-im-internet.de/ki-mig/__2.html)\n\n---\n**Quellen**\n\n- [KI-MIG § 2 Abs. 3](https://www.gesetze-im-internet.de/ki-mig/__2.html) § 2 Zuständige Marktüberwachungsbehörden. Amtliches Werk (§ 5 UrhG), Quelle: https://www.gesetze-im-internet.de/ki-mig/ (LicenseRef-UrhG-5)\n\nQuellenversionen: KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz) Stand 2026-07-29, BGBl. I 2026, Nr. 223\n\n*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
+  "baseline_answer": "Die BaFin ist die **zuständige Marktüberwachungsbehörde** für KI-Systeme, die direkt mit einer regulierten Finanztätigkeit zusammenhängen und von den in § 2 Abs. 3 KI-MIG genannten, von ihr beaufsichtigten Unternehmen in Verkehr gebracht, in Betrieb genommen oder verwendet werden. [§ 2 Abs. 3 KI-MIG](https://www.gesetze-im-internet.de/ki-mig/BJNR0DF0B0026.html)"
+ },
+ {
+  "id": "de-kimig-4-1",
+  "category": "german-legal",
+  "question": "Wie viele Mitglieder hat die KI-Marktüberwachungskammer und wer führt den Vorsitz?",
+  "gold_ids": [
+   "KI-MIG § 4 Abs. 1"
+  ],
+  "retrieved": [
+   "KI-MIG § 4 Abs. 1",
+   "AI Act Art. 65(8)"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "Die Antwort nennt zutreffend drei Mitglieder und den Vorsitz durch den Präsidenten oder die Präsidentin der Bundesnetzagentur; beides wird von der Quelle gestützt.",
+  "baseline_judge_reason": "Die Antwort verweigert die Auskunft, obwohl die erwarteten Fakten die Frage beantworten.",
+  "answer": "Die KI-Marktüberwachungskammer hat drei Mitglieder. „Den Vorsitz der Kammer führt der Präsident beziehungsweise die Präsidentin der Bundesnetzagentur.“ [KI-MIG § 4 Abs. 1](https://www.gesetze-im-internet.de/ki-mig/__4.html)\n\n---\n**Quellen**\n\n- [KI-MIG § 4 Abs. 1](https://www.gesetze-im-internet.de/ki-mig/__4.html) § 4 KI-Marktüberwachungskammer. Amtliches Werk (§ 5 UrhG), Quelle: https://www.gesetze-im-internet.de/ki-mig/ (LicenseRef-UrhG-5)\n\nQuellenversionen: KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz) Stand 2026-07-29, BGBl. I 2026, Nr. 223\n\n*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ },
+ {
+  "id": "de-art-50-4",
+  "category": "german-legal",
+  "question": "Was müssen Betreiber von KI-Systemen, die Deepfakes erzeugen, nach der KI-Verordnung offenlegen?",
+  "gold_ids": [
+   "AI Act Art. 50(4)"
+  ],
+  "retrieved": [
+   "AI Act Art. 50(4)",
+   "Recital 134",
+   "Recital 136",
+   "Recital 120",
+   "Recital 91",
+   "AI Act Art. 50(2)",
+   "Recital 131",
+   "AI Act Art. 50(1)",
+   "AI Act Art. 26(5)",
+   "Recital 137"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.5,
+  "judge_reason": "Die Antwort nennt die Offenlegungspflicht und die gesetzliche Straftaten-Ausnahme korrekt; auch die Einschränkung für künstlerische und ähnliche Werke ist durch die Quellen gedeckt.",
+  "baseline_judge_reason": "Die Antwort nennt die Offenlegungspflicht und die Kennzeichnung für bestimmte Werke, lässt aber die Ausnahme für gesetzlich zugelassene Strafverfolgungszwecke aus.",
+  "answer": "Betreiber müssen offenlegen, „dass die Inhalte künstlich erzeugt oder manipuliert wurden“.[AI Act Art. 50(4)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_50)\n\nBei offensichtlich künstlerischen, kreativen, satirischen, fiktionalen oder analogen Werken genügt eine geeignete Offenlegung, die Darstellung oder Genuss des Werks nicht beeinträchtigt. Die Pflicht gilt nicht, wenn die Verwendung zur Aufdeckung, Verhütung, Ermittlung oder Verfolgung von Straftaten gesetzlich zugelassen ist.[AI Act Art. 50(4)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_50)\n\n---\n**Quellen**\n\n- [AI Act Art. 50(4)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_50) Artikel 50 Transparenzpflichten für Anbieter und Betreiber bestimmter KI-Systeme. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n\nQuellenversionen: EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n\n*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
+  "baseline_answer": "Betreiber müssen offenlegen, dass es sich bei der erzeugten Bild-, Ton- oder Videoinhalte um künstlich erzeugte oder manipulierte Inhalte handelt. Die Offenlegung soll klar und unterscheidbar erfolgen; bei offensichtlich künstlerischen, kreativen, satirischen oder fiktionalen Werken genügt eine angemessene Kennzeichnung, die deren Darstellung oder Genuss nicht beeinträchtigt [KI-Verordnung, Art. 50(4)]."
+ },
+ {
+  "id": "de-kimig-15-3",
+  "category": "german-legal",
+  "question": "Bis zu welcher Höhe kann eine Ordnungswidrigkeit nach § 15 KI-MIG geahndet werden?",
+  "gold_ids": [
+   "KI-MIG § 15 Abs. 3"
+  ],
+  "retrieved": [
+   "KI-MIG § 15 Abs. 3",
+   "KI-MIG § 15 Abs. 1",
+   "KI-MIG § 15 Abs. 2"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "Die Antwort nennt die in § 15 Abs. 3 angegebene Höchstbuße von fünfzigtausend Euro und ist durch die Quelle belegt.",
+  "baseline_judge_reason": "Die Antwort nennt die erwartete Höchstgeldbuße von 50.000 Euro.",
+  "answer": "„Die Ordnungswidrigkeit kann mit einer Geldbuße bis zu fünfzigtausend Euro geahndet werden.“ [KI-MIG § 15 Abs. 3](https://www.gesetze-im-internet.de/ki-mig/__15.html)\n\n---\n**Quellen**\n\n- [KI-MIG § 15 Abs. 3](https://www.gesetze-im-internet.de/ki-mig/__15.html) § 15 Bußgeldvorschriften zur Verordnung (EU) 2024/1689. Amtliches Werk (§ 5 UrhG), Quelle: https://www.gesetze-im-internet.de/ki-mig/ (LicenseRef-UrhG-5)\n\nQuellenversionen: KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz) Stand 2026-07-29, BGBl. I 2026, Nr. 223\n\n*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
+  "baseline_answer": "Nach § 15 Abs. 3 KI-MIG kann die Ordnungswidrigkeit mit einer Geldbuße von bis zu **50.000 Euro** geahndet werden. [§ 15 KI-MIG](https://www.gesetze-im-internet.de/ki-mig/__15.html)"
+ },
+ {
+  "id": "de-art-113",
+  "category": "german-legal",
+  "question": "Ab wann gilt die KI-Verordnung nach Artikel 113?",
+  "gold_ids": [
+   "AI Act Art. 113"
+  ],
+  "retrieved": [
+   "AI Act Art. 113",
+   "AI Act Art. 113(c)",
+   "AI Act Art. 113(a)",
+   "AI Act Art. 113(d)",
+   "AI Act Art. 113(b)",
+   "AI Act Art. 111(2)",
+   "AI Act Art. 111(1)"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 0.2,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 0.5,
+  "judge_reason": "Die Antwort nennt den allgemeinen Geltungsbeginn und die gestaffelten Ausnahmen korrekt, lässt aber den Eintritt in Kraft am zwanzigsten Tag nach Veröffentlichung aus; ihre Aussagen sind durch die Quellen gestützt.",
+  "baseline_judge_reason": "Die Antwort nennt den allgemeinen Geltungsbeginn und Ausnahmen, lässt aber den Eintritt des Inkrafttretens am zwanzigsten Tag nach Veröffentlichung aus.",
+  "answer": "Grundsätzlich gilt die KI-Verordnung ab dem **2. August 2026**: „Sie gilt ab dem 2. August 2026.“ [AI Act Art. 113](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_113)\n\nArtikel 113 sieht jedoch gestaffelte Geltungsbeginne vor:\n\n- **Ab 2. Februar 2025:** Kapitel I und II; bestimmte in Artikel 5 genannte Bestimmungen gelten ab **2. Dezember 2026**. [AI Act Art. 113(a)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_113)\n- **Ab 2. August 2025:** Kapitel III Abschnitt 4, Kapitel V, VII und XII sowie Artikel 78; Artikel 101 ist ausgenommen. [AI Act Art. 113(b)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_113)\n- **Ab 27. Juli 2026:** Artikel 102 bis 110. [AI Act Art. 113(d)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_113)\n- **Ab 2. Dezember 2027** für bestimmte Hochrisiko-KI-Systeme nach Artikel 6 Absatz 2 und Anhang III; **ab 2. August 2028** für solche nach Artikel 6 Absatz 1 und Anhang I. [AI Act Art. 113(c)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_113)\n\n---\n**Quellen**\n\n- [AI Act Art. 113](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_113) Artikel 113 Inkrafttreten und Geltungsbeginn. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n- [AI Act Art. 113(a)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_113) Artikel 113 Inkrafttreten und Geltungsbeginn. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n- [AI Act Art. 113(b)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_113) Artikel 113 Inkrafttreten und Geltungsbeginn. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n- [AI Act Art. 113(d)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_113) Artikel 113 Inkrafttreten und Geltungsbeginn. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n- [AI Act Art. 113(c)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_113) Artikel 113 Inkrafttreten und Geltungsbeginn. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n\nQuellenversionen: EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n\n*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
+  "baseline_answer": "Die KI-Verordnung gilt grundsätzlich ab dem **2. August 2026**. Artikel 113 sieht jedoch frühere Termine für bestimmte Vorschriften vor: Kapitel I und II gelten ab dem 2. Februar 2025, Kapitel V sowie weitere dort genannte Bestimmungen ab dem 2. August 2025; Artikel 6 Absatz 1 und die entsprechenden Pflichten gelten ab dem 2. August 2027. [KI-Verordnung, Art. 113]"
+ },
+ {
+  "id": "de-recital-76",
+  "category": "german-legal",
+  "question": "Was sagt Erwägungsgrund 76 der KI-Verordnung zur Cybersicherheit?",
+  "gold_ids": [
+   "Recital 76"
+  ],
+  "retrieved": [
+   "Recital 76"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.5,
+  "judge_reason": "Die Antwort enthält die geforderten Kernaussagen und ihre zusätzlichen Erläuterungen werden durch die Quelle gestützt.",
+  "baseline_judge_reason": "Die Antwort erfasst den Schutz vor Veränderungen von Nutzung, Verhalten oder Leistung, lässt aber den ausdrücklichen Hinweis auf böswillige Dritte und Angriffe auf Trainingsdatensätze oder trainierte Modelle aus.",
+  "answer": "Erwägungsgrund 76 sagt, Cybersicherheit sei entscheidend, damit KI-Systeme Angriffen Dritter standhalten, die ihre Nutzung, ihr Verhalten, ihre Leistung oder ihre Sicherheitsmerkmale beeinträchtigen könnten. Angriffe können etwa Trainingsdaten vergiften, trainierte Modelle angreifen oder Schwachstellen in digitalen Ressourcen und der zugrunde liegenden IKT-Infrastruktur ausnutzen. Anbieter von Hochrisiko-KI-Systemen sollten daher angemessene Maßnahmen wie Sicherheitskontrollen ergreifen und gegebenenfalls auch die zugrunde liegende IKT-Infrastruktur berücksichtigen. [Recital 76](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32024R1689#rct_76)\n\n---\n**Quellen**\n\n- [Recital 76](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32024R1689#rct_76) Recital 76. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n\nQuellenversionen: EU AI Act (Regulation (EU) 2024/1689) OJ 2024/1689\n\n*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
+  "baseline_answer": "Erwägungsgrund 76 betont, dass Cybersicherheit über den gesamten Lebenszyklus eines KI-Systems gewährleistet sein muss. Hochrisiko-KI-Systeme sollen gegen Versuche geschützt werden, ihre Nutzung, ihr Verhalten oder ihre Leistung zu verändern oder Sicherheitslücken auszunutzen. Genannt werden unter anderem Datenvergiftung, Modellvergiftung, adversariale Beispiele, Vertraulichkeitsangriffe und Modellfehler [KI-Verordnung, Erwägungsgrund 76]."
+ },
+ {
+  "id": "de-art-3-1",
+  "category": "german-legal",
+  "question": "Wie definiert die KI-Verordnung ein KI-System?",
+  "gold_ids": [
+   "AI Act Art. 3(1)"
+  ],
+  "retrieved": [
+   "Recital 12",
+   "Recital 18",
+   "AI Act Art. 3(1)",
+   "Recital 17",
+   "Recital 53",
+   "Recital 24",
+   "AI Act Art. 3(66)",
+   "AI Act Art. 6(1a)",
+   "AI Act Art. 75(1)",
+   "Recital 119"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 0.3333333333333333,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "Die Antwort gibt die Definition aus Artikel 3 Absatz 1 vollständig und korrekt wieder und wird durch die bereitgestellte Quelle gestützt.",
+  "baseline_judge_reason": "Die Antwort enthält beide zentralen Bestandteile der Definition und ergänzt sie korrekt um ausdrückliche oder implizite Ziele.",
+  "answer": "„‚KI-System‘ ein maschinengestütztes System, das für einen in unterschiedlichem Grade autonomen Betrieb ausgelegt ist und das nach seiner Betriebsaufnahme anpassungsfähig sein kann und das aus den erhaltenen Eingaben für explizite oder implizite Ziele ableitet, wie Ausgaben wie etwa Vorhersagen, Inhalte, Empfehlungen oder Entscheidungen erstellt werden, die physische oder virtuelle Umgebungen beeinflussen können“ ([AI Act Art. 3(1)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_3)).\n\n---\n**Quellen**\n\n- [AI Act Art. 3(1)](https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_3) Artikel 3 Begriffsbestimmungen. © European Union, https://eur-lex.europa.eu (LicenseRef-EU-Decision-2011-833)\n\nQuellenversionen: EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n\n*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
+  "baseline_answer": "Nach Artikel 3 Absatz 1 der KI-Verordnung ist ein „KI-System“ ein maschinenbasiertes System, das mit unterschiedlichen Autonomiegraden arbeiten soll und nach seiner Einführung anpassungsfähig sein kann. Es leitet aus Eingaben für ausdrückliche oder implizite Ziele ab, wie es Ausgaben erzeugt – etwa Vorhersagen, Inhalte, Empfehlungen oder Entscheidungen –, die physische oder virtuelle Umgebungen beeinflussen können [KI-Verordnung, Art. 3(1)](https://eur-lex.europa.eu/eli/reg/2024/1689/oj)."
+ },
+ {
+  "id": "cve-langchain-ssrf",
+  "category": "cve",
+  "question": "What is CVE-2026-26013 and which package versions remediate it?",
+  "gold_ids": [
+   "CVE-2026-26013"
+  ],
+  "retrieved": [
+   "CVE-2026-26013"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 1.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 0.5,
+  "baseline_correctness": 0.25,
+  "judge_reason": "It correctly describes the SSRF and gives the patched package versions, but omits the vulnerable file, CVSS/CWE, and that upgrading langchain-core alone is insufficient.",
+  "baseline_judge_reason": "It identifies the SSRF and affected method, but gives the wrong remediation: the fix is langchain-openai 1.1.9 (requiring langchain-core 1.2.11), and upgrading langchain-core alone is insufficient.",
+  "answer": "CVE-2026-26013 is a server-side request forgery (SSRF) vulnerability: `ChatOpenAI.get_num_tokens_from_messages()` may fetch unvalidated `image_url` values while counting image tokens, allowing requests to internal or external URLs. [CVE-2026-26013](https://nvd.nist.gov/vuln/detail/CVE-2026-26013)\n\nRemediation is in `langchain-openai` **1.1.9** and requires `langchain-core` **1.2.11**; `langchain-core` versions before 1.2.11 are affected. [CVE-2026-26013](https://nvd.nist.gov/vuln/detail/CVE-2026-26013)\n\n---\n**Sources**\n\n- [CVE-2026-26013](https://nvd.nist.gov/vuln/detail/CVE-2026-26013) LangChain affected by SSRF via image_url token counting in ChatOpenAI.get_num_tokens_from_messages. GHSA-2g6r-c272-w58r from the GitHub Advisory Database / OSV (CC BY 4.0); NVD (public domain); CISA KEV (CC0) (CC-BY-4.0)\n\nSource versions: AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "CVE-2026-26013 is a low-severity server-side request forgery (SSRF) in LangChain. When counting tokens for vision-enabled models, `ChatOpenAI.get_num_tokens_from_messages()` could fetch an attacker-controlled `image_url` without validation [CVE-2026-26013] [CWE-918].\n\nUpgrade `langchain-core` to **1.2.11 or later** to remediate it. [CVE record](https://www.cve.org/CVERecord?id=CVE-2026-26013) [GitLab Advisory](https://advisories.gitlab.com/pypi/langchain-core/CVE-2026-26013/)"
+ },
+ {
+  "id": "cve-mlflow-kev",
+  "category": "cve",
+  "question": "Is CVE-2026-64849 in CISA's Known Exploited Vulnerabilities catalog, and what does it affect?",
+  "gold_ids": [
+   "CVE-2026-64849"
+  ],
+  "retrieved": [
+   "CVE-2026-64849",
+   "CVE-2026-44843"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 0.75,
+  "judge_reason": "It correctly states the KEV listing, the unauthenticated MLflow webhook SSRF and fix version, but omits the expected CVSS 9.3 CRITICAL rating.",
+  "baseline_judge_reason": "It correctly says the CVE is in CISA KEV and describes the unauthenticated MLflow webhook SSRF and affected versions, but omits the validator bypass and CVSS 9.3 Critical rating.",
+  "answer": "Yes. CVE-2026-64849 is listed in CISA’s Known Exploited Vulnerabilities catalog. [CVE-2026-64849](https://nvd.nist.gov/vuln/detail/CVE-2026-64849)\n\nIt affects MLflow webhook delivery: an unauthenticated attacker can use unvalidated redirects or DNS rebinding to make a reachable tracking server fetch internal URLs and read their responses through the webhook test endpoint. The issue is fixed in MLflow 3.15.0. [CVE-2026-64849](https://nvd.nist.gov/vuln/detail/CVE-2026-64849)\n\n---\n**Sources**\n\n- [CVE-2026-64849](https://nvd.nist.gov/vuln/detail/CVE-2026-64849) MLflow: Unauthenticated full-read SSRF in webhook delivery: _validate_webhook_url bypassed via unvalidated HTTP redirects (and DNS rebinding). GHSA-7gwp-5pfp-969j from the GitHub Advisory Database / OSV (CC BY 4.0); NVD (public domain); CISA KEV (CC0) (CC-BY-4.0)\n\nSource versions: AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I’ll check current CISA and vulnerability references, since this CVE is recent and catalog membership can change.\n\nYes. CISA added CVE-2026-64849 to its Known Exploited Vulnerabilities catalog on August 19, 2026. It affects **MLflow versions earlier than 3.15.0**: an unauthenticated server-side request forgery flaw in webhook testing can let an attacker reach internal or cloud metadata services and read their responses. [CISA catalog record](https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2026-64849) · [MLflow advisory](https://github.com/mlflow/mlflow/security/advisories/GHSA-7gwp-5pfp-969j)"
+ },
+ {
+  "id": "cve-vllm-video-rce",
+  "category": "cve",
+  "question": "Which critical vLLM vulnerability allows remote code execution through video processing, and which version fixes it?",
+  "gold_ids": [
+   "CVE-2026-22778"
+  ],
+  "retrieved": [
+   "CVE-2026-22778",
+   "CVE-2024-9053",
+   "GHSA-ggpf-24jw-3fcw",
+   "CVE-2025-29783",
+   "CVE-2026-90553",
+   "CVE-2025-66448",
+   "CVE-2025-47277",
+   "CVE-2024-9052",
+   "CVE-2025-9141"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 0.75,
+  "judge_reason": "It correctly identifies the CVE, video-processing RCE, and fix version, but omits the affected version range and CVSS score.",
+  "baseline_judge_reason": "It correctly identifies the CVE, RCE impact, and affected/fixed versions, but omits the CVSS 9.8 CRITICAL rating.",
+  "answer": "CVE-2026-22778 allows remote code execution through vLLM video processing; it is fixed in vLLM 0.14.1. [CVE-2026-22778](https://nvd.nist.gov/vuln/detail/CVE-2026-22778)\n\n---\n**Sources**\n\n- [CVE-2026-22778](https://nvd.nist.gov/vuln/detail/CVE-2026-22778) vLLM has RCE In Video Processing. GHSA-4r2x-xpjr-7cvv from the GitHub Advisory Database / OSV (CC BY 4.0); NVD (public domain); CISA KEV (CC0) (CC-BY-4.0)\n\nSource versions: AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "The critical flaw is **CVE-2026-22778** ([GHSA-4r2x-xpjr-7cvv]), which can enable remote code execution through malicious video processing. It affects vLLM versions **0.8.3 through versions below 0.14.1**; upgrade to **0.14.1 or later** to fix it. [GitHub security advisory](https://github.com/vllm-project/vllm/security/advisories/GHSA-4r2x-xpjr-7cvv)"
+ },
+ {
+  "id": "cve-ollama-auth",
+  "category": "cve",
+  "question": "What is CVE-2025-63389 in Ollama?",
+  "gold_ids": [
+   "CVE-2025-63389"
+  ],
+  "retrieved": [
+   "CVE-2025-63389",
+   "CVE-2024-12886",
+   "CVE-2024-12055",
+   "CVE-2025-1975",
+   "CVE-2026-7482",
+   "CVE-2025-0317",
+   "CVE-2026-7020",
+   "CVE-2025-0312",
+   "CVE-2025-0315",
+   "CVE-2024-8063"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 0.75,
+  "baseline_correctness": 1.0,
+  "judge_reason": "It accurately describes the unauthenticated model-management exposure, severity, affected versions, and lack of a listed fix, but omits CWE-306.",
+  "baseline_judge_reason": "The answer includes the missing-authentication issue, model-management impact, CVSS 9.8/Critical, CWE-306, and says no patched version is listed.",
+  "answer": "CVE-2025-63389 is a critical authentication-bypass vulnerability in Ollama versions up to and including v0.12.3. Unauthenticated remote attackers can use exposed API endpoints to perform unauthorized model-management operations. It has a CVSS 3.1 score of 9.8; no fix is listed in the source. [CVE-2025-63389](https://nvd.nist.gov/vuln/detail/CVE-2025-63389)\n\n---\n**Sources**\n\n- [CVE-2025-63389](https://nvd.nist.gov/vuln/detail/CVE-2025-63389) Ollama Platform has missing authentication enabling attackers to perform model management operations. GHSA-f6mr-38g8-39rg from the GitHub Advisory Database / OSV (CC BY 4.0); NVD (public domain); CISA KEV (CC0) (CC-BY-4.0)\n\nSource versions: AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "CVE-2025-63389 is a **critical authentication bypass** affecting Ollama’s API. An unauthenticated remote attacker may be able to perform unauthorized model management operations. NVD lists versions through **v0.12.3** as affected and assigns **CVSS 9.8 (Critical)**; the weakness is missing authentication for a critical function [CWE-306]. [NVD entry](https://nvd.nist.gov/vuln/detail/cve-2025-63389)\n\nAdvisory listings disagree on the affected version range, so check the current Ollama advisory before relying on a specific “fixed in” version. The sources I found list no patched version. [GitHub Advisory](https://github.com/advisories/GHSA-f6mr-38g8-39rg)"
+ },
+ {
+  "id": "cve-ray-kev",
+  "category": "cve",
+  "question": "Which Ray vulnerability is listed by CISA as known exploited, and how is it exploited?",
+  "gold_ids": [
+   "CVE-2025-62593"
+  ],
+  "retrieved": [
+   "CVE-2025-62593"
+  ],
+  "recall_at_10": 1.0,
+  "mrr": 1.0,
+  "citation_precision": 1.0,
+  "baseline_citation_precision": 0.0,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "It identifies CVE-2025-62593 as CISA-listed and accurately describes DNS rebinding via Safari or Firefox, consistent with the source.",
+  "baseline_judge_reason": "It identifies CVE-2025-62593 as listed by CISA, explains the DNS-rebinding attack through Firefox or Safari, and gives Ray 2.52.0 as the fix.",
+  "answer": "CISA lists **CVE-2025-62593** as known exploited. It can be exploited through a DNS rebinding attack in Firefox or Safari: a developer visits a malicious website or sees a malicious ad, allowing the attacker to execute code against the developer’s Ray instance. [CVE-2025-62593](https://nvd.nist.gov/vuln/detail/CVE-2025-62593)\n\n---\n**Sources**\n\n- [CVE-2025-62593](https://nvd.nist.gov/vuln/detail/CVE-2025-62593) Ray is vulnerable to Critical RCE via Safari & Firefox Browsers through DNS Rebinding Attack. GHSA-q279-jhrf-cc6v from the GitHub Advisory Database / OSV (CC BY 4.0); NVD (public domain); CISA KEV (CC0) (CC-BY-4.0)\n\nSource versions: AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I’ll check CISA’s current Known Exploited Vulnerabilities listing and an authoritative technical source for the exploit details.\n\nCISA lists **CVE-2025-62593**, a Ray code injection vulnerability that can lead to remote code execution. An attacker can lure a developer running a vulnerable Ray version into visiting a malicious site (or seeing a malicious ad). The site uses **DNS rebinding** through Firefox or Safari to reach Ray’s local dashboard API; Ray’s browser-request check relied on a `User-Agent` header the browser could change. The attacker can then submit a job that runs code on the developer’s machine. [CISA KEV entry](https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2025-62593), [Ray security advisory](https://github.com/ray-project/ray/security/advisories/GHSA-q279-jhrf-cc6v)\n\nThe issue affects Ray versions before **2.52.0**; the Ray project says to update to 2.52.0 or later."
+ },
+ {
+  "id": "abstain-capital",
+  "category": "abstention",
+  "question": "What is the capital of France?",
+  "gold_ids": [],
+  "retrieved": [],
+  "recall_at_10": null,
+  "mrr": null,
+  "citation_precision": null,
+  "baseline_citation_precision": null,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": null,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "The answer correctly declines because the question is not answerable from the indexed sources.",
+  "baseline_judge_reason": "The expected response was to decline because the answer is not available from the indexed sources, but the answer states Paris.",
+  "answer": "I can't answer that from the indexed sources.\n\nIndexed sources:\n\n- AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n- EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n- EU AI Act (Regulation (EU) 2024/1689) OJ 2024/1689\n- KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz) Stand 2026-07-29, BGBl. I 2026, Nr. 223\n- MITRE ATLAS 2026.09\n- OWASP Top 10 for Agentic Applications 2026 2026 (2025-12-09)\n- OWASP Top 10 for LLM Applications 2026 2026@9253e38\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "Paris."
+ },
+ {
+  "id": "abstain-world-cup",
+  "category": "abstention",
+  "question": "Who won the 2022 FIFA World Cup?",
+  "gold_ids": [],
+  "retrieved": [],
+  "recall_at_10": null,
+  "mrr": null,
+  "citation_precision": null,
+  "baseline_citation_precision": null,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": null,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "The answer correctly declines because the indexed sources do not provide the requested information.",
+  "baseline_judge_reason": "The answer gives a winner instead of declining, as required by the key facts.",
+  "answer": "I can't answer that from the indexed sources.\n\nIndexed sources:\n\n- AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n- EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n- EU AI Act (Regulation (EU) 2024/1689) OJ 2024/1689\n- KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz) Stand 2026-07-29, BGBl. I 2026, Nr. 223\n- MITRE ATLAS 2026.09\n- OWASP Top 10 for Agentic Applications 2026 2026 (2025-12-09)\n- OWASP Top 10 for LLM Applications 2026 2026@9253e38\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "Argentina."
+ },
+ {
+  "id": "abstain-nist-rmf",
+  "category": "abstention",
+  "question": "What does the GOVERN function of the NIST AI Risk Management Framework require?",
+  "gold_ids": [],
+  "retrieved": [],
+  "recall_at_10": null,
+  "mrr": null,
+  "citation_precision": null,
+  "baseline_citation_precision": null,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": null,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "The answer correctly declines because the question is not answerable from the indexed sources.",
+  "baseline_judge_reason": "The required response was to decline because the question was not answerable from the indexed sources, but the answer provided substantive claims.",
+  "answer": "I can't answer that from the indexed sources.\n\nIndexed sources:\n\n- AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n- EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n- EU AI Act (Regulation (EU) 2024/1689) OJ 2024/1689\n- KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz) Stand 2026-07-29, BGBl. I 2026, Nr. 223\n- MITRE ATLAS 2026.09\n- OWASP Top 10 for Agentic Applications 2026 2026 (2025-12-09)\n- OWASP Top 10 for LLM Applications 2026 2026@9253e38\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "GOVERN is the AI RMF’s **cross-cutting function**: it cultivates an organizational culture of AI risk management and informs the MAP, MEASURE, and MANAGE functions throughout the AI system lifecycle. The framework describes outcomes to work toward, not a mandatory checklist or fixed sequence. [NIST AI RMF 1.0](https://nvlpubs.nist.gov/nistpubs/ai/nist.ai.100-1.pdf)\n\nIn practice, GOVERN calls for organizations to:\n\n- Establish transparent policies and processes for AI risk, understand and document applicable legal and regulatory requirements, and integrate trustworthy AI characteristics into their practices.\n- Set risk-management activities according to organizational risk tolerance and priorities; plan monitoring and periodic review.\n- Inventory AI systems and plan for their safe decommissioning.\n- Define clear roles, responsibilities, and communication lines, and train personnel and partners in AI risk management.\n\nThese are the GOVERN categories and subcategories in the framework. [NIST AI RMF Core](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)"
+ },
+ {
+  "id": "abstain-gdpr-17",
+  "category": "abstention",
+  "question": "Was regelt Artikel 17 der Datenschutz-Grundverordnung zum Recht auf Löschung?",
+  "gold_ids": [],
+  "retrieved": [
+   "AI Act Art. 17(1)",
+   "AI Act Art. 17(2)",
+   "AI Act Art. 17(4)",
+   "AI Act Art. 17(3)"
+  ],
+  "recall_at_10": null,
+  "mrr": null,
+  "citation_precision": null,
+  "baseline_citation_precision": null,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 0.0,
+  "faithfulness": 1.0,
+  "correctness": 1.0,
+  "baseline_correctness": 0.0,
+  "judge_reason": "Die Antwort lehnt korrekt ab, da die bereitgestellten Quellen Artikel 17 des AI Act behandeln, nicht Artikel 17 der DSGVO.",
+  "baseline_judge_reason": "Die Antwort gibt eine inhaltliche Erklärung, obwohl laut erwarteten Fakten aus den Quellen keine Antwort möglich ist und sie hätte ablehnen müssen.",
+  "answer": "I can't answer that from the indexed sources.\n\nIndizierte Quellen:\n\n- AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n- EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n- EU AI Act (Regulation (EU) 2024/1689) OJ 2024/1689\n- KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz) Stand 2026-07-29, BGBl. I 2026, Nr. 223\n- MITRE ATLAS 2026.09\n- OWASP Top 10 for Agentic Applications 2026 2026 (2025-12-09)\n- OWASP Top 10 for LLM Applications 2026 2026@9253e38\n\n*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
+  "baseline_answer": "Artikel 17 DSGVO regelt das Recht auf Löschung („Recht auf Vergessenwerden“). Betroffene können verlangen, dass ihre personenbezogenen Daten unverzüglich gelöscht werden, wenn etwa die Daten für ihren ursprünglichen Zweck nicht mehr erforderlich sind, sie ihre Einwilligung widerrufen und keine andere Rechtsgrundlage besteht oder sie wirksam Widerspruch eingelegt haben.\n\nDer Verantwortliche muss die Daten löschen, sofern keine Ausnahme greift, zum Beispiel eine gesetzliche Aufbewahrungspflicht oder die Erforderlichkeit zur Ausübung der Meinungs- und Informationsfreiheit. Hat er die Daten öffentlich gemacht, muss er unter bestimmten Voraussetzungen angemessene Schritte unternehmen, um andere Verantwortliche über das Löschungsverlangen zu informieren. [DSGVO Art. 17]"
+ },
+ {
+  "id": "abstain-recipe",
+  "category": "abstention",
+  "question": "Give me a recipe for lasagna.",
+  "gold_ids": [],
+  "retrieved": [],
+  "recall_at_10": null,
+  "mrr": null,
+  "citation_precision": null,
+  "baseline_citation_precision": null,
+  "abstention_accuracy": 1.0,
+  "baseline_abstention_accuracy": 1.0,
+  "faithfulness": null,
+  "correctness": 1.0,
+  "baseline_correctness": 1.0,
+  "judge_reason": "The answer correctly declines because the question is not answerable from the indexed sources.",
+  "baseline_judge_reason": "The answer correctly declines because the recipe is not answerable from the indexed sources.",
+  "answer": "I can't answer that from the indexed sources.\n\nIndexed sources:\n\n- AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV) 2026-10-24\n- EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727\n- EU AI Act (Regulation (EU) 2024/1689) OJ 2024/1689\n- KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz) Stand 2026-07-29, BGBl. I 2026, Nr. 223\n- MITRE ATLAS 2026.09\n- OWASP Top 10 for Agentic Applications 2026 2026 (2025-12-09)\n- OWASP Top 10 for LLM Applications 2026 2026@9253e38\n\n*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
+  "baseline_answer": "I can't answer that from the indexed sources."
+ }
+]

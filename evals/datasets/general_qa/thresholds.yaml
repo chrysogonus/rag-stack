@@ -1,5 +1,0 @@
-# Mean judge scores (0-1) the agent must reach on golden.jsonl.
-# Faithfulness and groundedness are added once the agent retrieves from the knowledge base;
-# until then there is no retrieved context to ground answers in.
-relevance: 0.8
-correctness: 0.8

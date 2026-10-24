@@ -3,10 +3,12 @@ import uuid
 from collections.abc import Iterator
 
 import pytest
+from fakes.embeddings import FakeRetriever, chunk
 from fakes.llm import FailingChatModel, FakeChatModel
 from fastapi.testclient import TestClient
 from langgraph.checkpoint.memory import InMemorySaver
 
+from rag_stack.agent.answer import footer
 from rag_stack.api.app import create_app
 from rag_stack.config import Settings
 from rag_stack.llm.base import ChatModel
@@ -26,7 +28,9 @@ def make_client() -> Iterator:
     clients: list[TestClient] = []
 
     def make(llm: ChatModel | None = None, **settings) -> TestClient:
-        app = create_app(Settings(**settings), llm or FakeChatModel(), InMemorySaver())
+        app = create_app(
+            Settings(**settings), llm or FakeChatModel(), InMemorySaver(), FakeRetriever(SOURCE)
+        )
         client = TestClient(app).__enter__()
         clients.append(client)
         return client
@@ -34,6 +38,10 @@ def make_client() -> Iterator:
     yield make
     for client in clients:
         client.__exit__(None, None, None)
+
+
+SOURCE = chunk("AML.T0051", "LLM Prompt Injection")
+FOOTER = footer("Hello there", [SOURCE], "en")
 
 
 def url() -> str:
@@ -50,7 +58,8 @@ def test_post_streams_deltas_then_the_final_message(make_client):
     assert parse_sse(response.text) == [
         ("delta", {"text": "Hello"}),
         ("delta", {"text": " there"}),
-        ("done", {"message": {"role": "assistant", "content": "Hello there"}}),
+        ("delta", {"text": FOOTER}),
+        ("done", {"message": {"role": "assistant", "content": "Hello there" + FOOTER}}),
     ]
 
 
@@ -63,7 +72,7 @@ def test_get_returns_the_conversation(make_client):
 
     assert client.get(thread).json() == [
         {"role": "user", "content": "Hi"},
-        {"role": "assistant", "content": "Hello there"},
+        {"role": "assistant", "content": "Hello there" + FOOTER},
     ]
 
 

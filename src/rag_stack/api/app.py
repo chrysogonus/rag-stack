@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
@@ -17,6 +18,7 @@ from rag_stack.config import Settings
 from rag_stack.db.checkpointer import open_checkpointer
 from rag_stack.llm.base import ChatModel, Message
 from rag_stack.llm.factory import create_chat_model
+from rag_stack.retrieval.retriever import Retriever, open_knowledge_base
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +34,10 @@ def create_app(
     settings: Settings | None = None,
     llm: ChatModel | None = None,
     checkpointer: BaseCheckpointSaver | None = None,
+    retriever: Retriever | None = None,
 ) -> FastAPI:
-    """Build the API. `llm` and `checkpointer` default to OpenAI and Postgres."""
+    """Build the API. By default the LLM comes from settings, conversations are stored in
+    Postgres and the knowledge base is Qdrant with local embedding models."""
     settings = settings or Settings()
     limiter = ClientLimiter(settings.rate_limit_per_minute, settings.daily_token_budget_per_client)
 
@@ -49,7 +53,8 @@ def create_app(
                 api_key=settings.llm_api_key.get_secret_value(),
                 base_url=settings.llm_base_url,
             )
-            app.state.graph = build_graph(model, saver, settings)
+            knowledge = retriever or await asyncio.to_thread(open_knowledge_base, settings)
+            app.state.graph = build_graph(model, saver, settings, knowledge)
             yield
 
     app = FastAPI(title="rag-stack", lifespan=lifespan)

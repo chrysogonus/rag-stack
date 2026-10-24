@@ -1,24 +1,44 @@
 # rag-stack
 
-A custom retrieval-augmented generation (RAG) application that powers a chatbot. At its core is
-a knowledge base agent that answers user questions from your documents.
+A self-hosted RAG chatbot on attacks against AI systems and EU AI regulation. It answers from six
+openly licensed sources and cites every claim with its exact ID (ATLAS technique, OWASP risk,
+AI Act provision, KI-MIG section, CVE), quoting legal text verbatim in English or German.
 
-**How it works:** documents are ingested, chunked, and embedded into Qdrant. For each question,
-the agent retrieves the most relevant chunks and writes an answer grounded in them. The LLM and
-embedding providers are pluggable.
+**How it works:** sources are fetched politely, snapshotted with sha256 and chunked one unit per
+chunk (technique, risk section, article paragraph, recital, annex point, advisory). Chunks are
+embedded into Qdrant (dense `multilingual-e5-large` + BM25), and relationships between IDs go into
+a Postgres edge table. For each question the agent looks up IDs named in it, runs hybrid search
+fused with RRF, reranks with a cross-encoder, follows edges for questions about related items,
+and answers only from the retrieved chunks. Each answer ends with its sources, their licenses and
+versions, and an AI-generated label (EU AI Act Art. 50(1)).
 
-> Status: first slice. The chat UI streams answers from the knowledge base agent, and
-> conversations persist in Postgres. The agent does not retrieve yet: it answers with a single
-> LLM call. The provider is configurable (OpenAI, Anthropic, or any OpenAI-compatible server such
-> as Ollama or vLLM); local development uses `codex/gpt-6-luna` through the sub2api gateway.
+| Source | Version indexed | License |
+|---|---|---|
+| MITRE ATLAS | content version from the release (2026.09 at the last ingest) | Apache-2.0 |
+| OWASP Top 10 for LLM Applications 2026 | `2026/final`, pinned commit | CC BY-SA 4.0 |
+| OWASP Top 10 for Agentic Applications 2026 | PDF of 2025-12-09 | CC BY-SA 4.0 |
+| EU AI Act (EN, DE) | latest consolidated version (02024R1689-20260727), recitals from the OJ | © EU, Decision 2011/833/EU |
+| KI-MIG | gesetze-im-internet.de XML (BGBl. 2026 I Nr. 223) | § 5 UrhG |
+| AI package CVEs | last 24 months, OSV + NVD + CISA KEV | CC BY 4.0 / public domain / CC0 |
+
+See [NOTICE.md](NOTICE.md) for attribution, [docs/PLAN.md](docs/PLAN.md) for the design and
+[docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md) for what is unresolved.
 
 ## Quickstart
 
 ```bash
-make install    # Python and web dependencies; creates .env (pick the LLM provider there)
-make up         # Postgres, Qdrant, API (:8000) and chat UI: open http://localhost:5173
-make down       # stop everything (stored conversations are kept)
+make install                 # Python and web dependencies; creates .env (pick the LLM provider there)
+make services                # Postgres and Qdrant
+make ingest SOURCE=all       # fetch, snapshot and chunk the sources (unchanged ones are skipped)
+make index                   # create the edge table, embed chunks into Qdrant (models download once)
+make ask Q="Which ATLAS mitigations address AML.T0051?"
+make up                      # API (:8000) and chat UI: open http://localhost:5173
+make eval                    # golden set, RAG vs. no-retrieval baseline -> evals/datasets/ai_security/report.md
+make down                    # stop everything (stored conversations and the index are kept)
 ```
+
+The CVE source queries NVD once per CVE; without `NVD_API_KEY` in `.env` NVD allows 5 requests
+per 30 seconds, so the first ingest of `ai-vulns` takes about an hour (responses are cached).
 
 `make` lists every command, including `make restart`, `make status`, `make logs` and `make ci`
 (the CI pipeline, run locally).
@@ -30,9 +50,9 @@ rate limits apply per user rather than per proxy.
 
 | Layer | Command | Needs |
 |-------|---------|-------|
-| Unit | `uv run pytest tests/unit` | nothing |
-| AI (evals) | `uv run pytest tests/ai` | LLM API keys |
-| End-to-end | `uv run pytest tests/e2e` | `docker compose up -d`, LLM API keys |
-| Web | `cd web && npm run lint && npm test -- --run && npm run build` | nothing |
+| Unit | `make test` | nothing (fixtures in `tests/fixtures/`, in-memory Qdrant, fake models) |
+| AI (evals) | `make eval` (paid, ~150 calls), then `make evals` | LLM access, an indexed knowledge base; `make evals` checks the saved results (1 call) and fails if they are stale |
+| End-to-end | `make e2e` | `make services`, LLM access, embedding models |
+| Web | `make web-check` | nothing |
 
 See [AGENTS.md](AGENTS.md) for contributor and coding-agent guidelines.

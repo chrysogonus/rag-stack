@@ -1,0 +1,208 @@
+format-version: 6.0.0
+collection:
+  name: ATLAS
+  description: Adversarial Threat Landscape for AI Systems
+  references: []
+  created-date: '2020-10-23'
+  modified-date: '2026-09-15'
+  version: '2026.09'
+  id: ATLAS-collection
+  uuid: 7a735cfc-0469-5d8b-b11f-d014be33394e
+  object-type: collection
+matrix:
+  name: ATLAS
+  description: Adversarial Threat Landscape for AI Systems
+  references: []
+  created-date: '2020-10-23'
+  modified-date: '2026-08-31'
+  id: ATLAS-matrix
+  uuid: 967c63ff-22bd-5ff8-aa59-1e1fca8dec78
+  object-type: matrix
+tactics:
+  AML.TA0005:
+    name: Execution
+    description: 'The adversary is trying to run malicious code embedded in AI artifacts
+      or software.
+
+
+      Execution consists of techniques that result in adversary-controlled code running
+      on a local or remote system.
+
+      Techniques that run malicious code are often paired with techniques from all
+      other tactics to achieve broader goals, like exploring a network or stealing
+      data.
+
+      For example, an adversary might use a remote access tool to run a PowerShell
+      script that does [Remote System Discovery](https://attack.mitre.org/techniques/T1018/).'
+    references: []
+    created-date: '2022-01-24'
+    modified-date: '2025-04-09'
+    attack-reference:
+      id: TA0002
+      url: https://attack.mitre.org/tactics/TA0002/
+    id: AML.TA0005
+    uuid: 6be7de41-9e78-5b9e-b3cb-cd48b3e6bdfe
+    object-type: tactic
+techniques:
+  AML.T0051:
+    name: LLM Prompt Injection
+    description: 'An adversary may craft malicious prompts as inputs to an LLM that
+      cause the LLM to act in unintended ways.
+
+      These "prompt injections" are often designed to cause the model to ignore aspects
+      of its original instructions and follow the adversary''s instructions instead.
+
+
+      Prompt Injections can be an initial access vector to the LLM that provides the
+      adversary with a foothold to carry out other steps in their operation.
+
+      They may be designed to bypass defenses in the LLM, or allow the adversary to
+      issue privileged commands.
+
+      The effects of a prompt injection can persist throughout an interactive session
+      with an LLM.
+
+
+      Malicious prompts may be injected directly by the adversary ([Direct](/techniques/AML.T0051.000))
+      either to leverage the LLM to generate harmful content or to gain a foothold
+      on the system and lead to further effects.
+
+      Prompts may also be injected indirectly when the LLM, as part of its normal
+      operation, ingests the malicious prompt from another data source ([Indirect](/techniques/AML.T0051.001)).
+      This type of injection can be used by the adversary to gain a foothold on the
+      system or to target the user of the LLM.
+
+      Malicious prompts may also be [Triggered](/techniques/AML.T0051.002) by user
+      actions or system events.'
+    references: []
+    created-date: '2023-10-25'
+    modified-date: '2026-05-27'
+    platforms:
+    - Generative AI
+    - Agentic AI
+    id: AML.T0051
+    maturity: Realized
+    uuid: 6ff098e9-2864-579e-bebb-a0f1c92ec772
+    object-type: technique
+  AML.T0051.000:
+    name: Direct
+    description: An adversary may inject prompts directly as a user of the LLM. This
+      type of injection may be used by the adversary to gain a foothold in the system
+      or to misuse the LLM itself, as for example to generate harmful content.
+    references: []
+    created-date: '2023-10-25'
+    modified-date: '2026-05-27'
+    platforms:
+    - Generative AI
+    - Agentic AI
+    id: AML.T0051.000
+    maturity: Realized
+    uuid: 073f16fc-c4c0-5351-8a22-9c77aaaab91f
+    object-type: technique
+mitigations:
+  AML.M0019:
+    name: Control Access to AI Models and Data in Production
+    description: 'Require users to verify their identities before accessing a production
+      model.
+
+      Require authentication for API endpoints and monitor production model queries
+      to ensure compliance with usage policies and to prevent model misuse.'
+    references: []
+    created-date: '2024-01-12'
+    modified-date: '2026-07-31'
+    lifecycle-phases:
+    - Deployment
+    - Monitoring and Maintenance
+    categories:
+    - Policy
+    id: AML.M0019
+    uuid: 9ae01d8c-c75b-5d11-944f-16edbb7d754f
+    object-type: mitigation
+case-studies:
+  AML.CS0016:
+    name: Achieving Code Execution in MathGPT via Prompt Injection
+    description: 'The publicly available Streamlit application [MathGPT](https://mathgpt.streamlit.app/)
+      uses GPT-3, a large language model (LLM), to answer user-generated math questions.
+
+
+      Recent studies and experiments have shown that LLMs such as GPT-3 show poor
+      performance when it comes to performing exact math directly[[arxiv]][[arxiv-1]].
+      However, they can produce more accurate answers when asked to generate executable
+      code that solves the question at hand. In the MathGPT application, GPT-3 is
+      used to convert the user''s natural language question into Python code that
+      is then executed. After computation, the executed code and the answer are displayed
+      to the user.
+
+
+      Some LLMs can be vulnerable to prompt injection attacks, where malicious user
+      inputs cause the models to perform unexpected behavior[[lspace]][[research-1]].   In
+      this incident, the actor explored several prompt-override avenues, producing
+      code that eventually led to the actor gaining access to the application host
+      system''s environment variables and the application''s GPT-3 API key, as well
+      as executing a denial of service attack.  As a result, the actor could have
+      exhausted the application''s API query budget or brought down the application.
+
+
+      After disclosing the attack vectors and their results to the MathGPT and Streamlit
+      teams, the teams took steps to mitigate the vulnerabilities, filtering on select
+      prompts and rotating the API key.'
+    references:
+    - id: arxiv
+      title: Measuring Mathematical Problem Solving With the MATH Dataset
+      url: https://arxiv.org/abs/2103.03874
+    - id: arxiv-1
+      title: Training Verifiers to Solve Math Word Problems
+      url: https://arxiv.org/abs/2110.14168
+    - id: lspace
+      title: Reverse Prompt Engineering for Fun and (no) Profit
+      url: https://lspace.swyx.io/p/reverse-prompt-eng
+    - id: research
+      title: Exploring prompt-based attacks
+      url: https://research.nccgroup.com/2022/12/05/exploring-prompt-injection-attacks
+    - id: research-1
+      title: Exploring prompt-based attacks
+      url: https://research.nccgroup.com/2022/12/05/exploring-prompt-injection-attacks/
+    created-date: '2023-03-01'
+    modified-date: '2025-11-07'
+    type: Exercise
+    actor: Ludwig-Ferdinand Stumpp
+    target: MathGPT (https://mathgpt.streamlit.app/)
+    date: '2023-01-28'
+    date-granularity: Day
+    id: AML.CS0016
+    uuid: f6614c66-54b7-5e73-80de-af6164a9c68b
+    object-type: case-study
+relationships:
+  AML.CS0016:
+    employs:
+    - source: AML.CS0016
+      target: AML.T0051.000
+      relationship-type: employs
+      description: The actor manually crafted adversarial prompts to test if the model
+        was vulnerable to prompt injection and if it was indeed directly executing
+        the GPT-3-generated code.
+      tactic: AML.TA0005
+      step-id: S02
+      leads-to:
+      - S03
+  AML.M0019:
+    mitigates:
+    - source: AML.M0019
+      target: AML.T0051
+      relationship-type: mitigates
+      description: Use access controls in production to prevent adversaries from injecting
+        malicious prompts.
+  AML.T0051:
+    achieves:
+    - source: AML.T0051
+      target: AML.TA0005
+      relationship-type: achieves
+  AML.T0051.000:
+    achieves:
+    - source: AML.T0051.000
+      target: AML.TA0005
+      relationship-type: achieves
+    specializes:
+    - source: AML.T0051.000
+      target: AML.T0051
+      relationship-type: specializes

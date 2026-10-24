@@ -1,0 +1,59 @@
+# Allowlist of sources that `make ingest` fetches. Nothing else is ingested.
+
+atlas:
+  # A git symlink: its content names the dated release file next to it.
+  latest_url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-latest.yaml
+
+owasp-llm-2026:
+  # 2026 final release, pinned to a commit so the snapshot is reproducible.
+  repo: GenAI-Security-Project/GenAI-LLM-Top10
+  ref: 9253e38ade58e959b531c0c5c9a4842272c9cd0e
+  path: 2026/final
+  files:
+    - LLM01_PromptInjection.md
+    - LLM02_SensitiveInformationDisclosure.md
+    - LLM03_ExcessiveAgency.md
+    - LLM04_SupplyChain.md
+    - LLM05_DataModelPoisoning.md
+    - LLM06_UnboundedConsumption.md
+    - LLM07_Misinformation.md
+    - LLM08_HiddenContextExposure.md
+    - LLM09_VectorAndEmbeddingWeaknesses.md
+    - LLM10_ImproperOutputHandling.md
+    - Appendix_A_Related_Framework_Mappings.md
+
+owasp-agentic-2026:
+  page_url: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+  pdf_url: https://genai.owasp.org/download/52117/
+  version: "2026 (2025-12-09)"
+
+eu-ai-act:
+  celex: 32024R1689
+  # Consolidated versions are 0<celex minus first digit>-YYYYMMDD; the latest is found via SPARQL.
+  sparql_url: https://publications.europa.eu/webapi/rdf/sparql
+  resource_url: https://publications.europa.eu/resource/celex/
+  languages: {en: eng, de: deu}
+
+ki-mig:
+  xml_url: https://www.gesetze-im-internet.de/ki-mig/xml.zip
+  page_url: https://www.gesetze-im-internet.de/ki-mig/
+
+ai-vulns:
+  window_months: 24
+  osv_url: https://api.osv.dev/v1/query
+  nvd_url: https://services.nvd.nist.gov/rest/json/cves/2.0
+  kev_url: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+  packages:
+    - {name: langchain, ecosystem: PyPI}
+    - {name: langchain-core, ecosystem: PyPI}
+    - {name: langchain-community, ecosystem: PyPI}
+    - {name: llama-index, ecosystem: PyPI}
+    # Most llama-index advisories are filed against its core package.
+    - {name: llama-index-core, ecosystem: PyPI}
+    - {name: vllm, ecosystem: PyPI}
+    - {name: transformers, ecosystem: PyPI}
+    - {name: github.com/ollama/ollama, ecosystem: Go, label: ollama}
+    - {name: open-webui, ecosystem: PyPI}
+    - {name: gradio, ecosystem: PyPI}
+    - {name: mlflow, ecosystem: PyPI}
+    - {name: ray, ecosystem: PyPI}
