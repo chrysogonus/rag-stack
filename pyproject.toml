@@ -4,17 +4,37 @@ version = "0.1.0"
 description = "RAG chatbot with a knowledge base agent"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "anthropic>=2.3.0",
+    "fastapi>=0.162.0",
+    "langgraph>=1.2.17",
+    "langgraph-checkpoint-postgres>=3.2.0",
+    "openai>=3.37.0",
+    "psycopg[binary,pool]>=3.3.6",
+    "pydantic-settings>=2.16.1",
+    "uvicorn[standard]>=0.54.0",
+]
 
 [dependency-groups]
-dev = ["pytest", "ruff", "pyright"]
+dev = [
+    "pytest",
+    "ruff",
+    "pyright",
+    "httpx>=0.28.1",
+    "pyyaml>=6.0.3",
+    "types-pyyaml>=6.0.12.20260906",
+]
 
 [build-system]
 requires = ["uv_build>=0.11,<0.12"]
 build-backend = "uv_build"
 
 [tool.pytest.ini_options]
-markers = ["ai: evals against a real LLM (needs provider API keys)"]
+pythonpath = ["tests"]
+markers = [
+    "ai: evals against a real LLM (needs provider API keys)",
+    "e2e: full chatbot path against real services (docker compose up -d) and a real LLM",
+]
 
 [tool.ruff]
 line-length = 100
@@ -27,6 +47,9 @@ select = ["E", "F", "I", "B", "UP", "TID", "S"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "langchain_openai".msg = "Provider SDKs live only in rag_stack.llm; use its interfaces."
+"openai".msg = "Provider SDKs live only in rag_stack.llm; use create_chat_model."
+"anthropic".msg = "Provider SDKs live only in rag_stack.llm; use create_chat_model."
 
 [tool.pyright]
 include = ["src", "tests"]
+extraPaths = ["tests"]

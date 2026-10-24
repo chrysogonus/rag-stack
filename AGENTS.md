@@ -12,8 +12,12 @@ writes an answer grounded in them.
 - Qdrant as the vector store (hybrid: dense + BM25 sparse)
 - LLM and embedding providers sit behind interfaces in `src/rag_stack/llm/`. All
   provider-specific SDK code lives there, so the rest of the code stays provider-agnostic.
-  OpenAI is the first provider, via the official `openai` SDK. Don't use `langchain-openai`
-  (ruff bans it).
+  `LLM_PROVIDER` picks the adapter through `create_chat_model` (`llm/factory.py`): `openai`
+  (Responses API), `anthropic` (Messages API) or `openai-compatible` (Chat Completions at
+  `LLM_BASE_URL`: Ollama, vLLM, LM Studio, gateways). Use the official `openai` and `anthropic`
+  SDKs; ruff bans importing them outside `llm/`, and bans `langchain-openai` everywhere.
+- Local development runs on the sub2api gateway (`~/workspace/sub2api`, `codex/gpt-6-luna`),
+  which uses a personal ChatGPT subscription. Never deploy with it: production needs an API key.
 - Agent orchestration: LangGraph with a custom `StateGraph`. Nodes call our `llm/` interfaces,
   not LangChain chat models.
 - API: FastAPI with SSE streaming. Conversations are stored in Postgres (with the LangGraph
@@ -45,13 +49,22 @@ evals/datasets/<name>/  # corpus/, golden.jsonl, thresholds.yaml used by tests/a
 
 ## Commands
 
+`make` lists the shortcuts: `make ci` runs the CI pipeline locally, `make check-all` adds evals
+and e2e (the definition of done below), and `make up` / `make down` / `make restart` run the app
+in the background (logs in `.run/`). The underlying commands:
+
 ```
 uv sync
 uv run ruff check && uv run ruff format --check && uv run pyright
 uv export --frozen --no-emit-project --format requirements-txt > /tmp/req.txt && uvx pip-audit -r /tmp/req.txt --disable-pip
 uv run pytest tests/unit
 uv run pytest tests/ai     # needs provider API keys in .env
-uv run pytest tests/e2e    # needs Qdrant running: docker compose up -d
+uv run pytest tests/e2e    # needs Postgres + Qdrant (docker compose up -d) and API keys
+uv run uvicorn rag_stack.api.app:create_app --factory --reload   # API on :8000
+
+cd web && npm ci
+npm run lint && npm test -- --run && npm run build
+npm run dev                # chat UI on :5173, proxies /api to :8000
 ```
 
 ## Testing (required)
