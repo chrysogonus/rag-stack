@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from langgraph.checkpoint.memory import InMemorySaver
 
 from rag_stack.agent.answer import footer
-from rag_stack.api.app import create_app
+from rag_stack.api.app import create_app, source_refs
 from rag_stack.config import Settings
 from rag_stack.llm.base import ChatModel
 
@@ -42,6 +42,13 @@ def make_client() -> Iterator:
 
 SOURCE = chunk("AML.T0051", "LLM Prompt Injection")
 FOOTER = footer("Hello there", [SOURCE], "en")
+SOURCE_REF = {
+    "id": "AML.T0051",
+    "title": "Title of AML.T0051",
+    "source": "atlas",
+    "url": "https://example.org/AML.T0051",
+    "used": True,
+}
 
 
 def url() -> str:
@@ -56,11 +63,31 @@ def test_post_streams_deltas_then_the_final_message(make_client):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")
     assert parse_sse(response.text) == [
+        ("sources", {"sources": [SOURCE_REF]}),
         ("delta", {"text": "Hello"}),
         ("delta", {"text": " there"}),
         ("delta", {"text": FOOTER}),
         ("done", {"message": {"role": "assistant", "content": "Hello there" + FOOTER}}),
     ]
+
+
+def test_sources_event_lists_each_passage_once_and_marks_the_ones_answered_from():
+    ranked = [
+        chunk("AML.T0051", chunk_index=0),
+        chunk("AML.T0051", chunk_index=1),
+        chunk("LLM01", source_id="owasp-llm-2026"),
+        chunk("AML.T0051", chunk_index=2),
+        chunk("AML.M0019"),
+    ]
+
+    refs = source_refs([c.model_dump() for c in ranked], top_k=3)
+
+    assert [(r["id"], r["source"], r["used"]) for r in refs] == [
+        ("AML.T0051", "atlas", True),
+        ("LLM01", "owasp-llm-2026", True),
+        ("AML.M0019", "atlas", False),
+    ]
+    assert "text" not in refs[0]
 
 
 def test_get_returns_the_conversation(make_client):
@@ -124,6 +151,7 @@ def test_llm_failure_ends_the_stream_with_a_generic_error(make_client):
 
     assert response.status_code == 200
     assert parse_sse(response.text) == [
+        ("sources", {"sources": [SOURCE_REF]}),
         ("delta", {"text": "partial"}),
         ("error", {"detail": "Something went wrong. Please try again."}),
     ]

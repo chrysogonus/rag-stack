@@ -1,12 +1,16 @@
+/* Light is a printed star atlas: ink on chart paper. Dark is the night sky itself. */
 :root {
-  --paper: #f3f5f2;
-  --surface: #ffffff;
-  --ink: #1e2a24;
-  --muted: #5e6b63;
-  --rule: #cbd5ce;
-  --lamp: #2e6b4f;
-  --lamp-ink: #ffffff;
-  --question: #dde7e0;
+  --sky: #e8edf5;
+  --ink: #14213d;
+  --muted: #55627f;
+  --star: #1e2c4f;
+  --ember: #8f5200;
+  --ember-ink: #ffffff;
+  --glint: #3d63b8;
+  --rule: #c3cbdb;
+  --panel: rgb(232 237 245 / 0.86);
+  --field: #f6f8fb;
+  --question: #dbe2ee;
   --danger: #9b2c2c;
   --danger-tint: #f8e5e3;
 
@@ -19,20 +23,23 @@
   font-size: 100%;
   line-height: 1.5;
   color: var(--ink);
-  background: var(--paper);
+  background: var(--sky);
   -webkit-font-smoothing: antialiased;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #131a16;
-    --surface: #1b241f;
-    --ink: #e2e9e4;
-    --muted: #9aa8a0;
-    --rule: #34423a;
-    --lamp: #7cc4a0;
-    --lamp-ink: #0f1a14;
-    --question: #24332b;
+    --sky: #0e1a33;
+    --ink: #e6e8f0;
+    --muted: #8e98b8;
+    --star: #f1e7cf;
+    --ember: #ffc45c;
+    --ember-ink: #0e1a33;
+    --glint: #86a8f5;
+    --rule: #2c3a5c;
+    --panel: rgb(14 26 51 / 0.8);
+    --field: #15233f;
+    --question: #1d2c4c;
     --danger: #f2a9a2;
     --danger-tint: #3a2321;
   }
@@ -44,11 +51,11 @@
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--sky);
 }
 
 :focus-visible {
-  outline: 2px solid var(--lamp);
+  outline: 2px solid var(--ember);
   outline-offset: 2px;
 }
 
@@ -61,10 +68,50 @@ body {
   white-space: nowrap;
 }
 
+/* The sky, and a feathered band of darker night behind the reading column. */
+
+.sky {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .shell {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow-x: clip;
+}
+
+.shell::before {
+  content: '';
+  position: fixed;
+  inset: 0 auto 0 50%;
+  z-index: 1;
+  width: min(100%, calc(var(--measure) + 10rem));
+  translate: -50% 0;
+  background: var(--panel);
+  backdrop-filter: blur(1.5px);
+  mask-image: linear-gradient(to right, transparent, #000 5rem, #000 calc(100% - 5rem), transparent);
+  pointer-events: none;
+}
+
+.sky.overlay {
+  z-index: 2;
+}
+
+/* Above both canvases; the sticky masthead and composer also stay above the scrolling thread. */
+.thread {
+  position: relative;
+  z-index: 3;
+}
+
+.masthead,
+.composer {
+  z-index: 4;
 }
 
 /* Masthead */
@@ -72,21 +119,23 @@ body {
 .masthead {
   position: sticky;
   top: 0;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.75rem max(1rem, calc((100% - var(--measure)) / 2));
-  background: color-mix(in srgb, var(--paper) 92%, transparent);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--rule);
+  width: 100%;
+  max-width: calc(var(--measure) + 2rem);
+  margin: 0 auto;
+  padding: 0.875rem 1rem 1.25rem;
+  /* The answer scrolls under the sticky masthead and composer, so both fade it out. */
+  background: linear-gradient(color-mix(in srgb, var(--sky) 94%, transparent) 65%, transparent);
 }
 
 .wordmark {
   font-family: var(--serif);
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 1.1875rem;
+  font-variation-settings: 'opsz' 32;
+  font-weight: 560;
   letter-spacing: -0.01em;
 }
 
@@ -98,6 +147,10 @@ button {
   padding: 0.5rem 1.1rem;
   cursor: pointer;
   border: 1px solid transparent;
+  transition:
+    border-color 160ms,
+    background-color 160ms,
+    color 160ms;
 }
 
 button:disabled {
@@ -116,8 +169,8 @@ button:disabled {
 }
 
 .primary {
-  background: var(--lamp);
-  color: var(--lamp-ink);
+  background: var(--ember);
+  color: var(--ember-ink);
 }
 
 /* Conversation */
@@ -127,20 +180,21 @@ button:disabled {
   width: 100%;
   max-width: calc(var(--measure) + 2rem);
   margin: 0 auto;
-  padding: 2.5rem 1rem 1.5rem;
+  padding: 1.5rem 1rem;
 }
 
 .welcome {
-  margin-top: 18vh;
+  margin-top: 20vh;
 }
 
 .welcome h1 {
   font-family: var(--serif);
-  font-size: clamp(2rem, 6vw, 2.75rem);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  margin: 0 0 0.75rem;
+  font-size: clamp(2.25rem, 5.5vw, 3.5rem);
+  font-variation-settings: 'opsz' 60;
+  font-weight: 380;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  margin: 0 0 1.25rem;
   text-wrap: balance;
 }
 
@@ -148,12 +202,66 @@ button:disabled {
   margin: 0;
   max-width: 34rem;
   color: var(--muted);
+  text-wrap: pretty;
+}
+
+.starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.starters button {
+  font-weight: 500;
+  text-align: left;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--field) 70%, transparent);
+  border-color: var(--rule);
+}
+
+.starters button:hover {
+  border-color: var(--ember);
+}
+
+/* The page's one entrance: the copy settles in as the sky finishes drawing itself. */
+.intro .welcome h1,
+.intro .welcome p,
+.intro .starters,
+.intro .composer {
+  animation: settle 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.intro .welcome h1 {
+  animation-delay: 900ms;
+}
+
+.intro .welcome p {
+  animation-delay: 1150ms;
+}
+
+.intro .starters {
+  animation-delay: 1350ms;
+}
+
+.intro .composer {
+  animation-delay: 1500ms;
+}
+
+@keyframes settle {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    translate: 0 0.5rem;
+  }
 }
 
 .question {
   width: fit-content;
   max-width: min(85%, 34rem);
-  margin: 2rem 0 1rem auto;
+  margin: 2.25rem 0 1rem auto;
   padding: 0.6rem 1rem;
   background: var(--question);
   border-radius: 1.1rem 1.1rem 0.3rem 1.1rem;
@@ -161,13 +269,10 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-/* Answers read like typeset notes: serif text against a green margin rule. */
+/* Answers are typeset notes with a trail of light down their margin. */
 .answer {
   position: relative;
   padding-left: 1.25rem;
-  font-family: var(--serif);
-  font-size: 1.125rem;
-  line-height: 1.65;
   overflow-wrap: anywhere;
 }
 
@@ -175,53 +280,60 @@ button:disabled {
   content: '';
   position: absolute;
   left: 0;
-  top: 0.35em;
-  bottom: 0.35em;
-  width: 2px;
-  border-radius: 2px;
-  background: var(--lamp);
+  top: 0.4rem;
+  bottom: 0.4rem;
+  width: 1px;
+  background: linear-gradient(var(--ember), color-mix(in srgb, var(--ember) 10%, transparent));
 }
 
-.answer > :first-child {
+.answer-body {
+  font-family: var(--serif);
+  font-variation-settings: 'opsz' 16;
+  font-size: 1.125rem;
+  line-height: 1.65;
+}
+
+.answer-body > :first-child {
   margin-top: 0;
 }
 
-.answer > :last-child {
+.answer-body > :last-child {
   margin-bottom: 0;
 }
 
-.answer p,
-.answer ul,
-.answer ol,
-.answer pre,
-.answer blockquote {
+.answer-body p,
+.answer-body ul,
+.answer-body ol,
+.answer-body pre,
+.answer-body blockquote {
   margin: 0 0 0.85em;
 }
 
-.answer h1,
-.answer h2,
-.answer h3 {
+.answer-body h1,
+.answer-body h2,
+.answer-body h3 {
   font-size: 1.15em;
   line-height: 1.3;
   margin: 1.2em 0 0.4em;
 }
 
 .answer a {
-  color: var(--lamp);
+  color: var(--ink);
+  text-decoration-color: var(--ember);
   text-underline-offset: 0.15em;
 }
 
 .answer code {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 0.85em;
-  background: var(--surface);
+  background: var(--field);
   border: 1px solid var(--rule);
   border-radius: 0.3rem;
   padding: 0.05em 0.3em;
 }
 
 .answer pre {
-  background: var(--surface);
+  background: var(--field);
   border: 1px solid var(--rule);
   border-radius: 0.5rem;
   padding: 0.85rem 1rem;
@@ -255,7 +367,30 @@ button:disabled {
   text-align: left;
 }
 
-/* The writing caret: the one moving thing on the page. */
+/* A citation: points at its passage in the sky and its entry below. */
+.answer .cite {
+  font-family: var(--sans);
+  font-size: 0.75em;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ember);
+  text-decoration: none;
+  padding: 0.1em 0.45em;
+  border: 1px solid color-mix(in srgb, var(--ember) 45%, transparent);
+  border-radius: 0.35em;
+  vertical-align: 0.1em;
+  transition:
+    background-color 160ms,
+    border-color 160ms;
+}
+
+.answer .cite:hover,
+.answer .cite:focus-visible {
+  background: color-mix(in srgb, var(--ember) 14%, transparent);
+  border-color: var(--ember);
+}
+
+/* The writing caret: where the light lands. */
 .caret {
   display: inline-block;
   width: 0.55em;
@@ -263,11 +398,12 @@ button:disabled {
   margin-left: 0.1em;
   vertical-align: text-bottom;
   border-radius: 1px;
-  background: var(--lamp);
+  background: var(--ember);
+  box-shadow: 0 0 14px var(--ember);
   animation: blink 1s steps(1) infinite;
 }
 
-.answer > p:last-of-type:has(+ .caret) {
+.answer-body > p:last-of-type:has(+ .caret) {
   display: inline;
 }
 
@@ -277,10 +413,73 @@ button:disabled {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .caret {
-    animation: none;
-  }
+/* The source catalogue under an answer. */
+.catalogue {
+  margin-top: 1.75rem;
+  font-size: 0.875rem;
+}
+
+.catalogue h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.catalogue ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalogue li {
+  display: grid;
+  grid-template-columns: 0.875rem 1fr;
+  gap: 0.75rem;
+  margin: 0 -0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  transition:
+    background-color 200ms,
+    translate 200ms;
+}
+
+.catalogue li.active,
+.catalogue li:target {
+  background: color-mix(in srgb, var(--ember) 8%, transparent);
+  box-shadow: inset 2px 0 var(--ember);
+  translate: 0.25rem 0;
+}
+
+.catalogue li a {
+  font-weight: 600;
+}
+
+.catalogue li p {
+  margin: 0.1rem 0 0;
+  color: var(--muted);
+}
+
+.glyph {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-top: 0.2rem;
+  fill: var(--muted);
+}
+
+.glyph.lit {
+  fill: var(--ember);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--ember) 70%, transparent));
+}
+
+.catalogue .notes {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.catalogue .notes p {
+  margin: 0 0 0.4rem;
 }
 
 /* Composer */
@@ -291,22 +490,26 @@ button:disabled {
   width: 100%;
   max-width: calc(var(--measure) + 2rem);
   margin: 0 auto;
-  padding: 0.75rem 1rem max(0.75rem, env(safe-area-inset-bottom));
-  background: linear-gradient(to bottom, transparent, var(--paper) 1.25rem);
+  padding: 1.25rem 1rem max(0.75rem, env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, color-mix(in srgb, var(--sky) 94%, transparent) 1.25rem);
 }
 
 .field {
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
-  padding: 0.5rem 0.5rem 0.5rem 1rem;
-  background: var(--surface);
+  padding: 0.5rem 0.5rem 0.5rem 1.1rem;
+  background: var(--field);
   border: 1px solid var(--rule);
   border-radius: 1.5rem;
+  transition:
+    border-color 200ms,
+    box-shadow 200ms;
 }
 
 .field:focus-within {
-  border-color: var(--lamp);
+  border-color: var(--ember);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ember) 14%, transparent);
 }
 
 .field textarea {
@@ -329,7 +532,7 @@ button:disabled {
 }
 
 .hint {
-  margin: 0.4rem 1rem 0;
+  margin: 0.4rem 1.1rem 0;
   font-size: 0.8125rem;
   color: var(--muted);
 }
@@ -341,4 +544,38 @@ button:disabled {
   background: var(--danger-tint);
   color: var(--danger);
   font-size: 0.9375rem;
+}
+
+/* Narrow screens: the constellations gather in the upper sky, above the welcome copy. */
+@media (width < 1100px) {
+  .shell::before {
+    mask-image: linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0.3) min(36vh, 300px),
+      #000 calc(min(36vh, 300px) + 5rem)
+    );
+  }
+
+  /* In a conversation the answer scrolls through the constellations: keep it readable. */
+  .chatting::before {
+    mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.8), #000 min(40vh, 340px));
+  }
+
+  .welcome {
+    margin-top: calc(min(36vh, 300px) - 1rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret,
+  .intro .welcome h1,
+  .intro .welcome p,
+  .intro .starters,
+  .intro .composer {
+    animation: none;
+  }
+
+  .catalogue li {
+    transition: none;
+  }
 }

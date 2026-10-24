@@ -61,7 +61,7 @@ def knowledge_base() -> Iterator[KnowledgeBase]:
         client.delete_collection(collection)
 
 
-def ask(client: TestClient, thread_url: str, question: str) -> str:
+def ask(client: TestClient, thread_url: str, question: str) -> tuple[str, list[dict]]:
     response = client.post(thread_url, json={"content": question})
     assert response.status_code == 200, response.text
     events = [
@@ -72,30 +72,34 @@ def ask(client: TestClient, thread_url: str, question: str) -> str:
     kinds = [kind for kind, _ in events]
     assert "error" not in kinds, events
     assert kinds[-1] == "done" and "delta" in kinds
+    # The UI lights up the retrieved passages before the answer starts.
+    assert kinds.index("sources") < kinds.index("delta")
     streamed = "".join(data["text"] for kind, data in events if kind == "delta")
     final = events[-1][1]["message"]["content"]
     assert streamed == final
-    return final
+    sources = next(data["sources"] for kind, data in events if kind == "sources")
+    return final, sources
 
 
 def test_cited_multi_turn_answers_are_streamed_and_persisted(knowledge_base):
     thread_url = f"/api/threads/{uuid.uuid4()}/messages"
 
     with TestClient(create_app(retriever=knowledge_base)) as client:
-        first = ask(client, thread_url, "What is AML.T0051?")
+        first, sources = ask(client, thread_url, "What is AML.T0051?")
+        assert any(s["id"] == "AML.T0051" and s["source"] == "atlas" and s["used"] for s in sources)
         assert "[AML.T0051]" in first
         assert "**Sources**" in first and "Copyright 2021-2026 MITRE" in first
         assert "AI-generated answer (EU AI Act Art. 50(1))" in first
 
-        follow_up = ask(client, thread_url, "Which mitigations address it?")
+        follow_up, _ = ask(client, thread_url, "Which mitigations address it?")
         assert "AML.M0019" in follow_up
 
-        german = ask(client, thread_url, "Was verlangt Art. 50 Abs. 1 von Anbietern?")
+        german, _ = ask(client, thread_url, "Was verlangt Art. 50 Abs. 1 von Anbietern?")
         assert "[AI Act Art. 50(1)]" in german
         assert "Die Anbieter stellen sicher" in german or "natürliche" in german
         assert "KI-generierte Antwort" in german
 
-        off_topic = ask(client, thread_url, "What is the capital of France?")
+        off_topic, _ = ask(client, thread_url, "What is the capital of France?")
         assert off_topic.startswith("I can't answer that from the indexed sources.")
 
     # A fresh app (new connection pool) still sees the conversation in Postgres.

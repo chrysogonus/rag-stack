@@ -3,6 +3,15 @@ export interface Message {
   content: string
 }
 
+/** A passage the agent retrieved for the question; `used` ones are what the answer is written from. */
+export interface SourceRef {
+  id: string
+  title: string
+  source: string
+  url: string
+  used: boolean
+}
+
 export interface SseEvent {
   event: string
   data: string
@@ -54,11 +63,17 @@ export async function getMessages(threadId: string, signal?: AbortSignal): Promi
   return response.json()
 }
 
+export interface StreamHandlers {
+  /** The retrieved passages, before the answer starts. */
+  onSources?: (sources: SourceRef[]) => void
+  onDelta: (text: string) => void
+}
+
 /** Sends a question and streams the answer. Resolves with the saved assistant message. */
 export async function sendMessage(
   threadId: string,
   content: string,
-  onDelta: (text: string) => void,
+  { onSources, onDelta }: StreamHandlers,
   signal?: AbortSignal,
 ): Promise<Message> {
   const response = await fetch(threadUrl(threadId), {
@@ -73,7 +88,8 @@ export async function sendMessage(
   let failure: string | undefined
   const parse = createSseParser(({ event, data }) => {
     const payload = JSON.parse(data)
-    if (event === 'delta') onDelta(payload.text)
+    if (event === 'sources') onSources?.(payload.sources)
+    else if (event === 'delta') onDelta(payload.text)
     else if (event === 'done') reply = payload.message
     else if (event === 'error') failure = payload.detail
   })

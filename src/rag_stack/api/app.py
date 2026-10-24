@@ -2,7 +2,7 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -21,6 +21,20 @@ from rag_stack.llm.factory import create_chat_model
 from rag_stack.retrieval.retriever import Retriever, open_knowledge_base
 
 logger = logging.getLogger(__name__)
+
+
+def source_refs(chunks: list[dict[str, Any]], top_k: int) -> list[dict[str, Any]]:
+    """The ranked retrieved sources for the UI, one per passage ID, without their text.
+
+    `used` marks the ones the answer is written from (the first `top_k` chunks)."""
+    refs: dict[tuple[str, str], dict[str, Any]] = {}
+    for rank, c in enumerate(chunks):
+        ref = refs.setdefault(
+            (c["source_id"], c["native_id"]),
+            {"id": c["native_id"], "title": c["title"], "source": c["source_id"], "url": c["url"]},
+        )
+        ref["used"] = ref.get("used", False) or rank < top_k
+    return list(refs.values())
 
 
 def get_graph(request: Request) -> CompiledStateGraph:
@@ -106,6 +120,10 @@ def create_app(
                         yield ServerSentEvent(event="delta", data={"text": part["data"]["delta"]})
                     else:
                         limiter.charge(client, part["data"]["usage"])
+                elif part["type"] == "updates" and "retrieve" in part["data"]:
+                    found = part["data"]["retrieve"]["sources"]
+                    refs = source_refs(found, settings.retrieval_top_k)
+                    yield ServerSentEvent(event="sources", data={"sources": refs})
                 elif part["type"] == "updates" and "generate" in part["data"]:
                     reply = part["data"]["generate"]["messages"][-1]
                     yield ServerSentEvent(event="done", data={"message": reply})

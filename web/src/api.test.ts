@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { createSseParser, type SseEvent } from './api'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createSseParser, sendMessage, type SseEvent } from './api'
 
 function parseAll(chunks: string[]): SseEvent[] {
   const events: SseEvent[] = []
@@ -31,5 +31,31 @@ describe('createSseParser', () => {
 
   it('joins multi-line data and accepts CRLF line endings', () => {
     expect(parseAll(['data: a\r\ndata: b\r\n\r\n'])).toEqual([{ event: 'message', data: 'a\nb' }])
+  })
+})
+
+describe('sendMessage', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('reports the retrieved sources before the answer streams', async () => {
+    const source = { id: 'AML.T0051', title: 'LLM Prompt Injection', source: 'atlas', url: 'https://x', used: true }
+    const body = [
+      `event: sources\ndata: ${JSON.stringify({ sources: [source] })}\n\n`,
+      'event: delta\ndata: {"text":"Hi"}\n\n',
+      'event: done\ndata: {"message":{"role":"assistant","content":"Hi"}}\n\n',
+    ].join('')
+    vi.stubGlobal('fetch', async () => new Response(body, { headers: { 'Content-Type': 'text/event-stream' } }))
+    const seen: unknown[] = []
+
+    const reply = await sendMessage('t', 'Hi', {
+      onSources: (sources) => seen.push(['sources', sources]),
+      onDelta: (text) => seen.push(['delta', text]),
+    })
+
+    expect(seen).toEqual([
+      ['sources', [source]],
+      ['delta', 'Hi'],
+    ])
+    expect(reply).toEqual({ role: 'assistant', content: 'Hi' })
   })
 })
