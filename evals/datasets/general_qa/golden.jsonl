@@ -1,0 +1,10 @@
+{"id": "capital-france", "question": "What is the capital of France?", "key_facts": ["Paris"]}
+{"id": "water-boiling", "question": "At what temperature does water boil at sea level, in Celsius?", "key_facts": ["100 °C"]}
+{"id": "photosynthesis", "question": "In one or two sentences, what is photosynthesis?", "key_facts": ["Plants (and some other organisms) convert light energy into chemical energy", "Uses carbon dioxide and water, produces glucose/sugar and oxygen"]}
+{"id": "http-404", "question": "What does an HTTP 404 status code mean?", "key_facts": ["The requested resource was not found on the server"]}
+{"id": "python-list-reverse", "question": "How do I reverse a list in Python?", "key_facts": ["list.reverse() reverses in place", "slicing with [::-1] or reversed() returns a reversed copy/iterator"]}
+{"id": "largest-planet", "question": "Which is the largest planet in our solar system?", "key_facts": ["Jupiter"]}
+{"id": "unknowable", "question": "What did I have for breakfast this morning?", "key_facts": ["The assistant cannot know this and says so instead of guessing"]}
+{"id": "follow-up-ocean", "history": [{"role": "user", "content": "What is the capital of Japan?"}, {"role": "assistant", "content": "The capital of Japan is Tokyo."}], "question": "Which ocean does it border?", "key_facts": ["Refers to Tokyo", "The Pacific Ocean (Tokyo Bay opens onto the Pacific)"]}
+{"id": "follow-up-translate", "history": [{"role": "user", "content": "Give me one word for a feeling of great happiness."}, {"role": "assistant", "content": "Joy."}], "question": "Translate that word into Spanish.", "key_facts": ["Alegría (or gozo) — the Spanish for joy"]}
+{"id": "follow-up-code", "history": [{"role": "user", "content": "Write a Python function that adds two numbers."}, {"role": "assistant", "content": "```python\ndef add(a, b):\n    return a + b\n```"}], "question": "Now add type hints for integers.", "key_facts": ["def add(a: int, b: int) -> int", "Returns a + b"]}
