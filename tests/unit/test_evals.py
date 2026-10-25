@@ -178,11 +178,27 @@ def test_saved_results_are_stale_when_anything_they_depend_on_changes(tmp_path, 
     assert harness.stale_reasons(settings) == ["golden changed"]
 
 
-def test_tools_that_never_run_in_the_eval_leave_its_code_hash_alone():
+def test_tools_that_never_run_in_the_eval_leave_its_code_hash_alone(tmp_path, monkeypatch):
+    import shutil
+
+    from rag_stack.config import Settings
     from rag_stack.evals import harness
 
     for tool in harness.NOT_IN_EVAL:
-        assert (harness.ROOT / tool).exists(), tool
+        assert (harness.ROOT / tool).exists(), tool  # not a stale name
+    shutil.copytree(harness.ROOT / "src", tmp_path / "src")
+    monkeypatch.setattr(harness, "ROOT", tmp_path)
+    settings = Settings(data_dir=str(tmp_path / "data"))
+    code = lambda: harness.fingerprint(settings)["code"]  # noqa: E731
+    before = code()
+
+    for tool in harness.NOT_IN_EVAL:
+        with (tmp_path / tool).open("a") as f:
+            f.write("\n# edited\n")
+    assert code() == before
+    with (tmp_path / "src/rag_stack/agent/prompts.py").open("a") as f:
+        f.write("\n# edited\n")
+    assert code() != before
 
 
 @pytest.mark.anyio

@@ -83,7 +83,7 @@ def main(argv: list[str] | None = None) -> int:
         from rag_stack.evals import calibration
 
         if args.command == "eval-labels":
-            return calibration.write_sheet()
+            return asyncio.run(calibration.write_sheet(settings))
         return asyncio.run(calibration.agreement(settings))
     if args.command == "eval-draft":
         from rag_stack.evals import draft
