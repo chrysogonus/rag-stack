@@ -53,15 +53,19 @@ export function createSseParser(onEvent: (event: SseEvent) => void): (chunk: str
 
 const threadUrl = (threadId: string) => `/api/threads/${threadId}/messages`
 
+const UNAVAILABLE = 'The assistant is unavailable right now. Try again in a moment.'
+
 async function refusal(response: Response): Promise<string> {
   if (response.status === 422) return 'Your message is empty or too long. Shorten it and send again.'
+  // Only the limits (409 full thread, 429 rate or budget) carry text written for users.
+  if (response.status !== 409 && response.status !== 429) return UNAVAILABLE
   try {
     const { detail } = await response.json()
     if (typeof detail === 'string') return detail
   } catch {
     // fall through to the generic message
   }
-  return 'The assistant is unavailable right now. Try again in a moment.'
+  return UNAVAILABLE
 }
 
 export async function getMessages(threadId: string, signal?: AbortSignal): Promise<Message[]> {

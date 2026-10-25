@@ -112,6 +112,11 @@ export default function App() {
   }, [threadId, loadAttempt])
 
   useEffect(() => saveChats(chats), [chats])
+  // Tabs and browser history tell chats apart by their first question.
+  const title = chats.find((chat) => chat.id === threadId)?.title
+  useEffect(() => {
+    document.title = title ? `${title} · Knowledge base` : 'Knowledge base'
+  }, [title])
   // Another tab saved a chat: adopt its list, so this tab's next save doesn't drop it.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => e.key === CHATS_KEY && setChats(storedChats())
@@ -171,7 +176,8 @@ export default function App() {
   // Each streamed chunk sends a mote of light from a retrieved passage to the writing caret.
   function feedCaret() {
     const caret = centre(document.querySelector('.answer.live .caret'))
-    if (caret) skyRef.current?.emit(caret)
+    const column = document.querySelector('.answer.live')?.getBoundingClientRect()
+    if (caret && column) skyRef.current?.emit(caret, column)
   }
 
   // Until the first words arrive, the lit passages keep pouring light into the waiting star.
@@ -256,6 +262,8 @@ export default function App() {
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    // On a touch keyboard Enter adds a line (there is no Shift+Enter); the Send button sends.
+    if (matchMedia('(pointer: coarse)').matches) return
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault()
       void send(draft)
@@ -267,6 +275,9 @@ export default function App() {
 
   return (
     <div className={['shell', intro && 'intro', messages.length && 'chatting'].filter(Boolean).join(' ')}>
+      <a className="skip" href="#question">
+        Skip to question
+      </a>
       <Sky rendererRef={skyRef} />
       <header className="masthead">
         <span className="wordmark">Knowledge base</span>
@@ -276,9 +287,11 @@ export default function App() {
               Chats
             </button>
           )}
-          <button type="button" className="quiet" onClick={startNewChat} disabled={empty && !streaming}>
-            New chat
-          </button>
+          {(!empty || streaming) && (
+            <button type="button" className="quiet" onClick={startNewChat}>
+              New chat
+            </button>
+          )}
         </div>
         <nav id="chats" className="chats" ref={chatsRef} popover="auto" aria-label="Saved chats">
           <ul>
@@ -298,6 +311,7 @@ export default function App() {
       </header>
 
       <main className="thread" aria-busy={loading || streaming}>
+        {messages.length > 0 && <h1 className="visually-hidden">Conversation</h1>}
         {loadError && (
           <section className="welcome">
             <h1>Couldn’t load this chat</h1>
@@ -344,9 +358,10 @@ export default function App() {
         )}
         {messages.map((message, i) =>
           message.role === 'user' ? (
-            <p key={i} className="question">
+            <h2 key={i} className="question">
+              <span className="visually-hidden">You asked: </span>
               {message.content}
-            </p>
+            </h2>
           ) : (
             <Answer
               key={i}
@@ -408,7 +423,10 @@ export default function App() {
           ) : streaming ? (
             <Musing />
           ) : (
-            'Enter to send, Shift+Enter for a new line. Don’t share personal information.'
+            <>
+              <span className="keys">Enter to send, Shift+Enter for a new line. </span>
+              Don’t share personal information.
+            </>
           )}
         </p>
       </form>

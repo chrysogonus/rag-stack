@@ -16,8 +16,13 @@ interface Props {
   sky: RefObject<SkyRenderer | null>
 }
 
-const external = ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'a'>) => (
-  <a {...props} target="_blank" rel="noreferrer" />
+const NewTab = () => <span className="visually-hidden"> (opens in new tab)</span>
+
+const external = ({ node: _node, children, ...props }: { node?: unknown } & ComponentProps<'a'>) => (
+  <a {...props} target="_blank" rel="noreferrer">
+    {children}
+    <NewTab />
+  </a>
 )
 
 // Tables (comparisons) and other GitHub Markdown. Single tildes stay text: "~7 s" is not strikethrough.
@@ -61,6 +66,7 @@ const components: Components = {
     return (
       <a className={text === id ? 'cite' : undefined} href={href} target="_blank" rel="noreferrer" {...pointing(id)}>
         {children as ReactNode}
+        <NewTab />
       </a>
     )
   },
@@ -129,7 +135,7 @@ export function Answer({ content, sources, index, live, sky }: Props) {
   }
 
   return (
-    <article className={live ? 'answer live' : 'answer'}>
+    <article className={live ? 'answer live' : 'answer'} aria-label="Answer">
       <div className="answer-body">
         <CitingContext value={citing}>
           <Markdown remarkPlugins={remarkPlugins} components={components}>
@@ -141,7 +147,7 @@ export function Answer({ content, sources, index, live, sky }: Props) {
       </div>
       {footer && (
         <section className="catalogue" aria-label={footer.heading}>
-          <h2>{footer.heading}</h2>
+          <h3>{footer.heading}</h3>
           <ul>
             {groupEntries(footer.entries).map((group) => (
               <li
@@ -161,6 +167,7 @@ export function Answer({ content, sources, index, live, sky }: Props) {
                         {...pointing(entry.id)}
                       >
                         {entry.id}
+                        <NewTab />
                       </a>
                     </Fragment>
                   ))}

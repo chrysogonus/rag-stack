@@ -59,6 +59,15 @@ describe('sendMessage', () => {
     expect(reply).toEqual({ role: 'assistant', content: 'Hi' })
   })
 
+  it('shows server text only for the limits, a generic message for anything else', async () => {
+    const reply = (status: number) => async () => new Response(JSON.stringify({ detail: `server says ${status}` }), { status })
+
+    vi.stubGlobal('fetch', reply(429))
+    await expect(sendMessage('t', 'Hi', { onDelta: () => {} })).rejects.toThrow('server says 429')
+    vi.stubGlobal('fetch', reply(500))
+    await expect(sendMessage('t', 'Hi', { onDelta: () => {} })).rejects.toThrow('The assistant is unavailable right now.')
+  })
+
   it('turns a request that never reached the server into a refusal', async () => {
     vi.stubGlobal('fetch', async () => {
       throw new TypeError('Failed to fetch')

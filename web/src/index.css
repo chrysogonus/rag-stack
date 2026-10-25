@@ -8,6 +8,8 @@
   --ember-ink: #ffffff;
   --glint: #3d63b8;
   --rule: #c3cbdb;
+  /* The composer's outline: at least 3:1 against both the field and the sky. */
+  --field-rule: #77839e;
   --panel: rgb(232 237 245 / 0.86);
   --field: #f6f8fb;
   --question: #dbe2ee;
@@ -40,6 +42,7 @@
     --ember-ink: #0e1a33;
     --glint: #86a8f5;
     --rule: #2c3a5c;
+    --field-rule: #64769c;
     --panel: rgb(14 26 51 / 0.8);
     --field: #15233f;
     --question: #1d2c4c;
@@ -132,7 +135,7 @@ body {
   margin: 0 auto;
   padding: 0.875rem 1rem 1.25rem;
   /* The answer scrolls under the sticky masthead and composer, so both fade it out. */
-  background: linear-gradient(color-mix(in srgb, var(--sky) 94%, transparent) 65%, transparent);
+  background: linear-gradient(color-mix(in srgb, var(--sky) 97%, transparent) calc(100% - 1rem), transparent);
 }
 
 .actions {
@@ -308,6 +311,7 @@ button:disabled {
 }
 
 .question {
+  font: inherit;
   width: fit-content;
   max-width: min(85%, 34rem);
   margin: 2.25rem 0 1rem auto;
@@ -565,7 +569,7 @@ button:disabled {
   font-size: 0.875rem;
 }
 
-.catalogue h2 {
+.catalogue h3 {
   margin: 0 0 0.5rem;
   font-size: 0.8125rem;
   font-weight: 600;
@@ -582,19 +586,17 @@ button:disabled {
   display: grid;
   grid-template-columns: 0.875rem 1fr;
   gap: 0.75rem;
-  margin: 0 -0.75rem;
+  /* Out into the answer's margin on the left only, so a highlighted row stays inside the column. */
+  margin: 0 0 0 -0.75rem;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  transition:
-    background-color 200ms,
-    translate 200ms;
+  transition: background-color 200ms;
 }
 
 .catalogue li.active,
 .catalogue li:has(:target) {
   background: color-mix(in srgb, var(--ember) 8%, transparent);
   box-shadow: inset 2px 0 var(--ember);
-  translate: 0.25rem 0;
 }
 
 .catalogue li a {
@@ -655,7 +657,7 @@ button:disabled {
   gap: 0.5rem;
   padding: 0.5rem 0.5rem 0.5rem 1.1rem;
   background: var(--field);
-  border: 1px solid var(--rule);
+  border: 1px solid var(--field-rule);
   border-radius: 1.5rem;
   transition:
     border-color 200ms,
@@ -745,8 +747,8 @@ button:disabled {
   .shell::before {
     mask-image: linear-gradient(
       to bottom,
-      rgb(0 0 0 / 0.3) min(36vh, 300px),
-      #000 calc(min(36vh, 300px) + 5rem)
+      rgb(0 0 0 / 0.3) min(28vh, 260px),
+      #000 calc(min(28vh, 260px) + 5rem)
     );
   }
 
@@ -756,7 +758,7 @@ button:disabled {
   }
 
   .welcome {
-    margin-top: calc(min(36vh, 300px) - 1rem);
+    margin-top: calc(min(28vh, 260px) - 1rem);
   }
 }
 
@@ -775,5 +777,94 @@ button:disabled {
 
   .catalogue li {
     transition: none;
+  }
+}
+
+/* Keyboard users can jump past the conversation to the question box. */
+.skip:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip:focus {
+  position: fixed;
+  top: 0.75rem;
+  left: 1rem;
+  z-index: 10;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: var(--ember);
+  color: var(--ember-ink);
+  font-weight: 600;
+}
+
+.masthead button {
+  white-space: nowrap;
+}
+
+/* The smallest phones: the wordmark gives way so both buttons fit on one line. */
+@media (width < 360px) {
+  .wordmark {
+    font-size: 1rem;
+  }
+
+  .masthead button {
+    padding-inline: 0.8rem;
+  }
+}
+
+/* Phones: example questions scroll sideways in one row, so all of them sit above the composer. */
+@media (width < 600px) {
+  .starters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-inline: -1rem;
+    padding: 0 1rem 0.25rem;
+    scrollbar-width: none;
+  }
+
+  .starters button {
+    white-space: nowrap;
+  }
+}
+
+/* Short viewports (landscape phones, 200% zoom): the sticky bars give the reading area room. */
+@media (height < 500px) {
+  .masthead {
+    padding-block: 0.5rem 0.75rem;
+  }
+
+  .composer {
+    padding-top: 0.5rem;
+  }
+
+  .hint {
+    display: none;
+  }
+}
+
+/* Touch: buttons and citations get finger-sized targets. */
+@media (pointer: coarse) {
+  button {
+    min-height: 44px;
+  }
+
+  .answer .cite {
+    position: relative;
+  }
+
+  .answer .cite::after {
+    content: '';
+    position: absolute;
+    inset: -0.7em -0.2em;
+  }
+
+  /* There is no Shift+Enter on a touch keyboard: Enter adds a line, Send sends. */
+  .keys {
+    display: none;
   }
 }

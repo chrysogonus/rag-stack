@@ -123,7 +123,8 @@ export function fitSky(width: number, height: number): Sky {
       regions.set(s.id, { centre: { x, y }, radius })
     })
   } else {
-    const band = Math.min(height * 0.36, 300)
+    // Keep in step with the band in index.css (min(28vh, 260px)).
+    const band = Math.min(height * 0.28, 260)
     const radius = Math.min(width / 9, band / 5.5)
     SOURCES.forEach((s, i) => {
       const col = i % 3

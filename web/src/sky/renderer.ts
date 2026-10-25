@@ -19,6 +19,8 @@ interface Lit {
 interface Particle {
   from: Point
   to: Point
+  /** The horizontal span of the text it flows into: its trail stays faint over the words. */
+  column: { left: number; right: number }
   bend: number
   start: number
 }
@@ -146,7 +148,7 @@ export class SkyRenderer {
   }
 
   /** Sends a particle of light from the next glowing passage to `target`, at most one per 33ms. */
-  emit(target: Point) {
+  emit(target: Point, column: { left: number; right: number }) {
     if (this.still) return
     const feeders = [...this.lit.values()].filter((l) => l.used && l.cooling === undefined)
     if (!feeders.length) return
@@ -154,7 +156,7 @@ export class SkyRenderer {
     if (now - this.lastEmit < EMIT_EVERY) return
     this.lastEmit = now
     const from = feeders[this.nextFeeder++ % feeders.length].at
-    this.particles.push({ from, to: target, bend: (Math.random() - 0.5) * 0.6, start: now })
+    this.particles.push({ from, to: target, column, bend: (Math.random() - 0.5) * 0.6, start: now })
     this.kick()
   }
 
@@ -392,8 +394,6 @@ export class SkyRenderer {
 
     // Light flowing from the passages into the answer.
     this.particles = this.particles.filter((p) => now - p.start < FLIGHT)
-    // On narrow screens the light crosses the text it feeds, so it is fainter there.
-    const trail = this.sky.wide ? 0.7 : 0.4
     for (const p of this.particles) {
       moving = true
       const t = easeInOut(clamp((now - p.start) / FLIGHT))
@@ -408,7 +408,8 @@ export class SkyRenderer {
       for (let i = 0; i < 10; i++) {
         const a = along(Math.max(0, t - i * 0.018))
         const b = along(Math.max(0, t - (i + 1) * 0.018))
-        fx.strokeStyle = rgba(ember, trail * (1 - i / 10) * (1 - t * 0.4))
+        const overText = a.x > p.column.left && a.x < p.column.right
+        fx.strokeStyle = rgba(ember, (overText ? 0.18 : 0.7) * (1 - i / 10) * (1 - t * 0.4))
         fx.lineWidth = 2.2 * (1 - i / 10)
         fx.beginPath()
         fx.moveTo(a.x, a.y)
