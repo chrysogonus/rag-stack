@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createSseParser, sendMessage, type SseEvent } from './api'
+import { createSseParser, RefusedError, sendMessage, stopped, STOPPED, type SseEvent } from './api'
 
 function parseAll(chunks: string[]): SseEvent[] {
   const events: SseEvent[] = []
@@ -57,5 +57,30 @@ describe('sendMessage', () => {
       ['delta', 'Hi'],
     ])
     expect(reply).toEqual({ role: 'assistant', content: 'Hi' })
+  })
+
+  it('turns a request that never reached the server into a refusal', async () => {
+    vi.stubGlobal('fetch', async () => {
+      throw new TypeError('Failed to fetch')
+    })
+
+    await expect(sendMessage('t', 'Hi', { onDelta: () => {} })).rejects.toThrow(RefusedError)
+  })
+
+  it('lets a stop before the response through as an abort', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    vi.stubGlobal('fetch', async () => {
+      throw new DOMException('aborted', 'AbortError')
+    })
+
+    await expect(sendMessage('t', 'Hi', { onDelta: () => {} }, controller.signal)).rejects.not.toThrow(RefusedError)
+  })
+})
+
+describe('stopped', () => {
+  it('marks a cut-off answer the way the server stores it', () => {
+    expect(stopped('Partial')).toBe(`Partial\n\n${STOPPED}`)
+    expect(stopped('  ')).toBe(STOPPED)
   })
 })

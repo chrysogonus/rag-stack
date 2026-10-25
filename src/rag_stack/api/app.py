@@ -5,6 +5,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Annotated, Any
 from uuid import UUID
 
+import anyio
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 from langchain_core.runnables import RunnableConfig
@@ -22,6 +23,8 @@ from rag_stack.retrieval.retriever import Retriever, open_knowledge_base
 
 logger = logging.getLogger(__name__)
 
+STOPPED = "_Stopped._"
+
 
 def source_refs(chunks: list[dict[str, Any]], top_k: int) -> list[dict[str, Any]]:
     """The ranked retrieved sources for the UI, one per passage ID, without their text.
@@ -35,6 +38,18 @@ def source_refs(chunks: list[dict[str, Any]], top_k: int) -> list[dict[str, Any]
         )
         ref["used"] = ref.get("used", False) or rank < top_k
     return list(refs.values())
+
+
+async def save_stopped(graph: CompiledStateGraph, config: RunnableConfig, partial: str) -> None:
+    """Store an unfinished answer, marked as stopped, after the question it belongs to."""
+    state = await graph.aget_state(config)
+    messages: list[Message] = state.values.get("messages", [])
+    if not messages or messages[-1]["role"] != "user":
+        return  # the question never reached the thread, or its answer was stored
+    content = f"{partial}\n\n{STOPPED}" if partial.strip() else STOPPED
+    await graph.aupdate_state(
+        config, {"messages": [{"role": "assistant", "content": content}]}, as_node="generate"
+    )
 
 
 def get_graph(request: Request) -> CompiledStateGraph:
@@ -108,15 +123,16 @@ def create_app(
         graph: Graph,
     ) -> AsyncIterator[ServerSentEvent]:
         user: Message = {"role": "user", "content": body.content}
+        config = thread_config(thread_id)
+        written: list[str] = []
+        done = False
         try:
             async for part in graph.astream(
-                {"messages": [user]},
-                thread_config(thread_id),
-                stream_mode=["custom", "updates"],
-                version="v2",
+                {"messages": [user]}, config, stream_mode=["custom", "updates"], version="v2"
             ):
                 if part["type"] == "custom":
                     if "delta" in part["data"]:
+                        written.append(part["data"]["delta"])
                         yield ServerSentEvent(event="delta", data={"text": part["data"]["delta"]})
                     else:
                         limiter.charge(client, part["data"]["usage"])
@@ -125,6 +141,7 @@ def create_app(
                     refs = source_refs(found, settings.retrieval_top_k)
                     yield ServerSentEvent(event="sources", data={"sources": refs})
                 elif part["type"] == "updates" and "generate" in part["data"]:
+                    done = True
                     reply = part["data"]["generate"]["messages"][-1]
                     yield ServerSentEvent(event="done", data={"message": reply})
         except Exception:
@@ -132,5 +149,12 @@ def create_app(
             yield ServerSentEvent(
                 event="error", data={"detail": "Something went wrong. Please try again."}
             )
+        finally:
+            if not done:
+                # Stopped, disconnected or failed: keep what was streamed, so the thread still
+                # alternates and a reload shows what the user saw. Shielded, because a client
+                # disconnect cancels this generator.
+                with anyio.CancelScope(shield=True):
+                    await save_stopped(graph, config, "".join(written))
 
     return app

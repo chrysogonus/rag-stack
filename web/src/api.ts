@@ -17,8 +17,15 @@ export interface SseEvent {
   data: string
 }
 
-/** Thrown when the server refuses a message before answering; nothing was saved. */
+/** Thrown when the server refuses a message, or never gets it; nothing was saved. */
 export class RefusedError extends Error {}
+
+/** Marks an answer that ended early; the server stores the same text (`STOPPED` in api/app.py). */
+export const STOPPED = '_Stopped._'
+
+export function stopped(partial: string): string {
+  return partial.trim() ? `${partial}\n\n${STOPPED}` : STOPPED
+}
 
 /** Feeds text chunks in, calls `onEvent` for every complete server-sent event. */
 export function createSseParser(onEvent: (event: SseEvent) => void): (chunk: string) => void {
@@ -76,12 +83,18 @@ export async function sendMessage(
   { onSources, onDelta }: StreamHandlers,
   signal?: AbortSignal,
 ): Promise<Message> {
-  const response = await fetch(threadUrl(threadId), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content }),
-    signal,
-  })
+  let response: Response
+  try {
+    response = await fetch(threadUrl(threadId), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+      signal,
+    })
+  } catch (e) {
+    if (signal?.aborted) throw e
+    throw new RefusedError("Couldn't reach the assistant. Check your connection and try again.")
+  }
   if (!response.ok || !response.body) throw new RefusedError(await refusal(response))
 
   let reply: Message | undefined

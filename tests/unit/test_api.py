@@ -1,7 +1,9 @@
 import json
+import time
 import uuid
 from collections.abc import Iterator
 
+import anyio
 import pytest
 from fakes.embeddings import FakeRetriever, chunk
 from fakes.llm import FailingChatModel, FakeChatModel
@@ -11,7 +13,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from rag_stack.agent.answer import footer
 from rag_stack.api.app import create_app, source_refs
 from rag_stack.config import Settings
-from rag_stack.llm.base import ChatModel
+from rag_stack.llm.base import ChatModel, TextDelta
 
 
 def parse_sse(body: str) -> list[tuple[str, dict]]:
@@ -154,4 +156,45 @@ def test_llm_failure_ends_the_stream_with_a_generic_error(make_client):
         ("sources", {"sources": [SOURCE_REF]}),
         ("delta", {"text": "partial"}),
         ("error", {"detail": "Something went wrong. Please try again."}),
+    ]
+
+
+def test_a_failed_answer_is_kept_marked_as_stopped(make_client):
+    client = make_client(FailingChatModel())
+    thread = url()
+    client.post(thread, json={"content": "Hi"})
+
+    assert client.get(thread).json() == [
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": "partial\n\n_Stopped._"},
+    ]
+
+
+class StallingChatModel:
+    """Streams one word, then waits until the client goes away."""
+
+    async def stream(self, messages, *, instructions, max_output_tokens):
+        yield TextDelta("Partial")
+        await anyio.sleep(30)
+        yield TextDelta(" never sent")
+
+
+def test_an_answer_cut_off_by_the_client_is_kept_marked_as_stopped(make_client):
+    client = make_client(StallingChatModel())
+    thread = url()
+
+    with client.stream("POST", thread, json={"content": "Hi"}) as response:
+        for line in response.iter_lines():
+            if line.startswith("event: delta"):
+                break
+
+    messages: list[dict] = []
+    for _ in range(50):  # the save runs as the server notices the disconnect
+        messages = client.get(thread).json()
+        if len(messages) == 2:
+            break
+        time.sleep(0.05)
+    assert messages == [
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": "Partial\n\n_Stopped._"},
     ]

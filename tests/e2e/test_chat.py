@@ -3,6 +3,7 @@
 The fixture corpus is indexed into a throwaway collection, so the real index is untouched."""
 
 import json
+import time
 import uuid
 from collections.abc import Iterator
 from pathlib import Path
@@ -124,3 +125,25 @@ def test_a_follow_up_asking_how_to_defend_gets_the_mitigations(knowledge_base):
     assert any(s["id"] == "AML.M0019" and s["used"] for s in sources)
     assert not answer.startswith("I can't answer that")
     assert "AML.M0019" in answer
+
+
+def test_an_answer_cut_off_by_the_client_is_kept_and_the_chat_goes_on(knowledge_base):
+    thread_url = f"/api/threads/{uuid.uuid4()}/messages"
+
+    with TestClient(create_app(retriever=knowledge_base)) as client:
+        with client.stream("POST", thread_url, json={"content": "What is AML.T0051?"}) as response:
+            for line in response.iter_lines():
+                if line.startswith("event: delta"):
+                    break
+        messages: list[dict] = []
+        for _ in range(100):  # the server saves the partial answer as it notices the disconnect
+            messages = client.get(thread_url).json()
+            if len(messages) == 2:
+                break
+            time.sleep(0.1)
+        assert messages[1]["role"] == "assistant"
+        assert messages[1]["content"].endswith("_Stopped._")
+
+        follow_up, _ = ask(client, thread_url, "Which mitigations address it?")
+        assert "AML.M0019" in follow_up
+        assert [m["role"] for m in client.get(thread_url).json()] == ["user", "assistant"] * 2

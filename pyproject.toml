@@ -7,6 +7,8 @@ requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.20.1",
     "anthropic>=2.3.0",
+    # Shielding the save of a stopped answer from the disconnect that cancels the stream.
+    "anyio>=4.15.1",
     "beautifulsoup4>=4.15.0",
     "fastapi>=0.162.0",
     "fastembed>=0.9.0",

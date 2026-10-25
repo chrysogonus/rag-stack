@@ -713,6 +713,17 @@ button:disabled {
   font-size: 0.9375rem;
 }
 
+.error button {
+  margin-left: 0.75rem;
+  padding: 0.2rem 0.85rem;
+  color: inherit;
+  border-color: currentColor;
+}
+
+.welcome .actions {
+  margin-top: 2rem;
+}
+
 /* Narrow screens: the constellations gather in the upper sky, above the welcome copy. */
 @media (width < 1100px) {
   .shell::before {

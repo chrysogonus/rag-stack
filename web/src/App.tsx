@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Answer } from './Answer'
 import { Musing } from './Musing'
-import { getMessages, RefusedError, sendMessage, type Message, type SourceRef } from './api'
+import { getMessages, RefusedError, sendMessage, stopped, type Message, type SourceRef } from './api'
 import { rememberChat, type Chat } from './chats'
 import { SOURCES } from './sky/layout'
 import type { SkyRenderer } from './sky/renderer'
@@ -74,6 +74,10 @@ export default function App() {
   const [streaming, setStreaming] = useState(false)
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
+  // The question whose answer failed part-way, offered again next to the error.
+  const [retry, setRetry] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [announcement, setAnnouncement] = useState('')
   const abortRef = useRef<AbortController | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -99,13 +103,13 @@ export default function App() {
         if (first) setChats((c) => (c.some((chat) => chat.id === threadId) ? c : rememberChat(c, threadId, first.content)))
       })
       .catch((e: Error) => {
-        if (!controller.signal.aborted) setError(`Couldn't load this conversation. ${e.message}`)
+        if (!controller.signal.aborted) setLoadError(e.message)
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [threadId])
+  }, [threadId, loadAttempt])
 
   useEffect(() => saveChats(chats), [chats])
   // Another tab saved a chat: adopt its list, so this tab's next save doesn't drop it.
@@ -125,14 +129,32 @@ export default function App() {
     if (stickRef.current && messages.length) window.scrollTo({ top: document.documentElement.scrollHeight })
   }, [messages])
 
+  // Escape stops the answer, unless it is closing the chats list.
+  useEffect(() => {
+    if (!streaming) return
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.querySelector(':popover-open')) abortRef.current?.abort()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [streaming])
+
   function showThread(id: string) {
     abortRef.current?.abort()
     skyRef.current?.reset()
     setThreadId(openThread(id))
     setMessages([])
     setError(null)
+    setRetry(null)
+    setLoadError(null)
     setDraft('')
     inputRef.current?.focus()
+  }
+
+  function retryLoad() {
+    setLoadError(null)
+    setLoading(true)
+    setLoadAttempt((n) => n + 1)
   }
 
   function startNewChat() {
@@ -163,13 +185,14 @@ export default function App() {
 
   async function send(content: string) {
     const question = content.trim()
-    // While a chat loads, its history would overwrite the new turn.
-    if (!question || streaming || loading) return
+    // While a chat loads (or failed to), its history would overwrite the new turn.
+    if (!question || streaming || loading || loadError) return
     const sky = skyRef.current
     const controller = new AbortController()
     abortRef.current = controller
     stickRef.current = true
     setError(null)
+    setRetry(null)
     setDraft('')
     setStreaming(true)
     setAnnouncement('')
@@ -207,15 +230,17 @@ export default function App() {
       setAnnouncement('Answer ready.')
     } catch (e) {
       if (controller.signal.aborted) {
-        updateAnswer((a) => ({ content: a.content || '_Stopped._' }))
+        updateAnswer((a) => ({ content: stopped(a.content) }))
       } else if (e instanceof RefusedError) {
         // Nothing was saved: take the question back out and return it to the composer.
         setMessages((m) => m.slice(0, -2))
         setDraft(question)
         setError(e.message)
       } else {
-        setMessages((m) => (m.at(-1)?.content === '' ? m.slice(0, -1) : m))
-        setError(e instanceof TypeError ? "Couldn't reach the assistant. Check your connection and try again." : (e as Error).message)
+        // The server kept what was streamed, marked the same way; offer the question again.
+        updateAnswer((a) => ({ content: stopped(a.content) }))
+        setRetry(question)
+        setError(e instanceof TypeError ? 'The connection dropped before the answer was finished.' : (e as Error).message)
       }
     } finally {
       sky?.stopSearching()
@@ -237,7 +262,7 @@ export default function App() {
     }
   }
 
-  const empty = !loading && messages.length === 0
+  const empty = !loading && !loadError && messages.length === 0
   const showCount = draft.length > MAX_CHARS * 0.8
 
   return (
@@ -273,6 +298,20 @@ export default function App() {
       </header>
 
       <main className="thread" aria-busy={loading || streaming}>
+        {loadError && (
+          <section className="welcome">
+            <h1>Couldn’t load this chat</h1>
+            <p>{loadError}</p>
+            <div className="actions">
+              <button type="button" className="primary" onClick={retryLoad}>
+                Try again
+              </button>
+              <button type="button" className="quiet" onClick={startNewChat}>
+                Start a new chat
+              </button>
+            </div>
+          </section>
+        )}
         {empty && (
           <section className="welcome">
             <h1>What do you want to know about AI security?</h1>
@@ -328,6 +367,11 @@ export default function App() {
         {error && (
           <p className="error" role="alert">
             {error}
+            {retry && !streaming && (
+              <button type="button" className="quiet" onClick={() => void send(retry)}>
+                Try again
+              </button>
+            )}
           </p>
         )}
         <div className="field" ref={fieldRef}>
@@ -351,7 +395,7 @@ export default function App() {
               Stop
             </button>
           ) : (
-            <button type="submit" className="primary" disabled={!draft.trim() || loading}>
+            <button type="submit" className="primary" disabled={!draft.trim() || loading || !!loadError}>
               Send
             </button>
           )}
