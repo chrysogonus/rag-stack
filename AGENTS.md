@@ -78,6 +78,11 @@ npm run lint && npm test -- --run && npm run build
 npm run dev                # chat UI on :5173, proxies /api to :8000
 ```
 
+Code navigation (optional): graphify is a dev-only tool (`uv tool install "graphifyy[leiden]"`,
+never a project dependency). `/graphify .` builds `graphify-out/` (gitignored); `graphify query` /
+`path` / `explain` answer structural questions. `.graphifyignore` keeps the corpus excerpts in
+`tests/fixtures/` and `evals/datasets/` out of its LLM pass.
+
 ## Testing (required)
 
 Every change to RAG or agent code ships with both test layers below:
