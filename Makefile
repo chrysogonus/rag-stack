@@ -125,7 +125,7 @@ ask: ## Answer one question from the knowledge base: make ask Q="What is AML.T00
 	@[ -n "$(Q)" ] || { echo 'Usage: make ask Q="your question"' >&2; exit 1; }
 	$(CLI) ask "$(Q)"
 
-eval: ## The paid eval run (~150 LLM calls): golden set vs. the baseline, writes report.md
+eval: ## The paid eval run (~550 LLM calls, ~40 min): golden set vs. the baseline, writes report.md
 	$(CLI) eval
 
 eval-retrieval: ## Retrieval scores and latency, no LLM calls: make eval-retrieval [SPLIT=dev|test]

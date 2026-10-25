@@ -18,7 +18,7 @@ def test_golden_set_meets_thresholds(settings):
     if reasons := stale_reasons(settings):
         pytest.fail(
             f"Saved eval results are stale ({', '.join(reasons)}): run `make eval` "
-            "(one paid golden run, ~150 LLM calls), then `make evals`."
+            "(one paid golden run, ~550 LLM calls, ~40 min), then `make evals`."
         )
 
     summary = summarize(json.loads((DATASET / "results.json").read_text()))
