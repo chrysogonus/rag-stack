@@ -41,6 +41,21 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="only score retrieval (recall@10, MRR, time): no LLM calls, nothing written",
     )
+    run_eval.add_argument(
+        "--split",
+        choices=["dev", "test"],
+        default="dev",
+        help="golden-set split for --retrieval-only: tune on dev, confirm on test",
+    )
+    draft_cmd = commands.add_parser(
+        "eval-draft", help="draft test questions from unasked units into drafts.jsonl for review"
+    )
+    draft_cmd.add_argument("source", choices=list(MODULES))
+    draft_cmd.add_argument(
+        "category", choices=["id-exact", "freshness", "german-legal", "cve", "cross-source"]
+    )
+    draft_cmd.add_argument("-n", type=int, default=5, help="how many drafts (default 5)")
+    draft_cmd.add_argument("--seed", type=int, default=0, help="which units are sampled")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 
@@ -57,10 +72,14 @@ def main(argv: list[str] | None = None) -> int:
         from rag_stack.agent.ask import ask
 
         return asyncio.run(ask(settings, args.question))
+    if args.command == "eval-draft":
+        from rag_stack.evals import draft
+
+        return asyncio.run(draft.main(settings, args.source, args.category, args.n, args.seed))
     from rag_stack.evals import harness
 
     if args.retrieval_only:
-        return asyncio.run(harness.retrieval_only(settings))
+        return asyncio.run(harness.retrieval_only(settings, split=args.split))
     return asyncio.run(harness.main(settings))
 
 

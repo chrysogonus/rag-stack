@@ -18,7 +18,7 @@ from rag_stack.agent.answer import FOOTER_START, cited_ids, is_abstention
 from rag_stack.agent.graph import build_graph
 from rag_stack.agent.prompts import ABSTAIN, BASELINE_PROMPT
 from rag_stack.config import Settings
-from rag_stack.evals.metrics import citation_precision, mean, mrr, recall_at_k
+from rag_stack.evals.metrics import bootstrap_ci, citation_precision, mean, mrr, recall_at_k
 from rag_stack.ingestion.models import Chunk
 from rag_stack.llm.base import ChatModel, Message, TextDelta
 from rag_stack.llm.factory import create_chat_model
@@ -38,6 +38,9 @@ CATEGORIES = [
     "abstention",
     "follow-up",
 ]
+# Tune on dev; test holds reviewed questions no setting was tuned on. Paraphrases and
+# translations of a question stay in its split. The first 59 questions were tuned on: all dev.
+SPLITS = ["dev", "test"]
 METRICS = [
     "recall_at_10",
     "mrr",
@@ -175,6 +178,7 @@ async def run_case(
     return {
         "id": case["id"],
         "category": case["category"],
+        "split": case["split"],
         "question": case["question"],
         "gold_ids": gold,
         "retrieved": list(dict.fromkeys(ranked))[:10],
@@ -231,18 +235,35 @@ def missing_gold_ids(kb: KnowledgeBase, cases: list[dict]) -> list[str]:
     return [g for g in gold if g not in found]
 
 
-def summarize(results: list[dict]) -> dict[str, dict[str, float | None]]:
-    groups: dict[str, list[dict]] = defaultdict(list)
+def groups(results: list[dict]) -> dict[str, list[dict]]:
+    """Results per category, per split and overall."""
+    found: dict[str, list[dict]] = defaultdict(list)
     for r in results:
-        groups[r["category"]].append(r)
-    groups["all"] = results
-    return {name: {m: mean([r[m] for r in rows]) for m in METRICS} for name, rows in groups.items()}
+        found[r["category"]].append(r)
+        found[r["split"]].append(r)
+    found["all"] = results
+    return found
 
 
-def check_thresholds(summary: dict[str, dict[str, float | None]], thresholds: dict) -> list[str]:
+def summarize(results: list[dict]) -> dict[str, dict[str, float | None]]:
+    return {
+        name: {m: mean([r[m] for r in rows]) for m in METRICS}
+        for name, rows in groups(results).items()
+    }
+
+
+def threshold_row(summary: dict[str, dict[str, float | None]]) -> str:
+    """Thresholds apply to the holdout; dev stands in until it has questions."""
+    return "test" if "test" in summary else "dev"
+
+
+def check_thresholds(
+    summary: dict[str, dict[str, float | None]], thresholds: dict, row: str | None = None
+) -> list[str]:
+    row = row or threshold_row(summary)
     failures = []
     for metric, minimum in thresholds.items():
-        value = summary["all"][metric]
+        value = summary[row][metric]
         if value is None or value < minimum:
             failures.append(f"{metric}: {value} < {minimum}")
     return failures
@@ -250,41 +271,56 @@ def check_thresholds(summary: dict[str, dict[str, float | None]], thresholds: di
 
 def report(results: list[dict], settings: Settings) -> str:
     summary = summarize(results)
+    rows_by_group = groups(results)
     fmt = lambda v: "n/a" if v is None else f"{v:.2f}"  # noqa: E731
-    counts = {c: sum(r["category"] == c for r in results) for c in CATEGORIES}
+
+    def ci(name: str, metric: str) -> str:
+        """The mean with its 95% bootstrap interval, e.g. 0.92 [0.85, 0.97]."""
+        interval = bootstrap_ci([r[metric] for r in rows_by_group[name]])
+        value = fmt(summary[name][metric])
+        return value if interval is None else f"{value} [{interval[0]:.2f}, {interval[1]:.2f}]"
+
     header = (
         "| Category | n | Recall@10 | MRR | Correctness (base → RAG) | Citation precision "
         "(base → RAG) | Abstention acc. (base → RAG) | Faithfulness (RAG) |\n"
         "|---|---|---|---|---|---|---|---|\n"
     )
     rows = []
-    for name in [*CATEGORIES, "all"]:
+    for name in [*CATEGORIES, *SPLITS, "all"]:
         s = summary.get(name)
         if not s:
             continue
         rows.append(
-            f"| {name} | {counts.get(name, len(results))} "
-            f"| {fmt(s['recall_at_10'])} | {fmt(s['mrr'])} "
-            f"| {fmt(s['baseline_correctness'])} → {fmt(s['correctness'])} "
-            f"| {fmt(s['baseline_citation_precision'])} → {fmt(s['citation_precision'])} "
-            f"| {fmt(s['baseline_abstention_accuracy'])} → {fmt(s['abstention_accuracy'])} "
-            f"| {fmt(s['faithfulness'])} |"
+            f"| {name} | {len(rows_by_group[name])} "
+            f"| {ci(name, 'recall_at_10')} | {ci(name, 'mrr')} "
+            f"| {fmt(s['baseline_correctness'])} → {ci(name, 'correctness')} "
+            f"| {fmt(s['baseline_citation_precision'])} → {ci(name, 'citation_precision')} "
+            f"| {fmt(s['baseline_abstention_accuracy'])} → {ci(name, 'abstention_accuracy')} "
+            f"| {ci(name, 'faithfulness')} |"
         )
     thresholds = yaml.safe_load((DATASET / "thresholds.yaml").read_text())
     failures = check_thresholds(summary, thresholds)
     status = "all thresholds met" if not failures else "FAILED: " + "; ".join(failures)
+    row = threshold_row(summary)
+    if row == "dev":
+        status += (
+            ". No test questions yet: settings were tuned on these dev questions, so they "
+            "overstate quality on unseen ones"
+        )
     return (
         "# Eval report: AI-security golden set\n\n"
         f"Chat model `{settings.llm_model}` ({settings.llm_provider}); judge "
         f"`{settings.eval_judge_model}` ({settings.eval_judge_provider or settings.llm_provider}) "
         f"with rubric `{RUBRIC.relative_to(ROOT)}`. Baseline: "
-        f"{baseline_name(settings)}. Scores are means in [0, 1]; judge scores "
-        "map 1-5 to 0-1. Retrieval metrics and citation precision skip abstention questions.\n\n"
-        f"Thresholds (`thresholds.yaml`, on the `all` row): {status}.\n\n"
+        f"{baseline_name(settings)}. Scores are means in [0, 1] with 95% bootstrap intervals for "
+        "RAG; judge scores map 1-5 to 0-1. Retrieval metrics and citation precision skip "
+        "abstention questions. Settings are tuned on `dev`; `test` is the holdout.\n\n"
+        f"Thresholds (`thresholds.yaml`, on the `{row}` row): {status}.\n\n"
         + header
         + "\n".join(rows)
-        + "\n\nPer-question results, answers and judge reasons: `results.json`. The questions are "
-        "drafts (`needs_review: true`) generated from the indexed corpus.\n"
+        + "\n\nPer-question results, answers and judge reasons: `results.json`. "
+        f"{sum(c['needs_review'] for c in load_cases())} of {len(results)} questions are "
+        "unreviewed drafts (`needs_review: true`) generated from the indexed corpus.\n"
     )
 
 
@@ -352,13 +388,19 @@ def stale_reasons(settings: Settings) -> list[str]:
     return [f"{key} changed" for key in new if old.get(key) != new[key]]
 
 
-async def retrieval_only(settings: Settings, kb: Retriever | None = None) -> int:
-    """Recall@10, MRR and retrieval time on the golden set, with no LLM calls and no files
-    written: a quick loop for tuning retrieval settings against the thresholds."""
+async def retrieval_only(
+    settings: Settings, kb: Retriever | None = None, split: str = "dev"
+) -> int:
+    """Recall@10, MRR and retrieval time on one split of the golden set, with no LLM calls and
+    no files written: a quick loop for tuning retrieval settings on dev, confirmed on test."""
+    if not any(case["split"] == split for case in load_cases()):
+        print(f"split {split}: no questions")
+        return 1
     kb = kb or await asyncio.to_thread(open_knowledge_base, settings)
     rows = []
+    print(f"split: {split}")
     for case in load_cases():
-        if not case["gold_ids"]:
+        if not case["gold_ids"] or case["split"] != split:
             continue
         start = time.perf_counter()
         found = await kb.retrieve(case["question"], context=case.get("follow_up_of", ""))
@@ -382,7 +424,9 @@ async def retrieval_only(settings: Settings, kb: Retriever | None = None) -> int
     p50, p95 = seconds[len(seconds) // 2], seconds[int(len(seconds) * 0.95)]
     print(f"retrieval p50 {p50:.2f} s, p95 {p95:.2f} s")
     thresholds = yaml.safe_load((DATASET / "thresholds.yaml").read_text())
-    failed = check_thresholds(summary, {m: thresholds[m] for m in ("recall_at_10", "mrr")})
+    failed = check_thresholds(
+        summary, {m: thresholds[m] for m in ("recall_at_10", "mrr")}, row="all"
+    )
     print(*failed, sep="\n")
     return 1 if failed else 0
 

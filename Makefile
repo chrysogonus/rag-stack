@@ -7,7 +7,7 @@ RUN := .run
 API_URL := http://127.0.0.1:8000/openapi.json
 WEB_URL := http://127.0.0.1:5173/
 
-.PHONY: help install format up down restart status logs services migrate ingest index ask eval \
+.PHONY: help install format up down restart status logs services migrate ingest index ask eval eval-retrieval eval-draft \
 	ci lockfile lint secrets typecheck test audit build web-check evals e2e check-all
 
 SOURCE ?= all
@@ -124,6 +124,12 @@ ask: ## Answer one question from the knowledge base: make ask Q="What is AML.T00
 
 eval: ## The paid eval run (~150 LLM calls): golden set vs. the baseline, writes report.md
 	$(CLI) eval
+
+eval-retrieval: ## Retrieval scores and latency, no LLM calls: make eval-retrieval [SPLIT=dev|test]
+	$(CLI) eval --retrieval-only --split $(or $(SPLIT),dev)
+
+eval-draft: ## Draft test questions into drafts.jsonl for review: make eval-draft SOURCE=<id> CATEGORY=<c> [N=5]
+	$(CLI) eval-draft $(SOURCE) $(CATEGORY) -n $(or $(N),5)
 
 # --- Checks (same order as .github/workflows/ci.yml) -----------------------------------------
 

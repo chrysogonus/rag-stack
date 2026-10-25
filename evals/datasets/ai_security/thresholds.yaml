@@ -1,4 +1,5 @@
-# Minimum mean scores on the whole golden set (the `all` row of report.md), each in [0, 1].
+# Minimum mean scores on the test split (the `test` row of report.md; `dev` until test has
+# questions), each in [0, 1].
 # Raise deliberately and say why in the change; never lower one to make a run pass.
 recall_at_10: 0.8
 mrr: 0.6

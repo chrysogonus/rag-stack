@@ -1,3 +1,4 @@
+import random
 from collections.abc import Sequence
 
 
@@ -25,3 +26,18 @@ def citation_precision(cited: Sequence[str], gold: Sequence[str]) -> float:
 def mean(values: Sequence[float | None]) -> float | None:
     present = [v for v in values if v is not None]
     return sum(present) / len(present) if present else None
+
+
+def bootstrap_ci(
+    values: Sequence[float | None], resamples: int = 1000, seed: int = 0
+) -> tuple[float, float] | None:
+    """95% percentile bootstrap interval of the mean of the values present (seeded, so a report
+    is reproducible)."""
+    present = [v for v in values if v is not None]
+    if not present:
+        return None
+    rng = random.Random(seed)  # noqa: S311 (resampling, not security)
+    means = sorted(
+        sum(rng.choices(present, k=len(present))) / len(present) for _ in range(resamples)
+    )
+    return means[int(0.025 * resamples)], means[int(0.975 * resamples) - 1]

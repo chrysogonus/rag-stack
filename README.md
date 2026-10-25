@@ -34,6 +34,8 @@ make index                   # create the edge table, embed chunks into Qdrant (
 make ask Q="Which ATLAS mitigations address AML.T0051?"
 make up                      # API (:8000) and chat UI: open http://localhost:5173
 make eval                    # golden set, RAG vs. no-retrieval baseline -> evals/datasets/ai_security/report.md
+make eval-retrieval          # retrieval only, free: tune on the dev split, confirm with SPLIT=test
+make eval-draft SOURCE=atlas CATEGORY=freshness N=5   # draft test questions for review -> drafts.jsonl
 make down                    # stop everything (stored conversations and the index are kept)
 ```
 

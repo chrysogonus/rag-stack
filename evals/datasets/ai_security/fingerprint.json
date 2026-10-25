@@ -1,7 +1,7 @@
 {
- "code": "e492c6c2f9f9a17ec3ed76d105b8b0bfeb68b228cae736a12e6ec88d088c847c",
+ "code": "97fad55d49ed9e8d917a9b13cce825782b963bb908f8d6961f0cf2df4196de50",
  "rubric": "024866d6ee9c0d47a65e0994e23726661d96d5fc5c2434c45114031dc9cdc3e9",
- "golden": "b81937b07b7d315b6fa28d71699b5676cd21ca5b2e17ca86b9f8d11d5229897a",
+ "golden": "72b171eedd2408d49fbbfc374d7f5a67d226fb2309727604fedc762b2a753bb8",
  "corpus": "ff2634f848f13cb0cda1a5add0900fe03f9823485ce2fa3cd859a484ac673825",
  "settings": "{\"embedding_model\": \"intfloat/multilingual-e5-large\", \"eval_baseline_base_url\": \"http://127.0.0.1:11435/v1\", \"eval_baseline_model\": \"codex/gpt-6-luna\", \"eval_baseline_provider\": \"openai-compatible\", \"eval_judge_base_url\": \"http://127.0.0.1:11435/v1\", \"eval_judge_model\": \"codex/gpt-6-luna\", \"eval_judge_provider\": \"openai-compatible\", \"llm_base_url\": \"\", \"llm_model\": \"gpt-6-luna\", \"llm_provider\": \"openai\", \"max_chunk_chars\": \"2500\", \"max_output_tokens\": \"4096\", \"qdrant_collection\": \"kb_chunks\", \"rerank_max_chars\": \"800\", \"rerank_min_score\": \"0.0\", \"reranker_model\": \"BAAI/bge-reranker-v2-m3-int8\", \"retrieval_candidates\": \"20\", \"retrieval_top_k\": \"8\", \"sparse_model\": \"Qdrant/bm25\"}"
 }

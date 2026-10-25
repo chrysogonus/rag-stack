@@ -6,12 +6,13 @@ from fakes.embeddings import chunk
 from rag_stack.evals.harness import (
     CATEGORIES,
     DATASET,
+    SPLITS,
     check_thresholds,
     citations,
     load_cases,
     summarize,
 )
-from rag_stack.evals.metrics import citation_precision, mean, mrr, recall_at_k
+from rag_stack.evals.metrics import bootstrap_ci, citation_precision, mean, mrr, recall_at_k
 
 
 def test_recall_and_mrr_count_distinct_ids():
@@ -30,6 +31,19 @@ def test_citation_precision_and_mean():
     assert mean([None]) is None
 
 
+def test_bootstrap_ci_brackets_the_mean_and_is_reproducible():
+    values = [1.0, 0.0, 1.0, 1.0, None]
+
+    interval = bootstrap_ci(values)
+    assert interval is not None
+    low, high = interval
+
+    assert 0.0 <= low < 0.75 < high <= 1.0
+    assert bootstrap_ci(values) == (low, high)
+    assert bootstrap_ci([1.0, 1.0]) == (1.0, 1.0)
+    assert bootstrap_ci([None]) is None
+
+
 def test_citations_read_links_to_sources_and_normalize_bracketed_ids():
     m0019 = chunk("AML.M0019")
     text = f"Per [Article 50(1)] and [AML.T0051, AML.M0019], see [Access control]({m0019.url})."
@@ -39,8 +53,9 @@ def test_citations_read_links_to_sources_and_normalize_bracketed_ids():
 
 def test_summary_and_thresholds():
     results = [
-        {"category": "cve", "recall_at_10": 1.0, "mrr": 1.0, "correctness": 0.5},
-        {"category": "abstention", "recall_at_10": None, "mrr": None, "correctness": 1.0},
+        {"category": "cve", "split": "test", "recall_at_10": 1.0, "mrr": 1.0, "correctness": 0.5},
+        {"category": "cve", "split": "test", "recall_at_10": None, "mrr": None, "correctness": 1.0},
+        {"category": "list", "split": "dev", "recall_at_10": 0.0, "mrr": 0.0, "correctness": 0.0},
     ]
     for r in results:
         for metric in ("citation_precision", "baseline_citation_precision", "faithfulness"):
@@ -50,18 +65,25 @@ def test_summary_and_thresholds():
 
     summary = summarize(results)
 
-    assert summary["all"]["recall_at_10"] == 1.0
-    assert summary["all"]["correctness"] == 0.75
+    assert summary["test"]["recall_at_10"] == 1.0
+    assert summary["test"]["correctness"] == 0.75
+    assert summary["all"]["correctness"] == 0.5
+    assert summary["cve"] == summary["test"]
+    # Thresholds apply to the test split: the failing dev case doesn't count.
     assert check_thresholds(summary, {"correctness": 0.7, "mrr": 0.5}) == []
     assert check_thresholds(summary, {"correctness": 0.8}) == ["correctness: 0.75 < 0.8"]
     assert check_thresholds(summary, {"faithfulness": 0.5}) == ["faithfulness: None < 0.5"]
+    assert check_thresholds(summary, {"mrr": 0.6}, row="dev") == ["mrr: 0.0 < 0.6"]
+    # Until the holdout has questions, thresholds apply to dev.
+    assert check_thresholds(summarize(results[2:]), {"mrr": 0.6}) == ["mrr: 0.0 < 0.6"]
 
 
 def test_golden_set_has_the_required_shape():
     cases = load_cases()
     counts = {c: sum(case["category"] == c for case in cases) for c in CATEGORIES}
 
-    assert counts == {
+    # At least the original set; reviewed drafts add to it.
+    minimum = {
         "id-exact": 10,
         "freshness": 10,
         "cross-source": 10,
@@ -71,13 +93,21 @@ def test_golden_set_has_the_required_shape():
         "abstention": 6,
         "follow-up": 3,
     }
-    assert len({case["id"] for case in cases}) == 59
+    assert all(counts[c] >= n for c, n in minimum.items()), counts
+    assert len({case["id"] for case in cases}) == len(cases)
     for case in cases:
         assert case["language"] in ("en", "de"), case["id"]
-        assert case["needs_review"] is True, case["id"]
+        assert isinstance(case["needs_review"], bool), case["id"]
         assert case["key_facts"], case["id"]
         assert bool(case["gold_ids"]) != (case["category"] == "abstention"), case["id"]
         assert ("follow_up_of" in case) >= (case["category"] == "follow-up"), case["id"]
+        assert case["split"] in SPLITS, case["id"]
+    # Questions with the same answer (a paraphrase, a translation) share a split, or tuning on
+    # one would leak into the score of the other.
+    splits: dict[tuple, set[str]] = {}
+    for case in cases:
+        splits.setdefault((case["category"], *case["gold_ids"]), set()).add(case["split"])
+    assert all(len(found) == 1 for key, found in splits.items() if key[1:]), splits
     assert all(case["language"] == "de" for case in cases if case["category"] == "german-legal")
     json.dumps(cases)  # plain JSON throughout
     assert (DATASET / "thresholds.yaml").exists()
@@ -167,6 +197,7 @@ async def test_a_follow_up_case_asks_its_previous_question_first_in_the_same_thr
     case = {
         "id": "f",
         "category": "follow-up",
+        "split": "dev",
         "follow_up_of": "What is AML.T0051?",
         "question": "How do I defend against it?",
         "gold_ids": ["AML.M0020"],
@@ -214,4 +245,12 @@ async def test_retrieval_only_scores_the_golden_set_without_an_llm(capsys):
     kb = Perfect()
     assert await retrieval_only(Settings(), kb) == 0
     assert ("How do I defend against it?", "What is AML.T0051?") in kb.asked
-    assert "all            recall@10 1.000  mrr 1.000" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert out.startswith("split: dev")
+    assert "all            recall@10 1.000  mrr 1.000" in out
+
+    # A split without questions fails instead of reporting nothing.
+    asked = len(kb.asked)
+    assert await retrieval_only(Settings(), kb, split="test") == 1
+    assert len(kb.asked) == asked
+    assert "split test: no questions" in capsys.readouterr().out
