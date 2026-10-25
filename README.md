@@ -37,7 +37,7 @@ make tracing                 # optional: self-hosted Langfuse at http://localhos
 make eval                    # golden set, RAG vs. no-retrieval baseline -> evals/datasets/ai_security/report.md
 make eval-retrieval          # retrieval only, free: tune on the dev split, confirm with SPLIT=test
 make eval-draft SOURCE=atlas CATEGORY=freshness N=5   # draft test questions for review -> drafts.jsonl
-make eval-labels; make eval-agreement                 # label 40 answers yourself, then measure the judge against you
+make eval-labels             # 40 answers to label yourself; then `make eval-agreement` scores the judge
 make down                    # stop everything (stored conversations and the index are kept)
 ```
 
