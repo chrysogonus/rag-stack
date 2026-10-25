@@ -360,12 +360,17 @@ FINGERPRINT_SETTINGS = (
 )
 
 
+# Tools around the eval that never run in it: changing them changes no answer or score.
+NOT_IN_EVAL = ("src/rag_stack/evals/draft.py", "src/rag_stack/evals/calibration.py")
+
+
 def fingerprint(settings: Settings) -> dict[str, str]:
     """What a results.json depends on: code, rubric, questions, corpus snapshot, model settings.
     Results whose fingerprint differs from the current one say nothing about the current code."""
     code = hashlib.sha256()
     for path in sorted((ROOT / "src/rag_stack").rglob("*.py")):
-        code.update(path.relative_to(ROOT).as_posix().encode() + path.read_bytes())
+        if path.relative_to(ROOT).as_posix() not in NOT_IN_EVAL:
+            code.update(path.relative_to(ROOT).as_posix().encode() + path.read_bytes())
     corpus = hashlib.sha256()
     for latest in sorted(Path(settings.data_dir).glob("processed/*/LATEST")):
         processed = latest.parent / latest.read_text().strip() / "sha256"

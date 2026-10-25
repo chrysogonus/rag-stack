@@ -178,6 +178,13 @@ def test_saved_results_are_stale_when_anything_they_depend_on_changes(tmp_path, 
     assert harness.stale_reasons(settings) == ["golden changed"]
 
 
+def test_tools_that_never_run_in_the_eval_leave_its_code_hash_alone():
+    from rag_stack.evals import harness
+
+    for tool in harness.NOT_IN_EVAL:
+        assert (harness.ROOT / tool).exists(), tool
+
+
 @pytest.mark.anyio
 async def test_a_follow_up_case_asks_its_previous_question_first_in_the_same_thread():
     from fakes.embeddings import FakeRetriever

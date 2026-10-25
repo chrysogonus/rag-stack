@@ -56,6 +56,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     draft_cmd.add_argument("-n", type=int, default=5, help="how many drafts (default 5)")
     draft_cmd.add_argument("--seed", type=int, default=0, help="which units are sampled")
+    commands.add_parser("eval-labels", help="sample answers into judge_labels.jsonl to label")
+    commands.add_parser(
+        "eval-agreement", help="judge the labeled answers again and compare with the labels"
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 
@@ -75,6 +79,12 @@ def main(argv: list[str] | None = None) -> int:
         from rag_stack.agent.ask import ask
 
         return asyncio.run(ask(settings, args.question))
+    if args.command in ("eval-labels", "eval-agreement"):
+        from rag_stack.evals import calibration
+
+        if args.command == "eval-labels":
+            return calibration.write_sheet()
+        return asyncio.run(calibration.agreement(settings))
     if args.command == "eval-draft":
         from rag_stack.evals import draft
 

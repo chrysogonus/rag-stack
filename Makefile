@@ -7,7 +7,7 @@ RUN := .run
 API_URL := http://127.0.0.1:8000/openapi.json
 WEB_URL := http://127.0.0.1:5173/
 
-.PHONY: help install format up down restart status logs services tracing migrate ingest index ask eval eval-retrieval eval-draft \
+.PHONY: help install format up down restart status logs services tracing migrate ingest index ask eval eval-retrieval eval-draft eval-labels eval-agreement \
 	ci lockfile lint secrets typecheck test audit build web-check evals e2e check-all
 
 SOURCE ?= all
@@ -130,6 +130,12 @@ eval: ## The paid eval run (~150 LLM calls): golden set vs. the baseline, writes
 
 eval-retrieval: ## Retrieval scores and latency, no LLM calls: make eval-retrieval [SPLIT=dev|test]
 	$(CLI) eval --retrieval-only --split $(or $(SPLIT),dev)
+
+eval-labels: ## Sample 40 answers into judge_labels.jsonl for a person to label (no LLM calls)
+	$(CLI) eval-labels
+
+eval-agreement: ## Judge the labeled answers again (one call each) and compare with the labels
+	$(CLI) eval-agreement
 
 eval-draft: ## Draft test questions into drafts.jsonl for review: make eval-draft SOURCE=<id> CATEGORY=<c> [N=5]
 	$(CLI) eval-draft $(SOURCE) $(CATEGORY) -n $(or $(N),5)
