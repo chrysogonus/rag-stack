@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     daily_token_budget_per_client: int = 200_000
 
     eval_judge_model: str = "gpt-6-luna"
+    # Where the judge runs. Unset: on the RAG model's provider (LLM_*).
+    eval_judge_provider: Provider | None = None
+    eval_judge_base_url: str | None = None
+    eval_judge_api_key: SecretStr = SecretStr("")
     # The chatbot the eval compares RAG answers against. Unset: the RAG model itself without
     # retrieval. Set it to a live general chatbot (e.g. the sub2api gateway) for that reference.
     eval_baseline_provider: Provider | None = None

@@ -118,6 +118,23 @@ def baseline_model(settings: Settings) -> ChatModel | None:
     )
 
 
+def judge_model(settings: Settings) -> ChatModel:
+    """The judge, on its own provider if one is set, otherwise on the RAG model's."""
+    if not settings.eval_judge_provider:
+        return create_chat_model(
+            settings.llm_provider,
+            settings.eval_judge_model,
+            api_key=settings.llm_api_key.get_secret_value(),
+            base_url=settings.llm_base_url,
+        )
+    return create_chat_model(
+        settings.eval_judge_provider,
+        settings.eval_judge_model,
+        api_key=settings.eval_judge_api_key.get_secret_value(),
+        base_url=settings.eval_judge_base_url,
+    )
+
+
 def baseline_name(settings: Settings) -> str:
     if not settings.eval_baseline_provider:
         return f"the same model (`{settings.llm_model}`) and questions without retrieval"
@@ -190,15 +207,13 @@ async def run(
     if missing:
         raise ValueError(f"gold IDs not in the index: {missing}")
 
-    def model(name: str) -> ChatModel:
-        return create_chat_model(
-            settings.llm_provider,
-            name,
-            api_key=settings.llm_api_key.get_secret_value(),
-            base_url=settings.llm_base_url,
-        )
-
-    llm, judge_llm = model(settings.llm_model), model(settings.eval_judge_model)
+    llm = create_chat_model(
+        settings.llm_provider,
+        settings.llm_model,
+        api_key=settings.llm_api_key.get_secret_value(),
+        base_url=settings.llm_base_url,
+    )
+    judge_llm = judge_model(settings)
     baseline_llm = baseline_model(settings) or llm
     graph = build_graph(llm, InMemorySaver(), settings, kb)
     gate = asyncio.Semaphore(concurrency)
@@ -261,7 +276,8 @@ def report(results: list[dict], settings: Settings) -> str:
     return (
         "# Eval report: AI-security golden set\n\n"
         f"Chat model `{settings.llm_model}` ({settings.llm_provider}); judge "
-        f"`{settings.eval_judge_model}` with rubric `{RUBRIC.relative_to(ROOT)}`. Baseline: "
+        f"`{settings.eval_judge_model}` ({settings.eval_judge_provider or settings.llm_provider}) "
+        f"with rubric `{RUBRIC.relative_to(ROOT)}`. Baseline: "
         f"{baseline_name(settings)}. Scores are means in [0, 1]; judge scores "
         "map 1-5 to 0-1. Retrieval metrics and citation precision skip abstention questions.\n\n"
         f"Thresholds (`thresholds.yaml`, on the `all` row): {status}.\n\n"
@@ -289,6 +305,8 @@ FINGERPRINT_SETTINGS = (
     "llm_base_url",
     "llm_model",
     "eval_judge_model",
+    "eval_judge_provider",
+    "eval_judge_base_url",
     "eval_baseline_provider",
     "eval_baseline_base_url",
     "eval_baseline_model",

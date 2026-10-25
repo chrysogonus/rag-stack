@@ -103,6 +103,28 @@ def test_baseline_defaults_to_the_rag_model_and_can_be_a_separate_chatbot():
     assert "`codex/gpt-6-luna` (openai-compatible) as a general chatbot" in baseline_name(live)
 
 
+def test_judge_defaults_to_the_rag_provider_and_can_run_elsewhere():
+    from pydantic import SecretStr
+
+    from rag_stack.config import Settings
+    from rag_stack.evals.harness import judge_model
+    from rag_stack.llm.openai_compatible import OpenAICompatibleModel
+    from rag_stack.llm.openai_responses import OpenAIResponsesModel
+
+    assert isinstance(judge_model(Settings(llm_api_key=SecretStr("k"))), OpenAIResponsesModel)
+
+    gateway = judge_model(
+        Settings(
+            eval_judge_provider="openai-compatible",
+            eval_judge_base_url="http://127.0.0.1:11435/v1",
+            eval_judge_model="codex/gpt-6-luna",
+        )
+    )
+    assert isinstance(gateway, OpenAICompatibleModel)
+    assert str(gateway._client.base_url) == "http://127.0.0.1:11435/v1/"
+    assert gateway._model == "codex/gpt-6-luna"
+
+
 def test_saved_results_are_stale_when_anything_they_depend_on_changes(tmp_path, monkeypatch):
     import shutil
 

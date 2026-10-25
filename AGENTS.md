@@ -16,9 +16,9 @@ writes an answer grounded in them.
   (Responses API), `anthropic` (Messages API) or `openai-compatible` (Chat Completions at
   `LLM_BASE_URL`: Ollama, vLLM, LM Studio, gateways). Use the official `openai` and `anthropic`
   SDKs; ruff bans importing them outside `llm/`, and bans `langchain-openai` everywhere.
-- The RAG chatbot runs on the OpenAI API (`gpt-6-luna`, key in `.env`, also the eval judge). The sub2api gateway
+- The RAG chatbot runs on the OpenAI API (`gpt-6-luna`, key in `.env`). The sub2api gateway
   (`~/workspace/sub2api`, `codex/gpt-6-luna`, a personal ChatGPT subscription) is the eval's
-  live-chatbot reference (`EVAL_BASELINE_*`). Never deploy with the gateway.
+  live-chatbot reference (`EVAL_BASELINE_*`) and its judge (`EVAL_JUDGE_*`). Never deploy with the gateway.
 - Agent orchestration: LangGraph with a custom `StateGraph`. Nodes call our `llm/` interfaces,
   not LangChain chat models.
 - API: FastAPI with SSE streaming. Conversations are stored in Postgres (with the LangGraph
