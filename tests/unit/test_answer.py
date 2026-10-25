@@ -60,10 +60,11 @@ def test_footer_without_citations_lists_what_was_retrieved_in_german():
     assert "KI-generierte Antwort (Art. 50 Abs. 1 KI-VO)" in text
 
 
-def test_abstention_is_exact_and_lists_the_index():
-    text = abstention(["MITRE ATLAS 2026.09"], "en")
+def test_abstention_is_exact_then_hints_and_lists_the_sources():
+    text = abstention(["MITRE ATLAS"], "en")
 
-    assert text.startswith(ABSTAIN + "\n\nIndexed sources:\n\n- MITRE ATLAS 2026.09")
+    assert text.startswith(ABSTAIN + "\n\nTry naming what you're asking about")
+    assert "The knowledge base covers:\n\n- MITRE ATLAS\n\n*AI-generated answer" in text
     assert is_abstention(text)
     assert not is_abstention("Prompt injection is ...")
 

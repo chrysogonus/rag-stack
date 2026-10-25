@@ -9,6 +9,7 @@ from qdrant_client import QdrantClient, models
 from rag_stack.config import Settings
 from rag_stack.db.edges import EdgeGraph
 from rag_stack.ingestion.models import Chunk
+from rag_stack.ingestion.registry import SOURCES
 from rag_stack.llm.embeddings import Embedder, Reranker, SparseEmbedder
 from rag_stack.retrieval.fusion import rrf
 from rag_stack.retrieval.ids import detect_ids
@@ -45,7 +46,7 @@ class Retriever(Protocol):
         ...
 
     async def catalog(self) -> list[str]:
-        """The indexed sources with their versions, e.g. 'MITRE ATLAS 2026.09'."""
+        """The names of the indexed sources, e.g. 'MITRE ATLAS', each once."""
         ...
 
 
@@ -87,8 +88,8 @@ class KnowledgeBase:
         return await asyncio.to_thread(self._retrieve, query, context)
 
     async def catalog(self) -> list[str]:
-        facets = await asyncio.to_thread(self.client.facet, self.collection, "catalog", limit=50)
-        return sorted(str(hit.value) for hit in facets.hits)
+        facets = await asyncio.to_thread(self.client.facet, self.collection, "source_id", limit=50)
+        return sorted(SOURCES[str(hit.value)].name for hit in facets.hits)
 
     def _retrieve(self, query: str, context: str) -> list[Retrieved]:
         language = detect_language(query)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CITE, linkCitations, splitFooter } from './answer'
+import { CITE, groupEntries, linkCitations, splitFooter, splitNotes } from './answer'
 
 const FOOTER =
   '\n\n---\n**Sources**\n\n' +
@@ -55,5 +55,28 @@ describe('linkCitations', () => {
   it('leaves links, unknown brackets and code untouched', () => {
     const text = '[AML.T0051](https://x) [not a source] `[LLM01]`\n```\n[LLM01]\n```'
     expect(linkCitations(text, ids)).toBe(text)
+  })
+})
+
+describe('groupEntries', () => {
+  it('puts consecutive entries with the same description in one row', () => {
+    const article = (n: number) => ({ id: `AI Act Art. 50(${n})`, url: 'https://eur-lex/x', text: 'Article 50 Transparency.' })
+    const other = { id: 'AML.T0051', url: 'https://atlas/x', text: 'LLM Prompt Injection.' }
+
+    expect(groupEntries([article(1), article(2), other, article(3)]).map((g) => g.map((e) => e.id))).toEqual([
+      ['AI Act Art. 50(1)', 'AI Act Art. 50(2)'],
+      ['AML.T0051'],
+      ['AI Act Art. 50(3)'],
+    ])
+  })
+})
+
+describe('splitNotes', () => {
+  it('separates the version line from the AI label, in either language', () => {
+    expect(splitNotes('Quellenversionen: EU AI Act OJ 2024/1689\n\n*KI-generierte Antwort.*')).toEqual({
+      versions: { label: 'Quellenversionen', value: 'EU AI Act OJ 2024/1689' },
+      rest: '*KI-generierte Antwort.*',
+    })
+    expect(splitNotes('*AI-generated answer.*')).toEqual({ versions: null, rest: '*AI-generated answer.*' })
   })
 })

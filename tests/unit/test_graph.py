@@ -51,14 +51,14 @@ async def test_answers_from_retrieved_sources_and_appends_the_footer():
 
 async def test_no_relevant_sources_abstains_without_calling_the_llm():
     llm = FakeChatModel()
-    retriever = FakeRetriever(catalog=["MITRE ATLAS 2026.09", "KI-MIG Stand 2026-07-29"])
+    retriever = FakeRetriever(catalog=["MITRE ATLAS", "KI-MIG"])
     graph = build_graph(llm, InMemorySaver(), Settings(), retriever)
 
     events = await ask(graph, "t1", "What is the capital of France?")
 
     text = "".join(e["delta"] for e in events)
     assert text.startswith(ABSTAIN)
-    assert "- MITRE ATLAS 2026.09\n- KI-MIG Stand 2026-07-29" in text
+    assert "- MITRE ATLAS\n- KI-MIG" in text
     assert llm.calls == []
     assert not any("usage" in e for e in events)
 
@@ -69,7 +69,8 @@ async def test_an_abstaining_llm_gets_the_list_of_indexed_sources():
     events = await ask(graph, "t1", "Welche Farbe hat der Himmel?")
 
     text = "".join(e.get("delta", "") for e in events)
-    assert text.startswith(ABSTAIN + "\n\nIndizierte Quellen:")
+    assert text.startswith(ABSTAIN + "\n\nNennen Sie am besten")
+    assert "Die Wissensbasis umfasst:" in text
     assert "**Quellen**" not in text
 
 

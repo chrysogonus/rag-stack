@@ -107,12 +107,17 @@ def test_cited_multi_turn_answers_are_streamed_and_persisted(knowledge_base):
 
         off_topic, _ = ask(client, thread_url, "What is the capital of France?")
         assert off_topic.startswith("I can't answer that from the indexed sources.")
+        assert "Try naming what you're asking about" in off_topic
+        # Each indexed source once, by name, without version strings.
+        assert "- EU AI Act (Regulation (EU) 2024/1689)\n- MITRE ATLAS\n" in off_topic
+        assert "02024R1689" not in off_topic and "2026.09" not in off_topic
 
     # A fresh app (new connection pool) still sees the conversation in Postgres.
     with TestClient(create_app(retriever=knowledge_base)) as client:
         messages = client.get(thread_url).json()
     assert [m["role"] for m in messages] == ["user", "assistant"] * 5
     assert messages[1]["content"] == first
+    assert messages[-1]["content"] == off_topic
 
 
 def test_a_follow_up_asking_how_to_defend_gets_the_mitigations(knowledge_base):

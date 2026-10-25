@@ -1,6 +1,7 @@
-import { createContext, use, useMemo, useState, type ComponentProps, type RefObject, type FocusEvent, type MouseEvent, type ReactNode } from 'react'
-import Markdown, { type Components } from 'react-markdown'
-import { CITE, linkCitations, splitFooter } from './answer'
+import { createContext, Fragment, use, useMemo, useState, type ComponentProps, type RefObject, type FocusEvent, type MouseEvent, type ReactNode } from 'react'
+import Markdown, { type Components, type Options } from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { CITE, groupEntries, linkCitations, splitFooter, splitNotes } from './answer'
 import type { SourceRef } from './api'
 import { hash } from './sky/layout'
 import type { SkyRenderer } from './sky/renderer'
@@ -19,6 +20,9 @@ const external = ({ node: _node, ...props }: { node?: unknown } & ComponentProps
   <a {...props} target="_blank" rel="noreferrer" />
 )
 
+// Tables (comparisons) and other GitHub Markdown. Single tildes stay text: "~7 s" is not strikethrough.
+const remarkPlugins: Options['remarkPlugins'] = [[remarkGfm, { singleTilde: false }]]
+
 interface Citing {
   anchor: (id: string) => string | undefined
   pointing: (id: string) => object
@@ -34,6 +38,12 @@ const CitingContext = createContext<Citing>({
 })
 
 const components: Components = {
+  // A wide table scrolls inside the answer instead of widening the page.
+  table: ({ node: _node, ...props }) => (
+    <div className="table-scroll">
+      <table {...props} />
+    </div>
+  ),
   a: function Link({ node: _node, href, children, ...props }) {
     const { anchor, pointing, citedBy } = use(CitingContext)
     const text = typeof children === 'string' ? children : null
@@ -86,6 +96,7 @@ function Star({ lit }: { lit: boolean }) {
 export function Answer({ content, sources, index, live, sky }: Props) {
   const [active, setActive] = useState<string | null>(null)
   const { body, footer } = useMemo(() => splitFooter(content), [content])
+  const notes = footer?.notes ? splitNotes(footer.notes) : null
   const byId = useMemo(() => new Map(sources?.map((s) => [s.id, s])), [sources])
   const ids = useMemo(
     () => new Set([...(sources?.filter((s) => s.used).map((s) => s.id) ?? []), ...(footer?.entries.map((e) => e.id) ?? [])]),
@@ -121,7 +132,9 @@ export function Answer({ content, sources, index, live, sky }: Props) {
     <article className={live ? 'answer live' : 'answer'}>
       <div className="answer-body">
         <CitingContext value={citing}>
-          <Markdown components={components}>{linkCitations(body, ids)}</Markdown>
+          <Markdown remarkPlugins={remarkPlugins} components={components}>
+            {linkCitations(body, ids)}
+          </Markdown>
         </CitingContext>
         {live && !content && <Forming />}
         {live && <span className="caret" aria-hidden="true" />}
@@ -130,21 +143,43 @@ export function Answer({ content, sources, index, live, sky }: Props) {
         <section className="catalogue" aria-label={footer.heading}>
           <h2>{footer.heading}</h2>
           <ul>
-            {footer.entries.map((entry) => (
-              <li key={entry.id} id={anchor(entry.id)} className={active === entry.id ? 'active' : undefined}>
-                <Star lit={byId.get(entry.id)?.used ?? true} />
+            {groupEntries(footer.entries).map((group) => (
+              <li
+                key={group[0].id}
+                className={group.some((entry) => entry.id === active) ? 'active' : undefined}
+              >
+                <Star lit={group.some((entry) => byId.get(entry.id)?.used ?? true)} />
                 <div>
-                  <a href={entry.url} target="_blank" rel="noreferrer" {...pointing(entry.id)}>
-                    {entry.id}
-                  </a>
-                  <p>{entry.text}</p>
+                  {group.map((entry, i) => (
+                    <Fragment key={entry.id}>
+                      {i > 0 && ', '}
+                      <a
+                        id={anchor(entry.id)}
+                        href={entry.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        {...pointing(entry.id)}
+                      >
+                        {entry.id}
+                      </a>
+                    </Fragment>
+                  ))}
+                  <p>{group[0].text}</p>
                 </div>
               </li>
             ))}
           </ul>
-          {footer.notes && (
+          {notes && (
             <div className="notes">
-              <Markdown components={{ a: external }}>{footer.notes}</Markdown>
+              {notes.versions && (
+                <details>
+                  <summary>{notes.versions.label}</summary>
+                  {notes.versions.value}
+                </details>
+              )}
+              <Markdown remarkPlugins={remarkPlugins} components={{ a: external }}>
+                {notes.rest}
+              </Markdown>
             </div>
           )}
         </section>

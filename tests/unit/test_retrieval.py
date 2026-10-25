@@ -179,12 +179,9 @@ async def test_a_list_question_finds_the_list_overview(kb):
     assert "AML.TA0005 Execution" in found[0].chunk.text
 
 
-async def test_catalog_lists_sources_with_versions(kb):
-    assert await kb.catalog() == [
-        "EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727",
-        "EU AI Act (Regulation (EU) 2024/1689) OJ 2024/1689",
-        "MITRE ATLAS 2026.09",
-    ]
+async def test_catalog_names_each_source_once_without_versions(kb):
+    # The fixture index holds two EU AI Act versions (consolidated and OJ).
+    assert await kb.catalog() == ["EU AI Act (Regulation (EU) 2024/1689)", "MITRE ATLAS"]
 
 
 def test_index_source_skips_an_unchanged_snapshot_and_replaces_a_changed_one():

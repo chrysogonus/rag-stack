@@ -12,14 +12,18 @@ LABELS = {
         "sources": "Sources",
         "retrieved": "Retrieved sources (none cited)",
         "versions": "Source versions",
-        "indexed": "Indexed sources",
+        "indexed": "The knowledge base covers",
+        "hint": "Try naming what you're asking about: a technique ID such as AML.T0051, an OWASP "
+        "entry such as LLM01, or an AI Act article such as Article 50.",
         "ai": "*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
     },
     "de": {
         "sources": "Quellen",
         "retrieved": "Abgerufene Quellen (keine zitiert)",
         "versions": "Quellenversionen",
-        "indexed": "Indizierte Quellen",
+        "indexed": "Die Wissensbasis umfasst",
+        "hint": "Nennen Sie am besten, worum es geht: eine Technik-ID wie AML.T0051, einen "
+        "OWASP-Eintrag wie LLM01 oder einen Artikel der KI-VO wie Art. 50.",
         "ai": "*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
     },
 }
@@ -79,6 +83,7 @@ def footer(answer: str, sources: Sequence[Chunk], language: str) -> str:
 
 
 def abstention(catalog: Sequence[str], language: str) -> str:
+    """The refusal (exactly `ABSTAIN` first: evals key on it), a hint and the source names."""
     labels = LABELS[language]
-    indexed = "\n".join(f"- {entry}" for entry in catalog)
-    return f"{ABSTAIN}\n\n{labels['indexed']}:\n\n{indexed}\n\n{labels['ai']}"
+    indexed = "\n".join(f"- {name}" for name in catalog)
+    return f"{ABSTAIN}\n\n{labels['hint']}\n\n{labels['indexed']}:\n\n{indexed}\n\n{labels['ai']}"

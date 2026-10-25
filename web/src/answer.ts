@@ -35,6 +35,26 @@ export function splitFooter(content: string): { body: string; footer: Footer | n
   return { body: content.slice(0, start), footer: { heading, entries, notes: notes.join('\n').trim() } }
 }
 
+/** Consecutive entries with the same description (the paragraphs of one article) share a row. */
+export function groupEntries(entries: FooterEntry[]): FooterEntry[][] {
+  const groups: FooterEntry[][] = []
+  for (const entry of entries) {
+    const last = groups.at(-1)
+    if (last && last[0].text === entry.text) last.push(entry)
+    else groups.push([entry])
+  }
+  return groups
+}
+
+/** Separates the "Source versions: …" line (any language) from the rest of the notes. */
+export function splitNotes(notes: string): { versions: { label: string; value: string } | null; rest: string } {
+  const paragraphs = notes.split(/\n{2,}/)
+  const at = paragraphs.findIndex((p) => /^[^*:\n]{1,40}: \S/.test(p))
+  if (at === -1) return { versions: null, rest: notes }
+  const [label, ...value] = paragraphs[at].split(': ')
+  return { versions: { label, value: value.join(': ') }, rest: paragraphs.filter((_, i) => i !== at).join('\n\n') }
+}
+
 /** The link target that marks a citation for the Markdown renderer. */
 export const CITE = '#cite'
 

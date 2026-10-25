@@ -71,7 +71,7 @@ def chunk(native_id: str, text: str = "text", **fields) -> Chunk:
 class FakeRetriever:
     """Returns the scripted chunks for every question and records what it was asked."""
 
-    def __init__(self, *chunks: Chunk, catalog: Sequence[str] = ("MITRE ATLAS 2026.09",)):
+    def __init__(self, *chunks: Chunk, catalog: Sequence[str] = ("MITRE ATLAS",)):
         self.chunks = list(chunks)
         self.calls: list[tuple[str, str]] = []
         self._catalog = list(catalog)
