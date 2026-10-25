@@ -1,12 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Answer } from './Answer'
+import { Musing } from './Musing'
 import { getMessages, RefusedError, sendMessage, type Message, type SourceRef } from './api'
+import { rememberChat, type Chat } from './chats'
 import { SOURCES } from './sky/layout'
 import type { SkyRenderer } from './sky/renderer'
 import { Sky } from './sky/Sky'
 
 const MAX_CHARS = 4000 // matches the server's MAX_INPUT_CHARS default
 const THREAD_KEY = 'rag-stack:thread'
+const CHATS_KEY = 'rag-stack:chats'
 
 const STARTERS = [
   { question: 'What is AML.T0051?', source: 'atlas' },
@@ -23,17 +26,35 @@ function storedThread(): string {
   } catch {
     // storage blocked: fall back to a thread for this page view only
   }
-  return newThread()
+  return openThread()
 }
 
-function newThread(): string {
-  const id = crypto.randomUUID()
+/** Makes `id` the current thread, so a reload comes back to it. */
+function openThread(id: string = crypto.randomUUID()): string {
   try {
     localStorage.setItem(THREAD_KEY, id)
   } catch {
     // see storedThread
   }
   return id
+}
+
+function storedChats(): Chat[] {
+  try {
+    const chats = JSON.parse(localStorage.getItem(CHATS_KEY) ?? '[]')
+    if (Array.isArray(chats)) return chats.filter((c) => typeof c?.id === 'string' && typeof c?.title === 'string')
+  } catch {
+    // storage blocked or corrupt: start an empty list
+  }
+  return []
+}
+
+function saveChats(chats: Chat[]) {
+  try {
+    localStorage.setItem(CHATS_KEY, JSON.stringify(chats))
+  } catch {
+    // see storedThread
+  }
 }
 
 function nearBottom(): boolean {
@@ -47,6 +68,7 @@ function centre(el: Element | null) {
 
 export default function App() {
   const [threadId, setThreadId] = useState(storedThread)
+  const [chats, setChats] = useState(storedChats)
   const [messages, setMessages] = useState<Turn[]>([])
   const [loading, setLoading] = useState(true)
   const [streaming, setStreaming] = useState(false)
@@ -58,6 +80,7 @@ export default function App() {
   const fieldRef = useRef<HTMLDivElement>(null)
   const stickRef = useRef(true)
   const skyRef = useRef<SkyRenderer | null>(null)
+  const chatsRef = useRef<HTMLElement>(null)
   // The entrance plays once per page load, not again for every new chat.
   const [intro, setIntro] = useState(true)
 
@@ -69,7 +92,12 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController()
     getMessages(threadId, controller.signal)
-      .then(setMessages)
+      .then((loaded) => {
+        setMessages(loaded)
+        // Lists a chat started before saved chats existed, without reordering known ones.
+        const first = loaded.find((m) => m.role === 'user')
+        if (first) setChats((c) => (c.some((chat) => chat.id === threadId) ? c : rememberChat(c, threadId, first.content)))
+      })
       .catch((e: Error) => {
         if (!controller.signal.aborted) setError(`Couldn't load this conversation. ${e.message}`)
       })
@@ -78,6 +106,14 @@ export default function App() {
       })
     return () => controller.abort()
   }, [threadId])
+
+  useEffect(() => saveChats(chats), [chats])
+  // Another tab saved a chat: adopt its list, so this tab's next save doesn't drop it.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => e.key === CHATS_KEY && setChats(storedChats())
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   // Follow the answer as it streams, unless the reader has scrolled up to read.
   useEffect(() => {
@@ -89,14 +125,25 @@ export default function App() {
     if (stickRef.current && messages.length) window.scrollTo({ top: document.documentElement.scrollHeight })
   }, [messages])
 
-  function startNewChat() {
+  function showThread(id: string) {
     abortRef.current?.abort()
     skyRef.current?.reset()
-    setThreadId(newThread())
+    setThreadId(openThread(id))
     setMessages([])
     setError(null)
     setDraft('')
     inputRef.current?.focus()
+  }
+
+  function startNewChat() {
+    showThread(crypto.randomUUID())
+  }
+
+  function switchChat(id: string) {
+    chatsRef.current?.hidePopover()
+    if (id === threadId) return
+    setLoading(true)
+    showThread(id)
   }
 
   // Each streamed chunk sends a mote of light from a retrieved passage to the writing caret.
@@ -105,9 +152,19 @@ export default function App() {
     if (caret) skyRef.current?.emit(caret)
   }
 
+  // Until the first words arrive, the lit passages keep pouring light into the waiting star.
+  const last = messages.at(-1)
+  const gathering = streaming && last?.role === 'assistant' && !last.content && !!last.sources
+  useEffect(() => {
+    if (!gathering) return
+    const timer = setInterval(feedCaret, 120)
+    return () => clearInterval(timer)
+  }, [gathering])
+
   async function send(content: string) {
     const question = content.trim()
-    if (!question || streaming) return
+    // While a chat loads, its history would overwrite the new turn.
+    if (!question || streaming || loading) return
     const sky = skyRef.current
     const controller = new AbortController()
     abortRef.current = controller
@@ -134,6 +191,8 @@ export default function App() {
         {
           onSources: (sources) => {
             if (controller.signal.aborted) return
+            // The server accepted the turn, so this thread is now worth coming back to.
+            setChats((c) => rememberChat(c, threadId, question))
             sky?.ignite(sources)
             updateAnswer(() => ({ sources }))
           },
@@ -186,9 +245,31 @@ export default function App() {
       <Sky rendererRef={skyRef} />
       <header className="masthead">
         <span className="wordmark">Knowledge base</span>
-        <button type="button" className="quiet" onClick={startNewChat} disabled={empty && !streaming}>
-          New chat
-        </button>
+        <div className="actions">
+          {chats.length > 0 && (
+            <button type="button" className="quiet" popoverTarget="chats">
+              Chats
+            </button>
+          )}
+          <button type="button" className="quiet" onClick={startNewChat} disabled={empty && !streaming}>
+            New chat
+          </button>
+        </div>
+        <nav id="chats" className="chats" ref={chatsRef} popover="auto" aria-label="Saved chats">
+          <ul>
+            {chats.map((chat) => (
+              <li key={chat.id}>
+                <button
+                  type="button"
+                  aria-current={chat.id === threadId || undefined}
+                  onClick={() => switchChat(chat.id)}
+                >
+                  {chat.title}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </header>
 
       <main className="thread" aria-busy={loading || streaming}>
@@ -270,7 +351,7 @@ export default function App() {
               Stop
             </button>
           ) : (
-            <button type="submit" className="primary" disabled={!draft.trim()}>
+            <button type="submit" className="primary" disabled={!draft.trim() || loading}>
               Send
             </button>
           )}
@@ -280,6 +361,8 @@ export default function App() {
             <span id="count">
               {draft.length.toLocaleString()} of {MAX_CHARS.toLocaleString()} characters
             </span>
+          ) : streaming ? (
+            <Musing />
           ) : (
             'Enter to send, Shift+Enter for a new line. Don’t share personal information.'
           )}

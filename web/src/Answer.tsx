@@ -56,6 +56,25 @@ const components: Components = {
   },
 }
 
+// The waiting answer: a small constellation that draws itself into the caret star.
+const FORMING = [
+  [4, 14],
+  [17, 6],
+  [30, 11],
+  [44, 4],
+]
+
+function Forming() {
+  return (
+    <svg className="forming" viewBox="0 0 60 20" aria-hidden="true">
+      <polyline points={`${FORMING.join(' ')} 60,10`} />
+      {FORMING.map(([x, y]) => (
+        <circle key={x} cx={x} cy={y} r="1.6" />
+      ))}
+    </svg>
+  )
+}
+
 function Star({ lit }: { lit: boolean }) {
   return (
     <svg className={lit ? 'glyph lit' : 'glyph'} viewBox="0 0 16 16" aria-hidden="true">
@@ -104,6 +123,7 @@ export function Answer({ content, sources, index, live, sky }: Props) {
         <CitingContext value={citing}>
           <Markdown components={components}>{linkCitations(body, ids)}</Markdown>
         </CitingContext>
+        {live && !content && <Forming />}
         {live && <span className="caret" aria-hidden="true" />}
       </div>
       {footer && (
