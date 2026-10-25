@@ -150,9 +150,17 @@ class KnowledgeBase:
             ]
         return self._in_language(found, language)[: self.limit]
 
-    def _scroll(self, flt: models.Filter, limit: int = 256) -> list[Chunk]:
-        points, _ = self.client.scroll(self.collection, scroll_filter=flt, limit=limit)
-        return [Chunk.model_validate(p.payload) for p in points]
+    def _scroll(self, flt: models.Filter) -> list[Chunk]:
+        """Every point matching the filter, page by page."""
+        chunks: list[Chunk] = []
+        offset = None
+        while True:
+            points, offset = self.client.scroll(
+                self.collection, scroll_filter=flt, limit=256, offset=offset
+            )
+            chunks += [Chunk.model_validate(p.payload) for p in points]
+            if offset is None:
+                return chunks
 
     def by_ids(self, ids: list[str]) -> list[Chunk]:
         if not ids:
@@ -210,7 +218,7 @@ class KnowledgeBase:
             return []
         flt = models.Filter(must=[any_of("native_id", list(relation))])
         # Edges may point outside the corpus (ATT&CK, CWE): cap only what exists.
-        chunks = [c for c in self._scroll(flt, limit=1024) if c.chunk_index == 0]
+        chunks = [c for c in self._scroll(flt) if c.chunk_index == 0]
         chunks.sort(key=lambda c: list(relation).index(c.native_id))
         return [
             c.model_copy(update={"meta": {**c.meta, "relation": relation[c.native_id]}})

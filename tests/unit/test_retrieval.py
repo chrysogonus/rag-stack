@@ -198,6 +198,21 @@ def test_index_source_skips_an_unchanged_snapshot_and_replaces_a_changed_one():
     assert [p.payload["native_id"] for p in points if p.payload] == ["AML.T0003"]
 
 
+def test_lookups_by_id_return_every_match_not_just_the_first_page():
+    client = QdrantClient(":memory:")
+    embedder, sparse = FakeEmbedder(), FakeSparseEmbedder()
+    ensure_collection(client, "kb", embedder.dim)
+    # 300 parts of one article: more than one page of a Qdrant scroll.
+    parts = [
+        chunk(f"AI Act Art. 3({n})", source_id="eu-ai-act", parent_ids=["AI Act Art. 3"])
+        for n in range(1, 301)
+    ]
+    index_source(client, "kb", "eu-ai-act", "v1", parts, embedder, sparse)
+    kb = KnowledgeBase(client, "kb", embedder, sparse, FakeReranker(), EdgeGraph([]))
+
+    assert len(kb.by_ids(["AI Act Art. 3"])) == 300
+
+
 async def test_without_named_ids_search_hits_come_before_graph_neighbors(kb):
     found = await kb.retrieve("which mitigation controls access to production models and data")
 
