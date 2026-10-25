@@ -49,11 +49,13 @@ Things the MVP could not settle, with what was done instead.
   searches in 50 of 101 baseline sessions and none in RAG-answer or judge sessions. So the
   comparison is "RAG vs. a chatbot that may search the web", not the brief's "same model without
   retrieval". Unset `EVAL_BASELINE_*` to get that variant.
-- **The judge is `claude-code/claude-opus-5-5` on the sub2api gateway** (`EVAL_JUDGE_*`), another
-  model family than the RAG model (`gpt-6-luna`), so it has no reason to favor RAG answers. It
-  runs through Claude Code (`claude --print`, no tools), not the raw Anthropic API, so it is an
-  agent runtime's answer, and subscription use is personal only. Runs judged by
-  `codex/gpt-6-luna` (up to the dev/test split) or `gpt-6-luna` are not directly comparable.
+- **The judge is `claude-code/claude-haiku-5-5` on the sub2api gateway** (`EVAL_JUDGE_*`), another
+  model family than the RAG model (`gpt-6-luna`), so it has no reason to favor RAG answers, and
+  fast and cheap enough to run often. A small model is likelier to miss whether an answer states
+  a key fact or only touches its topic, so `make eval-agreement` on human labels should confirm
+  it against `claude-code/claude-opus-5-5`, which judged the runs before it. It runs through
+  Claude Code (`claude --print`, no tools), not the raw Anthropic API, and subscription use is
+  personal only. Runs judged by another model are not directly comparable.
 - **Terse answers cost correctness.** Several RAG answers give only the ID and title
   ("[AML.T0131] Crafted AI Assistant Links.") while the sources hold the details the key facts
   expect. The system prompt says "be concise"; asking for the relevant details from the source is
