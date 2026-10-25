@@ -93,6 +93,8 @@ export async function sendMessage(
     })
   } catch (e) {
     if (signal?.aborted) throw e
+    // shortcut: a connection that fails after the server stored the question shows the turn only
+    // after a reload, and resending repeats it; add request IDs if that shows up in practice.
     throw new RefusedError("Couldn't reach the assistant. Check your connection and try again.")
   }
   if (!response.ok || !response.body) throw new RefusedError(await refusal(response))

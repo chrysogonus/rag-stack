@@ -2,7 +2,7 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
-from typing import Annotated, Any
+from typing import Annotated, Any, NamedTuple
 from uuid import UUID
 
 import anyio
@@ -40,12 +40,23 @@ def source_refs(chunks: list[dict[str, Any]], top_k: int) -> list[dict[str, Any]
     return list(refs.values())
 
 
-async def save_stopped(graph: CompiledStateGraph, config: RunnableConfig, partial: str) -> None:
-    """Store an unfinished answer, marked as stopped, after the question it belongs to."""
+class Turn(NamedTuple):
+    client: str
+    # The thread's length once this turn's question is stored: pins a stopped answer to its turn.
+    length: int
+
+
+async def save_stopped(
+    graph: CompiledStateGraph, config: RunnableConfig, partial: str, length: int
+) -> None:
+    """Store an unfinished answer, marked as stopped, right after the question it belongs to.
+
+    shortcut: if another question in the thread got in first, the partial answer is dropped
+    rather than stored out of order; serialize turns per thread if that becomes common."""
     state = await graph.aget_state(config)
     messages: list[Message] = state.values.get("messages", [])
-    if not messages or messages[-1]["role"] != "user":
-        return  # the question never reached the thread, or its answer was stored
+    if len(messages) != length or messages[-1]["role"] != "user":
+        return  # the question never reached the thread, its answer was stored, or a newer turn
     content = f"{partial}\n\n{STOPPED}" if partial.strip() else STOPPED
     await graph.aupdate_state(
         config, {"messages": [{"role": "assistant", "content": content}]}, as_node="generate"
@@ -99,7 +110,7 @@ def create_app(
     def thread_config(thread_id: UUID) -> RunnableConfig:
         return {"configurable": {"thread_id": str(thread_id)}}
 
-    async def admit(thread_id: UUID, body: NewMessage, request: Request, graph: Graph) -> str:
+    async def admit(thread_id: UUID, body: NewMessage, request: Request, graph: Graph) -> Turn:
         """Refuse the turn before streaming starts, so the client gets a real status code."""
         state = await graph.aget_state(thread_config(thread_id))
         messages: list[Message] = state.values.get("messages", [])
@@ -108,7 +119,7 @@ def create_app(
         client = request.client.host if request.client else "unknown"
         if refusal := limiter.check(client):
             raise HTTPException(429, refusal)
-        return client
+        return Turn(client, len(messages) + 1)
 
     @app.get("/api/threads/{thread_id}/messages")
     async def get_messages(thread_id: UUID, graph: Graph) -> list[Message]:
@@ -119,7 +130,7 @@ def create_app(
     async def post_message(
         thread_id: UUID,
         body: NewMessage,
-        client: Annotated[str, Depends(admit)],
+        turn: Annotated[Turn, Depends(admit)],
         graph: Graph,
     ) -> AsyncIterator[ServerSentEvent]:
         user: Message = {"role": "user", "content": body.content}
@@ -135,7 +146,7 @@ def create_app(
                         written.append(part["data"]["delta"])
                         yield ServerSentEvent(event="delta", data={"text": part["data"]["delta"]})
                     else:
-                        limiter.charge(client, part["data"]["usage"])
+                        limiter.charge(turn.client, part["data"]["usage"])
                 elif part["type"] == "updates" and "retrieve" in part["data"]:
                     found = part["data"]["retrieve"]["sources"]
                     refs = source_refs(found, settings.retrieval_top_k)
@@ -155,6 +166,6 @@ def create_app(
                 # alternates and a reload shows what the user saw. Shielded, because a client
                 # disconnect cancels this generator.
                 with anyio.CancelScope(shield=True):
-                    await save_stopped(graph, config, "".join(written))
+                    await save_stopped(graph, config, "".join(written), turn.length)
 
     return app

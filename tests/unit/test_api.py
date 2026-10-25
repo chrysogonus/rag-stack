@@ -8,6 +8,7 @@ import pytest
 from fakes.embeddings import FakeRetriever, chunk
 from fakes.llm import FailingChatModel, FakeChatModel
 from fastapi.testclient import TestClient
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
 
 from rag_stack.agent.answer import footer
@@ -198,3 +199,27 @@ def test_an_answer_cut_off_by_the_client_is_kept_marked_as_stopped(make_client):
         {"role": "user", "content": "Hi"},
         {"role": "assistant", "content": "Partial\n\n_Stopped._"},
     ]
+
+
+@pytest.mark.anyio
+async def test_a_stopped_answer_is_never_stored_after_a_newer_question():
+    from fakes.embeddings import FakeRetriever
+    from fakes.llm import FakeChatModel
+
+    from rag_stack.agent.graph import build_graph
+    from rag_stack.api.app import save_stopped
+
+    graph = build_graph(FakeChatModel(), InMemorySaver(), Settings(), FakeRetriever())
+    config: RunnableConfig = {"configurable": {"thread_id": "t"}}
+    first, second = {"role": "user", "content": "First"}, {"role": "user", "content": "Second"}
+    # The first turn was stopped, but the second question was stored before its cleanup ran.
+    await graph.aupdate_state(config, {"messages": [first, second]}, as_node="generate")
+
+    await save_stopped(graph, config, "Partial", length=1)
+    assert (await graph.aget_state(config)).values["messages"] == [first, second]
+
+    await save_stopped(graph, config, "Partial", length=2)
+    assert (await graph.aget_state(config)).values["messages"][-1] == {
+        "role": "assistant",
+        "content": "Partial\n\n_Stopped._",
+    }
