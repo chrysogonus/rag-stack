@@ -868,3 +868,19 @@ button:disabled {
     display: none;
   }
 }
+
+/* Short phones (iPhone SE and smaller): tighter welcome copy keeps the starters above the composer. */
+@media (width < 600px) and (height < 700px) {
+  .welcome h1 {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .welcome p {
+    font-size: 0.9375rem;
+  }
+
+  .starters {
+    margin-top: 1.25rem;
+  }
+}
