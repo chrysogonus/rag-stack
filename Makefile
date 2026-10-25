@@ -7,7 +7,7 @@ RUN := .run
 API_URL := http://127.0.0.1:8000/openapi.json
 WEB_URL := http://127.0.0.1:5173/
 
-.PHONY: help install format up down restart status logs services migrate ingest index ask eval eval-retrieval eval-draft \
+.PHONY: help install format up down restart status logs services tracing migrate ingest index ask eval eval-retrieval eval-draft \
 	ci lockfile lint secrets typecheck test audit build web-check evals e2e check-all
 
 SOURCE ?= all
@@ -82,6 +82,9 @@ endef
 services: ## Start Postgres and Qdrant and wait until they are healthy
 	docker compose up -d --wait
 
+tracing: ## Start self-hosted Langfuse (UI at http://localhost:3000, login in docker-compose.yml)
+	docker compose --profile tracing up -d --wait
+
 up: services ## Start everything: Docker services, API (:8000) and web UI (:5173)
 	@mkdir -p $(RUN)
 	$(call start,api,$(API_URL),exec uv run uvicorn rag_stack.api.app:create_app --factory --reload --host 127.0.0.1 --port 8000)
@@ -93,7 +96,7 @@ up: services ## Start everything: Docker services, API (:8000) and web UI (:5173
 down: ## Stop the API, the web UI and the Docker services (stored data is kept)
 	$(call stop,web)
 	$(call stop,api)
-	docker compose down
+	docker compose --profile tracing down
 
 restart: ## Stop everything, then start it again
 	@$(MAKE) down

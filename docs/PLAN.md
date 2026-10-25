@@ -31,7 +31,8 @@ risk → AI Act article → CVE).
 | `retrieval/retriever.py` | Exact IDs → dense + BM25 → RRF (k=60) → cross-encoder rerank of the top 50 → 1-hop graph expansion → same-language legal text; keeps the top 8 for the answer |
 | `agent/graph.py`, `agent/prompts.py`, `agent/answer.py` | LangGraph `retrieve → generate`; delimited sources and injection rules; deterministic footer with attribution, versions and the Art. 50 AI label; abstention |
 | `evals/` (`src/rag_stack/evals/`) | Metrics, LLM judge with a versioned rubric, RAG vs. no-retrieval baseline, report |
-| `cli.py` | `ingest`, `index`, `ask`, `eval` (wrapped by `make`) |
+| `cli.py` | `ingest`, `index`, `ask`, `eval`, `eval-draft` (wrapped by `make`) |
+| `observability.py` | Langfuse tracing (`make tracing`, self-hosted): one trace per chat turn with `retrieve` (and its id lookup, hybrid search, graph expansion, rerank and language stages) and `generate` (model, tokens); a reader's rating (`POST /api/threads/{id}/feedback`) is a `helpful` score on it. Does nothing without `LANGFUSE_*` |
 
 ## Deviations from the brief's defaults
 

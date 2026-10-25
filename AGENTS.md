@@ -38,10 +38,11 @@ src/rag_stack/
   retrieval/   # Qdrant index, ID detection, hybrid search + RRF + rerank + graph expansion
   agent/       # knowledge base agent: LangGraph graph, prompts, answer footer, `ask`
   llm/         # chat, embedding and reranker interfaces and adapters
-  api/         # FastAPI app: chat (SSE), threads, rate limits
+  api/         # FastAPI app: chat (SSE), threads, ratings, rate limits
   db/          # Postgres: checkpointer, edge table, Alembic migrations
   evals/       # golden-set harness: metrics, LLM judge, RAG vs. baseline report
-  cli.py       # ingest | index | ask | eval (wrapped by make)
+  cli.py       # ingest | index | ask | eval | eval-draft (wrapped by make)
+  observability.py  # Langfuse tracing and ratings; the only module that imports its SDK
 config/sources.yaml     # the source allowlist and pinned upstream refs
 data/                   # raw snapshots, processed chunks, HTTP cache (not committed)
 web/           # chat UI

@@ -59,6 +59,16 @@ Things the MVP could not settle, with what was done instead.
   expect. The system prompt says "be concise"; asking for the relevant details from the source is
   the likely fix, to be checked on new questions rather than tuned against this set.
 
+## Tracing
+
+- **Traces hold questions, answers and retrieved passages.** They stay on the machine (self-hosted
+  Langfuse), and no user id is sent: a hashed IPv4 address is easy to reverse. A public
+  deployment needs a retention policy before tracing is turned on.
+- **No cost per turn.** The chat interface reports total tokens only, so Langfuse can't price a
+  generation; reporting input and output tokens separately (all three adapters have them) would.
+- **Ratings use the chat rate limit** (they're cheap, but anonymous), and are only possible while
+  tracing is on: otherwise the API answers 503 rather than dropping them.
+
 ## Product
 
 - **Golden set review.** All 50 questions and their key facts were drafted from the corpus and

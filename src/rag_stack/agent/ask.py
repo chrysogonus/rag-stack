@@ -2,6 +2,7 @@ import uuid
 
 from langgraph.checkpoint.memory import InMemorySaver
 
+from rag_stack import observability
 from rag_stack.agent.graph import build_graph
 from rag_stack.config import Settings
 from rag_stack.llm.factory import create_chat_model
@@ -25,4 +26,5 @@ async def ask(settings: Settings, question: str) -> int:
         if "delta" in event:
             print(event["delta"], end="", flush=True)
     print()
+    observability.flush()
     return 0

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Answer } from './Answer'
 import { Musing } from './Musing'
-import { getMessages, RefusedError, sendMessage, stopped, type Message, type SourceRef } from './api'
+import { getMessages, RefusedError, sendFeedback, sendMessage, stopped, type Message, type SourceRef } from './api'
 import { rememberChat, type Chat } from './chats'
 import { SOURCES } from './sky/layout'
 import type { SkyRenderer } from './sky/renderer'
@@ -370,6 +370,7 @@ export default function App() {
               sources={message.sources}
               live={streaming && i === messages.length - 1}
               sky={skyRef}
+              onFeedback={(helpful) => sendFeedback(threadId, i, helpful)}
             />
           ),
         )}

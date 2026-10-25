@@ -60,6 +60,9 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 
     settings = Settings()
+    from rag_stack import observability
+
+    observability.configure(settings)
     if args.command == "ingest":
         return ingest(settings, args.source)
     if args.command == "index":

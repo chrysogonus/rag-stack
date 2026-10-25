@@ -6,6 +6,7 @@ from typing import Protocol
 
 from qdrant_client import QdrantClient, models
 
+from rag_stack import observability
 from rag_stack.config import Settings
 from rag_stack.db.edges import EdgeGraph
 from rag_stack.ingestion.models import Chunk
@@ -100,25 +101,29 @@ class KnowledgeBase:
             # previous question's IDs and searches with both questions instead of an LLM query
             # rewrite; add a rewrite step if follow-ups need more than that.
             search = f"{context} {query}"
-        exact = self.by_ids(ids)
+        with observability.stage("id lookup"):
+            exact = self.by_ids(ids)
         seeds = list(dict.fromkeys(c.native_id for c in exact if c.native_id in ids))
-        hybrid = self._hybrid(search)
+        with observability.stage("hybrid search"):
+            hybrid = self._hybrid(search)
         if not seeds:
             seeds = [hybrid[0].native_id] if hybrid else []
-        related = self._neighbors(query, seeds) if RELATED.search(query) else []
+        with observability.stage("graph expansion"):
+            related = self._neighbors(query, seeds) if RELATED.search(query) else []
 
         pool = unique([*exact, *related, *hybrid])
-        scores = dict(
-            zip(
-                [c.point_id for c in pool],
-                self.reranker.rerank(
-                    search, [c.embedding_text()[: self.rerank_chars] for c in pool]
+        with observability.stage("rerank"):
+            scores = dict(
+                zip(
+                    [c.point_id for c in pool],
+                    self.reranker.rerank(
+                        search, [c.embedding_text()[: self.rerank_chars] for c in pool]
+                    )
+                    if pool
+                    else [],
+                    strict=True,
                 )
-                if pool
-                else [],
-                strict=True,
             )
-        )
 
         # A chunk found by search as well as through an edge keeps the edge's relation label.
         annotated = {c.point_id: c for c in related}
@@ -148,7 +153,8 @@ class KnowledgeBase:
                 *self._cap(ranked(parts, "id"), parent_of, MAX_PER_ID),
                 *relevant,
             ]
-        return self._in_language(found, language)[: self.limit]
+        with observability.stage("language"):
+            return self._in_language(found, language)[: self.limit]
 
     def _scroll(self, flt: models.Filter) -> list[Chunk]:
         """Every point matching the filter, page by page."""

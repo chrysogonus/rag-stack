@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
 
+from rag_stack import observability
 from rag_stack.agent.answer import footer
 from rag_stack.api.app import create_app, source_refs
 from rag_stack.config import Settings
@@ -104,6 +105,58 @@ def test_get_returns_the_conversation(make_client):
         {"role": "user", "content": "Hi"},
         {"role": "assistant", "content": "Hello there" + FOOTER},
     ]
+
+
+def asked(client: TestClient) -> uuid.UUID:
+    """A thread holding one question (message 0) and its answer (message 1)."""
+    thread = uuid.uuid4()
+    client.post(f"/api/threads/{thread}/messages", json={"content": "Hi"})
+    return thread
+
+
+def test_rating_an_answer_scores_that_turn_trace(make_client, monkeypatch):
+    client = make_client()
+    thread = asked(client)
+    ratings = []
+    monkeypatch.setattr(
+        observability, "rate_turn", lambda trace, helpful: ratings.append((trace, helpful)) or True
+    )
+
+    response = client.post(f"/api/threads/{thread}/feedback", json={"message": 1, "helpful": False})
+
+    assert response.status_code == 204
+    assert ratings == [(observability.turn_trace_id(str(thread), 1), False)]
+
+
+@pytest.mark.parametrize(("message", "status"), [(0, 404), (2, 404), (-1, 422)])
+def test_a_rating_must_name_an_answer_in_the_thread(make_client, monkeypatch, message, status):
+    client = make_client()
+    thread = asked(client)
+    monkeypatch.setattr(observability, "rate_turn", lambda trace, helpful: True)
+
+    feedback = {"message": message, "helpful": True}
+    assert client.post(f"/api/threads/{thread}/feedback", json=feedback).status_code == status
+    # Another thread has no answers to rate.
+    other = f"/api/threads/{uuid.uuid4()}/feedback"
+    assert client.post(other, json={"message": 1, "helpful": True}).status_code == 404
+
+
+def test_ratings_are_refused_while_nothing_is_traced(make_client):
+    client = make_client()
+    thread = asked(client)
+
+    response = client.post(f"/api/threads/{thread}/feedback", json={"message": 1, "helpful": True})
+
+    assert response.status_code == 503
+
+
+def test_ratings_count_against_the_rate_limit(make_client):
+    client = make_client(rate_limit_per_minute=1)
+    thread = asked(client)
+
+    response = client.post(f"/api/threads/{thread}/feedback", json={"message": 1, "helpful": True})
+
+    assert response.status_code == 429
 
 
 @pytest.mark.parametrize("content", ["", "   ", "x" * 11])

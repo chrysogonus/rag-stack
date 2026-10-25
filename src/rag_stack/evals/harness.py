@@ -14,6 +14,7 @@ from typing import Any
 import yaml
 from langgraph.checkpoint.memory import InMemorySaver
 
+from rag_stack import observability
 from rag_stack.agent.answer import FOOTER_START, cited_ids, is_abstention
 from rag_stack.agent.graph import build_graph
 from rag_stack.agent.prompts import ABSTAIN, BASELINE_PROMPT
@@ -151,7 +152,7 @@ async def run_case(
     expect_abstain = case["category"] == "abstention"
     gold = case["gold_ids"]
     # A follow-up case asks its previous question first, in the same thread for both bots.
-    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    config = {"configurable": {"thread_id": str(uuid.uuid4()), "tags": ["eval"]}}
     history: list[Message] = []
     if previous := case.get("follow_up_of"):
         await graph.ainvoke({"messages": [{"role": "user", "content": previous}]}, config)
@@ -441,5 +442,6 @@ async def main(settings: Settings) -> int:
     (DATASET / "results.json").write_text(json.dumps(results, indent=1, ensure_ascii=False))
     (DATASET / "report.md").write_text(report(results, settings))
     print((DATASET / "report.md").read_text())
+    observability.flush()
     thresholds = yaml.safe_load((DATASET / "thresholds.yaml").read_text())
     return 1 if check_thresholds(summarize(results), thresholds) else 0

@@ -8,10 +8,12 @@ import uuid
 from collections.abc import Iterator
 from pathlib import Path
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from qdrant_client import QdrantClient
 
+from rag_stack import observability
 from rag_stack.api.app import create_app
 from rag_stack.config import Settings
 from rag_stack.db.edges import EdgeGraph
@@ -152,3 +154,30 @@ def test_an_answer_cut_off_by_the_client_is_kept_and_the_chat_goes_on(knowledge_
         follow_up, _ = ask(client, thread_url, "Which mitigations address it?")
         assert "AML.M0019" in follow_up
         assert [m["role"] for m in client.get(thread_url).json()] == ["user", "assistant"] * 2
+
+
+def test_a_rated_answer_reaches_langfuse_as_one_trace_with_its_score(knowledge_base):
+    settings = Settings()
+    if not settings.langfuse_public_key:
+        pytest.skip("tracing is not configured: run `make tracing` and set LANGFUSE_* in .env")
+    thread = uuid.uuid4()
+
+    with TestClient(create_app(retriever=knowledge_base)) as client:
+        ask(client, f"/api/threads/{thread}/messages", "What is AML.T0051?")
+        rating = {"message": 1, "helpful": False}
+        assert client.post(f"/api/threads/{thread}/feedback", json=rating).status_code == 204
+
+    trace = observability.turn_trace_id(str(thread), 1)
+    auth = (settings.langfuse_public_key, settings.langfuse_secret_key.get_secret_value())
+    api = f"{settings.langfuse_base_url}/api/public"
+    names: set[str] = set()
+    scores: list[dict] = []
+    for _ in range(60):  # Langfuse ingests asynchronously
+        observations = httpx.get(f"{api}/v2/observations", params={"traceId": trace}, auth=auth)
+        names = {o["name"] for o in observations.json()["data"]}
+        scores = httpx.get(f"{api}/v3/scores", params={"traceId": trace}, auth=auth).json()["data"]
+        if {"retrieve", "rerank", "generate"} <= names and scores:
+            break
+        time.sleep(1)
+    assert {"retrieve", "hybrid search", "rerank", "generate"} <= names
+    assert [(s["name"], s["value"]) for s in scores] == [("helpful", False)]
