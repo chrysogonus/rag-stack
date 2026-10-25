@@ -37,12 +37,15 @@ class Settings(BaseSettings):
     qdrant_collection: str = "kb_chunks"
     embedding_model: str = "intfloat/multilingual-e5-large"
     sparse_model: str = "Qdrant/bm25"
-    # int8 build of bge-reranker-v2-m3: with rerank_max_chars it reranks 50 candidates in ~7 s
-    # on CPU instead of ~45 s, with near-identical rankings (see docs/PLAN.md).
+    # int8 build of bge-reranker-v2-m3: near-identical rankings to the full model at a fraction
+    # of the CPU time (see docs/PLAN.md). The reranker is nearly all of retrieval's latency.
     reranker_model: str = "BAAI/bge-reranker-v2-m3-int8"
     # The reranker reads only the start of each chunk (its cost grows with text length).
-    rerank_max_chars: int = 1000
-    retrieval_candidates: int = 50
+    # 20 candidates x 800 chars: retrieval p50 2.6 s / p95 4.1 s on CPU (was 7.9 / 11.2 s at
+    # 50 x 1000) with the same golden-set recall@10 (0.962) and MRR (0.906 vs 0.900); 600 chars
+    # loses a CVE question (`eval --retrieval-only` to re-check).
+    rerank_max_chars: int = 800
+    retrieval_candidates: int = 20
     retrieval_top_k: int = 8
     # Reranker logit below which a hybrid hit counts as irrelevant (exact-ID hits always pass).
     # Calibrated on the golden set: off-topic questions top out near -1, answerable ones above 1.

@@ -9,7 +9,7 @@
   "source_id": "atlas",
   "version": "2026.09",
   "sha256": "d76528c1355063d29b7de0f1acab6a49319b30be9a3e95c544dfc6e3b000d698",
-  "retrieved_at": "2026-10-24T18:01:38+00:00"
+  "retrieved_at": "2026-10-24T20:46:05+00:00"
  },
  {
   "source_id": "eu-ai-act",
@@ -27,12 +27,12 @@
   "source_id": "owasp-agentic-2026",
   "version": "2026 (2025-12-09)",
   "sha256": "369cb8c4adb5efbb187c57ae4e0474587a0f04ddd1ce93866f167cc500f7720c",
-  "retrieved_at": "2026-10-24T18:01:47+00:00"
+  "retrieved_at": "2026-10-24T20:46:09+00:00"
  },
  {
   "source_id": "owasp-llm-2026",
   "version": "2026@9253e38",
   "sha256": "e9e6fde382e0ce274b70e784d97fe178a1b32bd533237b0a8c8741b27c045bf0",
-  "retrieved_at": "2026-10-24T18:01:45+00:00"
+  "retrieved_at": "2026-10-24T20:46:07+00:00"
  }
 ]

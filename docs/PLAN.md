@@ -45,7 +45,9 @@ risk → AI Act article → CVE).
 - **Reranker: the int8 build of `BAAI/bge-reranker-v2-m3`, reading the first 1000 characters of
   each candidate.** On this machine's CPU the full-precision model took 35-50 s to rerank 50
   candidates; int8 with the cut takes 6-8 s with near-identical top 5s (measured on three
-  questions). `RERANKER_MODEL` and `RERANK_MAX_CHARS` switch back.
+  questions). `RERANKER_MODEL` and `RERANK_MAX_CHARS` switch back. Later cut to 20 candidates
+  of 800 characters: retrieval p50 2.6 s, p95 4.1 s (was 7.9 / 11.2 s) with unchanged golden
+  recall@10 and MRR; `jina-reranker-v2-base-multilingual` was no faster at equal quality.
 - **BM25 without stemming.** The corpus mixes English and German; an English stemmer would
   mangle German terms.
 - **Eval paths follow AGENTS.md, not `eval/`.** `evals/datasets/ai_security/golden.jsonl` (JSONL,

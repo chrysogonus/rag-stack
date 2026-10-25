@@ -68,14 +68,16 @@ def test_golden_set_has_the_required_shape():
         "german-legal": 10,
         "cve": 5,
         "list": 5,
-        "abstention": 5,
+        "abstention": 6,
+        "follow-up": 3,
     }
-    assert len({case["id"] for case in cases}) == 55
+    assert len({case["id"] for case in cases}) == 59
     for case in cases:
         assert case["language"] in ("en", "de"), case["id"]
         assert case["needs_review"] is True, case["id"]
         assert case["key_facts"], case["id"]
         assert bool(case["gold_ids"]) != (case["category"] == "abstention"), case["id"]
+        assert ("follow_up_of" in case) >= (case["category"] == "follow-up"), case["id"]
     assert all(case["language"] == "de" for case in cases if case["category"] == "german-legal")
     json.dumps(cases)  # plain JSON throughout
     assert (DATASET / "thresholds.yaml").exists()
@@ -122,3 +124,72 @@ def test_saved_results_are_stale_when_anything_they_depend_on_changes(tmp_path, 
     ]
     (tmp_path / "golden.jsonl").write_text("{}\n")
     assert harness.stale_reasons(settings) == ["golden changed"]
+
+
+@pytest.mark.anyio
+async def test_a_follow_up_case_asks_its_previous_question_first_in_the_same_thread():
+    from fakes.embeddings import FakeRetriever
+    from fakes.llm import FakeChatModel
+    from langgraph.checkpoint.memory import InMemorySaver
+
+    from rag_stack.agent.graph import build_graph
+    from rag_stack.config import Settings
+    from rag_stack.evals.harness import run_case
+
+    settings = Settings()
+    rag = FakeChatModel("AML.T0051 is LLM Prompt Injection.", "Use guardrails [AML.M0020].")
+    graph = build_graph(rag, InMemorySaver(), settings, FakeRetriever(chunk("AML.M0020")))
+    baseline = FakeChatModel("It is prompt injection.", "Use guardrails.")
+    verdict = '{"correctness": 5, "faithfulness": 5, "reason": "ok"}'
+    judge = FakeChatModel(verdict, verdict)
+    case = {
+        "id": "f",
+        "category": "follow-up",
+        "follow_up_of": "What is AML.T0051?",
+        "question": "How do I defend against it?",
+        "gold_ids": ["AML.M0020"],
+        "key_facts": ["Guardrails"],
+    }
+
+    result = await run_case(case, settings, graph, baseline, judge)
+
+    asked = [m["content"] for m in rag.calls[1]["messages"] if m["role"] == "user"]
+    assert asked[0] == "What is AML.T0051?"
+    assert asked[-1].endswith("How do I defend against it?")
+    assert [m["content"] for m in baseline.calls[1]["messages"]] == [
+        "What is AML.T0051?",
+        "It is prompt injection.",
+        "How do I defend against it?",
+    ]
+    assert json.loads(judge.calls[0]["messages"][0]["content"])["previous_question"] == (
+        "What is AML.T0051?"
+    )
+    assert result["recall_at_10"] == 1.0
+
+
+@pytest.mark.anyio
+async def test_retrieval_only_scores_the_golden_set_without_an_llm(capsys):
+    from rag_stack.config import Settings
+    from rag_stack.evals.harness import retrieval_only
+    from rag_stack.retrieval.retriever import Retrieved
+
+    class Perfect:
+        """Finds exactly the gold IDs of whichever case is asked."""
+
+        def __init__(self) -> None:
+            self.asked: list[tuple[str, str]] = []
+            self.gold = {
+                (c["question"], c.get("follow_up_of", "")): c["gold_ids"] for c in load_cases()
+            }
+
+        async def retrieve(self, query: str, context: str = "") -> list[Retrieved]:
+            self.asked.append((query, context))
+            return [Retrieved(chunk(i), 1.0, "id") for i in self.gold[(query, context)]]
+
+        async def catalog(self) -> list[str]:
+            return []
+
+    kb = Perfect()
+    assert await retrieval_only(Settings(), kb) == 0
+    assert ("How do I defend against it?", "What is AML.T0051?") in kb.asked
+    assert "all            recall@10 1.000  mrr 1.000" in capsys.readouterr().out

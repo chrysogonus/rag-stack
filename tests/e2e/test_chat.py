@@ -55,7 +55,9 @@ def knowledge_base() -> Iterator[KnowledgeBase]:
             sparse,
             create_reranker(settings.reranker_model),
             EdgeGraph(edges),
+            candidates=settings.retrieval_candidates,
             min_score=settings.rerank_min_score,
+            rerank_chars=settings.rerank_max_chars,
         )
     finally:
         client.delete_collection(collection)
@@ -110,3 +112,15 @@ def test_cited_multi_turn_answers_are_streamed_and_persisted(knowledge_base):
         messages = client.get(thread_url).json()
     assert [m["role"] for m in messages] == ["user", "assistant"] * 5
     assert messages[1]["content"] == first
+
+
+def test_a_follow_up_asking_how_to_defend_gets_the_mitigations(knowledge_base):
+    thread_url = f"/api/threads/{uuid.uuid4()}/messages"
+
+    with TestClient(create_app(retriever=knowledge_base)) as client:
+        ask(client, thread_url, "What is AML.T0051?")
+        answer, sources = ask(client, thread_url, "How do I defend against it?")
+
+    assert any(s["id"] == "AML.M0019" and s["used"] for s in sources)
+    assert not answer.startswith("I can't answer that")
+    assert "AML.M0019" in answer

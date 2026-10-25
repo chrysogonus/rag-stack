@@ -1,7 +1,7 @@
 {
- "code": "43fc96c9f17979a9f91e7074bc918904c2eeca946d4cec3689476946e6767a19",
- "rubric": "1ac6917f68d9508969444a630f5c2bc2bfb23ac56a11f04c9652e740a00a3b6c",
- "golden": "8fbdcdd032a0bea6bd371784066b5edf2256384abc0ea3681befc7a0f94e1cef",
- "corpus": "89bd97f8c462c030c94cea4808684ce21305e1828ae2caa5ba6fe2e027de833b",
- "settings": "{\"embedding_model\": \"intfloat/multilingual-e5-large\", \"eval_baseline_base_url\": \"http://127.0.0.1:11435/v1\", \"eval_baseline_model\": \"codex/gpt-6-luna\", \"eval_baseline_provider\": \"openai-compatible\", \"eval_judge_model\": \"gpt-6-luna\", \"llm_base_url\": \"\", \"llm_model\": \"gpt-6-luna\", \"llm_provider\": \"openai\", \"max_chunk_chars\": \"2500\", \"max_output_tokens\": \"4096\", \"qdrant_collection\": \"kb_chunks\", \"rerank_max_chars\": \"1000\", \"rerank_min_score\": \"0.0\", \"reranker_model\": \"BAAI/bge-reranker-v2-m3-int8\", \"retrieval_candidates\": \"50\", \"retrieval_top_k\": \"8\", \"sparse_model\": \"Qdrant/bm25\"}"
+ "code": "b2e0de80d1485bdd59762dc7a3ba533179b0047da36f16b294d1bfb3bb9b90fa",
+ "rubric": "024866d6ee9c0d47a65e0994e23726661d96d5fc5c2434c45114031dc9cdc3e9",
+ "golden": "b81937b07b7d315b6fa28d71699b5676cd21ca5b2e17ca86b9f8d11d5229897a",
+ "corpus": "ff2634f848f13cb0cda1a5add0900fe03f9823485ce2fa3cd859a484ac673825",
+ "settings": "{\"embedding_model\": \"intfloat/multilingual-e5-large\", \"eval_baseline_base_url\": \"http://127.0.0.1:11435/v1\", \"eval_baseline_model\": \"codex/gpt-6-luna\", \"eval_baseline_provider\": \"openai-compatible\", \"eval_judge_model\": \"gpt-6-luna\", \"llm_base_url\": \"\", \"llm_model\": \"gpt-6-luna\", \"llm_provider\": \"openai\", \"max_chunk_chars\": \"2500\", \"max_output_tokens\": \"4096\", \"qdrant_collection\": \"kb_chunks\", \"rerank_max_chars\": \"800\", \"rerank_min_score\": \"0.0\", \"reranker_model\": \"BAAI/bge-reranker-v2-m3-int8\", \"retrieval_candidates\": \"20\", \"retrieval_top_k\": \"8\", \"sparse_model\": \"Qdrant/bm25\"}"
 }

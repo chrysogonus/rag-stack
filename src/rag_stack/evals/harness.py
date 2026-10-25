@@ -5,6 +5,7 @@ import asyncio
 import hashlib
 import json
 import re
+import time
 import uuid
 from collections import defaultdict
 from pathlib import Path
@@ -22,12 +23,21 @@ from rag_stack.ingestion.models import Chunk
 from rag_stack.llm.base import ChatModel, Message, TextDelta
 from rag_stack.llm.factory import create_chat_model
 from rag_stack.retrieval.ids import detect_ids
-from rag_stack.retrieval.retriever import KnowledgeBase, open_knowledge_base
+from rag_stack.retrieval.retriever import KnowledgeBase, Retriever, open_knowledge_base
 
 ROOT = Path(__file__).parents[3]
 DATASET = ROOT / "evals/datasets/ai_security"
 RUBRIC = ROOT / "evals/rubrics/judge_v1.md"
-CATEGORIES = ["id-exact", "freshness", "cross-source", "german-legal", "cve", "list", "abstention"]
+CATEGORIES = [
+    "id-exact",
+    "freshness",
+    "cross-source",
+    "german-legal",
+    "cve",
+    "list",
+    "abstention",
+    "follow-up",
+]
 METRICS = [
     "recall_at_10",
     "mrr",
@@ -67,6 +77,7 @@ def citations(text: str, sources: list[Chunk]) -> list[str]:
 
 async def judge(llm: ChatModel, case: dict, answer: str, sources: list[dict] | None) -> dict:
     payload = {
+        **({"previous_question": case["follow_up_of"]} if "follow_up_of" in case else {}),
         "question": case["question"],
         "key_facts": case["key_facts"],
         "answer": answer,
@@ -119,16 +130,24 @@ async def run_case(
 ) -> dict:
     expect_abstain = case["category"] == "abstention"
     gold = case["gold_ids"]
+    # A follow-up case asks its previous question first, in the same thread for both bots.
+    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    history: list[Message] = []
+    if previous := case.get("follow_up_of"):
+        await graph.ainvoke({"messages": [{"role": "user", "content": previous}]}, config)
+        history = [{"role": "user", "content": previous}]
+        history.append(
+            {"role": "assistant", "content": await complete(baseline_llm, history, BASELINE_PROMPT)}
+        )
     state = await graph.ainvoke(
-        {"messages": [{"role": "user", "content": case["question"]}]},
-        {"configurable": {"thread_id": str(uuid.uuid4())}},
+        {"messages": [{"role": "user", "content": case["question"]}]}, config
     )
     full = state["messages"][-1]["content"]
     ranked = [s["native_id"] for s in state["sources"]]
     chunks = [Chunk.model_validate(s) for s in state["sources"][: settings.retrieval_top_k]]
     body = full.split(FOOTER_START, 1)[0]
     baseline = await complete(
-        baseline_llm, [{"role": "user", "content": case["question"]}], BASELINE_PROMPT
+        baseline_llm, [*history, {"role": "user", "content": case["question"]}], BASELINE_PROMPT
     )
 
     rag_verdict, base_verdict = await asyncio.gather(
@@ -313,6 +332,41 @@ def stale_reasons(settings: Settings) -> list[str]:
         return ["no results with a fingerprint"]
     old, new = json.loads(saved.read_text()), fingerprint(settings)
     return [f"{key} changed" for key in new if old.get(key) != new[key]]
+
+
+async def retrieval_only(settings: Settings, kb: Retriever | None = None) -> int:
+    """Recall@10, MRR and retrieval time on the golden set, with no LLM calls and no files
+    written: a quick loop for tuning retrieval settings against the thresholds."""
+    kb = kb or await asyncio.to_thread(open_knowledge_base, settings)
+    rows = []
+    for case in load_cases():
+        if not case["gold_ids"]:
+            continue
+        start = time.perf_counter()
+        found = await kb.retrieve(case["question"], context=case.get("follow_up_of", ""))
+        ranked = [r.chunk.native_id for r in found]
+        rows.append(
+            {
+                "category": case["category"],
+                "seconds": time.perf_counter() - start,
+                "recall_at_10": recall_at_k(ranked, case["gold_ids"]),
+                "mrr": mrr(ranked, case["gold_ids"]),
+            }
+        )
+    summary = {}
+    for name in [*CATEGORIES, "all"]:
+        group = [r for r in rows if name in ("all", r["category"])]
+        if group:
+            summary[name] = {m: mean([r[m] for r in group]) for m in ("recall_at_10", "mrr")}
+            recall, rank = summary[name]["recall_at_10"], summary[name]["mrr"]
+            print(f"{name:14} recall@10 {recall:.3f}  mrr {rank:.3f}")
+    seconds = sorted(r["seconds"] for r in rows)
+    p50, p95 = seconds[len(seconds) // 2], seconds[int(len(seconds) * 0.95)]
+    print(f"retrieval p50 {p50:.2f} s, p95 {p95:.2f} s")
+    thresholds = yaml.safe_load((DATASET / "thresholds.yaml").read_text())
+    failed = check_thresholds(summary, {m: thresholds[m] for m in ("recall_at_10", "mrr")})
+    print(*failed, sep="\n")
+    return 1 if failed else 0
 
 
 async def main(settings: Settings) -> int:

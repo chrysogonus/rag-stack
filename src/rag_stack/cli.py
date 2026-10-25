@@ -33,7 +33,14 @@ def main(argv: list[str] | None = None) -> int:
     index_cmd.add_argument("source", nargs="?", default="all", choices=[*MODULES, "all"])
     ask_cmd = commands.add_parser("ask", help="answer one question from the knowledge base")
     ask_cmd.add_argument("question")
-    commands.add_parser("eval", help="run the golden set (RAG vs. baseline), write the report")
+    run_eval = commands.add_parser(
+        "eval", help="run the golden set (RAG vs. baseline), write the report"
+    )
+    run_eval.add_argument(
+        "--retrieval-only",
+        action="store_true",
+        help="only score retrieval (recall@10, MRR, time): no LLM calls, nothing written",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 
@@ -50,9 +57,11 @@ def main(argv: list[str] | None = None) -> int:
         from rag_stack.agent.ask import ask
 
         return asyncio.run(ask(settings, args.question))
-    from rag_stack.evals.harness import main as run_eval
+    from rag_stack.evals import harness
 
-    return asyncio.run(run_eval(settings))
+    if args.retrieval_only:
+        return asyncio.run(harness.retrieval_only(settings))
+    return asyncio.run(harness.main(settings))
 
 
 if __name__ == "__main__":

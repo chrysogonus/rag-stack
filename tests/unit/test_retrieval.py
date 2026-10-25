@@ -147,6 +147,20 @@ async def test_follow_up_without_ids_uses_the_previous_question(kb):
     assert [r.chunk.native_id for r in found if r.via == "graph"] == ["AML.M0019"]
 
 
+@pytest.mark.parametrize("question", ["How do I defend against it?", "Wie schütze ich mich davor?"])
+async def test_a_follow_up_asking_how_to_defend_adds_the_mitigations(kb, question):
+    found = await kb.retrieve(question, context="What is AML.T0051?")
+
+    assert found[0].chunk.native_id == "AML.T0051"
+    assert [r.chunk.native_id for r in found if r.via == "graph"] == ["AML.M0019"]
+
+
+async def test_a_follow_up_searches_and_reranks_with_the_previous_question(kb):
+    await kb.retrieve("How do I defend against it?", context="What is AML.T0051?")
+
+    assert kb.reranker.calls[-1][0] == "What is AML.T0051? How do I defend against it?"
+
+
 async def test_hybrid_hits_below_the_reranker_floor_are_dropped(kb):
     assert await kb.retrieve("capital city of France") == []
 

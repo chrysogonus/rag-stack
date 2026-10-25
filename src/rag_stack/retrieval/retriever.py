@@ -14,16 +14,18 @@ from rag_stack.retrieval.fusion import rrf
 from rag_stack.retrieval.ids import detect_ids
 from rag_stack.retrieval.language import detect_language
 
+# Words asking how to defend (defend, defence, harden; schützen, absichern, ...).
+DEFENSE = (
+    r"mitigat|countermeasure|defen|prevent|protect|safeguard|harden|"
+    r"gegenma|abwehr|schutz|schütz|minder|verteidig|absicher|härt"
+)
 # Questions about related items get the 1-hop neighbors of the units they are about.
 RELATED = re.compile(
-    r"mitigat|countermeasure|defen[cs]|prevent|protect|map|relat|correspond|link|connect|"
-    r"technique|tactic|weakness|cwe|gegenma|abwehr|schutz|minder|zuordn|verwandt|bezug|"
-    r"zusammenh|entsprech|verknüpf",
+    DEFENSE + r"|map|relat|correspond|link|connect|technique|tactic|weakness|cwe|"
+    r"zuordn|verwandt|bezug|zusammenh|entsprech|verknüpf",
     re.I,
 )
-MITIGATIONS = re.compile(
-    r"mitigat|countermeasure|defen[cs]|prevent|protect|gegenma|abwehr|schutz|minder", re.I
-)
+MITIGATIONS = re.compile(DEFENSE, re.I)
 MAX_PER_ID = 6  # parts of a named article or annex
 MAX_PER_UNIT = 3  # sections of one named unit (an OWASP entry has eight or more)
 MAX_NEIGHBORS = 12
@@ -90,12 +92,16 @@ class KnowledgeBase:
 
     def _retrieve(self, query: str, context: str) -> list[Retrieved]:
         language = detect_language(query)
-        # shortcut: a follow-up without IDs reuses the previous question's IDs instead of an
-        # LLM query rewrite; add a rewrite step if follow-ups need more than that.
-        ids = detect_ids(query) or detect_ids(context)
+        ids = detect_ids(query)
+        search = query
+        if not ids and (ids := detect_ids(context)):
+            # shortcut: a follow-up without IDs ("How do I defend against it?") reuses the
+            # previous question's IDs and searches with both questions instead of an LLM query
+            # rewrite; add a rewrite step if follow-ups need more than that.
+            search = f"{context} {query}"
         exact = self.by_ids(ids)
         seeds = list(dict.fromkeys(c.native_id for c in exact if c.native_id in ids))
-        hybrid = self._hybrid(query)
+        hybrid = self._hybrid(search)
         if not seeds:
             seeds = [hybrid[0].native_id] if hybrid else []
         related = self._neighbors(query, seeds) if RELATED.search(query) else []
@@ -104,7 +110,9 @@ class KnowledgeBase:
         scores = dict(
             zip(
                 [c.point_id for c in pool],
-                self.reranker.rerank(query, [c.embedding_text()[: self.rerank_chars] for c in pool])
+                self.reranker.rerank(
+                    search, [c.embedding_text()[: self.rerank_chars] for c in pool]
+                )
                 if pool
                 else [],
                 strict=True,
