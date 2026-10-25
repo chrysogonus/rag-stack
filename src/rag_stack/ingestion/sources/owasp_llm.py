@@ -2,7 +2,7 @@ import re
 from typing import Any
 
 from rag_stack.ingestion.fetch import Fetcher
-from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean
+from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean, overview_chunk
 from rag_stack.ingestion.registry import SOURCES
 
 INFO = SOURCES["owasp-llm-2026"]
@@ -58,8 +58,15 @@ def parse(snapshot: Snapshot) -> tuple[list[Chunk], list[Edge]]:
                     heading_path=[f"{native_id} {title.strip()}", heading],
                 )
             )
+    overview = overview_chunk(
+        [c for c in chunks if c.heading_path[1] == "Description"],
+        native_id="OWASP LLM Top 10 2026",
+        title=f"{INFO.name}: overview",
+        url=next(iter(snapshot.urls.values())).rsplit("/", 1)[0],
+        intro=f"The {INFO.name} lists these risks, by number:",
+    )
     edges = parse_mappings(snapshot.files[APPENDIX].decode()) if APPENDIX in snapshot.files else []
-    return chunks, edges
+    return [*chunks, overview], edges
 
 
 def parse_mappings(appendix: str) -> list[Edge]:

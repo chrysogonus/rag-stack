@@ -92,6 +92,41 @@ def finalize(chunks: list[Chunk], max_chars: int) -> list[Chunk]:
     return out
 
 
+def first_sentence(text: str, max_chars: int = 160) -> str:
+    """The text up to its first sentence end, cut at a word boundary beyond max_chars."""
+    # shortcut: "e.g. " ends a sentence too; use a sentence splitter if summaries read badly.
+    sentence = re.split(r"(?<=[.!?])\s", " ".join(text.split()), maxsplit=1)[0]
+    return sentence if len(sentence) <= max_chars else sentence[:max_chars].rsplit(" ", 1)[0] + "…"
+
+
+def overview_chunk(
+    entries: list[Chunk], *, native_id: str, title: str, url: str, intro: str
+) -> Chunk:
+    """One chunk naming a list (an OWASP top 10, the ATLAS tactics) and all its entries in ID
+    order, so list questions find the list by its name and get every entry at once."""
+    if not entries:
+        raise ValueError(f"{native_id}: no entries to list (did the source's format change?)")
+    first: dict[str, Chunk] = {}
+    for entry in entries:
+        first.setdefault(entry.native_id, entry)
+    lines = [f"{i} {c.title}: {first_sentence(c.text)}" for i, c in sorted(first.items())]
+    source = entries[0]
+    return Chunk(
+        source_id=source.source_id,
+        native_id=native_id,
+        title=title,
+        url=url,
+        source_version=source.source_version,
+        language=source.language,
+        retrieved_at=source.retrieved_at,
+        license=source.license,
+        attribution=source.attribution,
+        text="\n".join([intro, *lines]),
+        heading_path=["Overview"],
+        meta={"kind": "overview"},
+    )
+
+
 def clean(text: str) -> str:
     """Collapse runs of spaces and blank lines that PDF and HTML extraction leave behind."""
     text = re.sub(r"[ \t ]+", " ", text)

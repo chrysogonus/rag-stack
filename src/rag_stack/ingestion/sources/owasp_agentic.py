@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 from rag_stack.ingestion.fetch import Fetcher
-from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean
+from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean, overview_chunk
 from rag_stack.ingestion.registry import SOURCES
 
 INFO = SOURCES["owasp-agentic-2026"]
@@ -75,7 +75,17 @@ def parse_text(text: str, snapshot: Snapshot) -> list[Chunk]:
                 section, body = line, []
             else:
                 body.append(line)
-    return chunks
+    descriptions = [c for c in chunks if c.heading_path[1] == "Description"]
+    if not descriptions:
+        return chunks
+    overview = overview_chunk(
+        descriptions,
+        native_id="OWASP Agentic Top 10 2026",
+        title=f"{INFO.name}: overview",
+        url=snapshot.urls["agentic-top10.pdf"],
+        intro=f"The {INFO.name} lists these risks, by number:",
+    )
+    return [*chunks, overview]
 
 
 def entry_chunk(native_id: str, title: str, section: str, body: list[str], snapshot: Snapshot):

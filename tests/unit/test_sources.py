@@ -36,6 +36,7 @@ def test_atlas_one_chunk_per_object_with_relationships_as_edges():
         ("AML.T0051.000", "en"),
         ("AML.M0019", "en"),
         ("AML.CS0016", "en"),
+        ("ATLAS Tactics", "en"),
     }
     technique = found[("AML.T0051", "en")]
     assert technique.title == "LLM Prompt Injection"
@@ -53,6 +54,14 @@ def test_atlas_one_chunk_per_object_with_relationships_as_edges():
     assert "AML.M0019" not in technique.text
     # A case study's procedure is its own content and stays in its text.
     assert "Procedure:" in found[("AML.CS0016", "en")].text
+    overview = found[("ATLAS Tactics", "en")]
+    assert overview.text.splitlines()[1:] == [
+        "AML.TA0005 Execution: The adversary is trying to run malicious code embedded in AI "
+        "artifacts or software."
+    ]
+    assert "MITRE ATLAS 2026.09" in overview.text and "not in matrix order" in overview.text
+    assert overview.url == "https://atlas.mitre.org/tactics"
+    assert "Copyright 2021-2026 MITRE" in overview.attribution
 
 
 def test_atlas_fetch_follows_the_latest_symlink():
@@ -77,8 +86,15 @@ def test_owasp_llm_one_chunk_per_section_and_mappings_as_edges():
     names = ["LLM01_PromptInjection.md", "Appendix_A_Related_Framework_Mappings.md"]
     chunks, edges = owasp_llm.parse(snapshot("owasp-llm-2026", "2026@9253e38", "owasp_llm", names))
 
+    *chunks, overview = chunks
     assert {c.native_id for c in chunks} == {"LLM01:2026"}
     assert [c.heading_path[1] for c in chunks] == ["Description", "Types of Prompt Injection"]
+    assert overview.native_id == "OWASP LLM Top 10 2026"
+    assert overview.text.startswith("The OWASP Top 10 for LLM Applications 2026 lists")
+    assert overview.text.splitlines()[1].startswith(
+        "LLM01:2026 Prompt Injection: A **prompt-injection vulnerability** occurs when"
+    )
+    assert overview.url == "https://example.org"
     assert chunks[0].title == "Prompt Injection"
     assert chunks[0].url.endswith("LLM01_PromptInjection.md#description")
     # "####" sub-headings stay inside their "###" section.
@@ -93,7 +109,7 @@ def test_owasp_agentic_entries_skip_the_toc_and_stop_at_the_appendix():
     text = (FIXTURES / "owasp_agentic/asi_excerpt.txt").read_text()
     snap = Snapshot("owasp-agentic-2026", "2026", WHEN, {}, {"agentic-top10.pdf": "https://x"})
 
-    chunks = owasp_agentic.parse_text(text, snap)
+    *chunks, overview = owasp_agentic.parse_text(text, snap)
 
     assert [(c.native_id, c.heading_path[1]) for c in chunks] == [
         ("ASI01", "Description"),
@@ -108,6 +124,14 @@ def test_owasp_agentic_entries_skip_the_toc_and_stop_at_the_appendix():
     assert "mapped to things" not in chunks[-1].text
     # Wrapped PDF lines are rejoined, numbered items keep their own line.
     assert "\n2. Indirect Prompt Injection" in chunks[1].text
+    # One overview names the list and every entry, from each entry's description.
+    assert (overview.native_id, overview.url) == ("OWASP Agentic Top 10 2026", "https://x")
+    assert "OWASP Top 10 for Agentic Applications 2026" in overview.title
+    assert [line.split(":")[0] for line in overview.text.splitlines()[1:]] == [
+        "ASI01 Agent Goal Hijack",
+        "ASI02 Tool Misuse and Exploitation",
+    ]
+    assert "AI Agents exhibit autonomous ability" in overview.text
 
 
 def test_eu_ai_act_units_in_both_languages_linked_by_unit_key():

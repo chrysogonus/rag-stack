@@ -27,7 +27,7 @@ from rag_stack.retrieval.retriever import KnowledgeBase, open_knowledge_base
 ROOT = Path(__file__).parents[3]
 DATASET = ROOT / "evals/datasets/ai_security"
 RUBRIC = ROOT / "evals/rubrics/judge_v1.md"
-CATEGORIES = ["id-exact", "freshness", "cross-source", "german-legal", "cve", "abstention"]
+CATEGORIES = ["id-exact", "freshness", "cross-source", "german-legal", "cve", "list", "abstention"]
 METRICS = [
     "recall_at_10",
     "mrr",

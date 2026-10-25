@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 import yaml
 
 from rag_stack.ingestion.fetch import Fetcher
-from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean
+from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean, overview_chunk
 from rag_stack.ingestion.registry import SOURCES
 
 INFO = SOURCES["atlas"]
@@ -63,6 +63,22 @@ def parse(snapshot: Snapshot) -> tuple[list[Chunk], list[Edge]]:
                     },
                 )
             )
+    tactics = [
+        c.model_copy(update={"text": c.text.split("\n\n", 1)[-1]})  # without "Name (tactic)"
+        for c in chunks
+        if c.meta["kind"] == "tactic"
+    ]
+    chunks.append(
+        overview_chunk(
+            tactics,
+            native_id="ATLAS Tactics",
+            title="MITRE ATLAS tactics: overview",
+            url=f"{SITE}/tactics",
+            # The YAML has no matrix (kill chain) order, only IDs.
+            intro=f"MITRE ATLAS {snapshot.version} defines these tactics, listed by ID "
+            "(not in matrix order):",
+        )
+    )
     edges = [
         Edge(
             src_id=rel["source"], rel=rel["relationship-type"], dst_id=rel["target"], origin="atlas"

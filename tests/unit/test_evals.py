@@ -67,9 +67,10 @@ def test_golden_set_has_the_required_shape():
         "cross-source": 10,
         "german-legal": 10,
         "cve": 5,
+        "list": 5,
         "abstention": 5,
     }
-    assert len({case["id"] for case in cases}) == 50
+    assert len({case["id"] for case in cases}) == 55
     for case in cases:
         assert case["language"] in ("en", "de"), case["id"]
         assert case["needs_review"] is True, case["id"]

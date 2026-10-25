@@ -7,7 +7,7 @@ from fakes.embeddings import chunk
 from rag_stack.config import Settings
 from rag_stack.ingestion import pipeline
 from rag_stack.ingestion.fetch import Fetcher, FetchError
-from rag_stack.ingestion.models import finalize, split_text
+from rag_stack.ingestion.models import finalize, first_sentence, overview_chunk, split_text
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 
@@ -131,13 +131,13 @@ def test_ingest_snapshots_with_sha256_and_skips_unchanged_input(tmp_path, monkey
     first = pipeline.ingest("atlas", settings, fetcher)
     second = pipeline.ingest("atlas", settings, fetcher)
 
-    assert first == "atlas 2026.09: 5 chunks, 5 edges"
+    assert first == "atlas 2026.09: 6 chunks, 5 edges"
     assert second.startswith("atlas 2026.09: unchanged (sha256 ")
     raw = tmp_path / "data/raw/atlas/2026.09"
     assert (raw / "ATLAS.yaml").read_bytes() == yaml_bytes
     assert "ATLAS.yaml" in (raw / "SHA256SUMS").read_text()
     sha, chunks, edges = pipeline.load_processed(settings, "atlas")  # type: ignore[misc]
-    assert len(chunks) == 5 and len(edges) == 5 and len(sha) == 64
+    assert len(chunks) == 6 and len(edges) == 5 and len(sha) == 64
 
 
 def test_split_text_breaks_at_paragraphs_and_never_exceeds_the_limit():
@@ -160,3 +160,31 @@ def test_finalize_numbers_the_parts_of_each_unit():
         ("AML.T0052", 0),
     ]
     assert len({c.point_id for c in parts}) == 4
+
+
+def test_first_sentence_stops_at_the_sentence_end_or_the_limit():
+    assert first_sentence("One line\nwrapped. Two. Three?") == "One line wrapped."
+    assert first_sentence("word " * 50, max_chars=22) == "word word word word…"
+
+
+def test_overview_lists_each_entry_once_in_id_order_with_the_source_attribution():
+    entries = [
+        chunk("ASI02", "Second risk. More.", title="Two"),
+        chunk("ASI01", "First risk.", title="One"),
+        chunk("ASI01", "A later section.", title="One"),
+    ]
+
+    overview = overview_chunk(
+        entries, native_id="Top 2", title="Top 2: overview", url="https://x", intro="Risks:"
+    )
+
+    assert overview.text == "Risks:\nASI01 One: First risk.\nASI02 Two: Second risk."
+    assert (overview.native_id, overview.url, overview.heading_path) == (
+        "Top 2",
+        "https://x",
+        ["Overview"],
+    )
+    assert (overview.attribution, overview.source_version) == (
+        entries[0].attribution,
+        entries[0].source_version,
+    )

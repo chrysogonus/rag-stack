@@ -158,6 +158,13 @@ async def test_hybrid_search_finds_units_by_content(kb):
     assert found[0].via == "hybrid"
 
 
+async def test_a_list_question_finds_the_list_overview(kb):
+    found = await kb.retrieve("Which tactics does MITRE ATLAS define?")
+
+    assert found[0].chunk.native_id == "ATLAS Tactics"
+    assert "AML.TA0005 Execution" in found[0].chunk.text
+
+
 async def test_catalog_lists_sources_with_versions(kb):
     assert await kb.catalog() == [
         "EU AI Act (Regulation (EU) 2024/1689) 02024R1689-20260727",

@@ -99,11 +99,14 @@ def test_cited_multi_turn_answers_are_streamed_and_persisted(knowledge_base):
         assert "Die Anbieter stellen sicher" in german or "natürliche" in german
         assert "KI-generierte Antwort" in german
 
+        tactics, _ = ask(client, thread_url, "Which tactics does MITRE ATLAS define?")
+        assert "[ATLAS Tactics]" in tactics and "Execution" in tactics
+
         off_topic, _ = ask(client, thread_url, "What is the capital of France?")
         assert off_topic.startswith("I can't answer that from the indexed sources.")
 
     # A fresh app (new connection pool) still sees the conversation in Postgres.
     with TestClient(create_app(retriever=knowledge_base)) as client:
         messages = client.get(thread_url).json()
-    assert [m["role"] for m in messages] == ["user", "assistant"] * 4
+    assert [m["role"] for m in messages] == ["user", "assistant"] * 5
     assert messages[1]["content"] == first
