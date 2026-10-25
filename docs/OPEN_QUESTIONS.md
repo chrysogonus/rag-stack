@@ -49,11 +49,11 @@ Things the MVP could not settle, with what was done instead.
   searches in 50 of 101 baseline sessions and none in RAG-answer or judge sessions. So the
   comparison is "RAG vs. a chatbot that may search the web", not the brief's "same model without
   retrieval". Unset `EVAL_BASELINE_*` to get that variant.
-- **The judge is `codex/gpt-6-luna` on the sub2api gateway** (`EVAL_JUDGE_*`), the same model
-  family as the RAG model, so it may favor RAG answers over the baseline's. It makes two calls
-  per golden question (one per answer), so moving it off the OpenAI API leaves only the RAG
-  answers paid. Earlier runs (judge `gpt-6-luna` on the OpenAI API, or RAG and judge on
-  `gpt-6-astra`) are not directly comparable.
+- **The judge is `claude-code/claude-opus-5-5` on the sub2api gateway** (`EVAL_JUDGE_*`), another
+  model family than the RAG model (`gpt-6-luna`), so it has no reason to favor RAG answers. It
+  runs through Claude Code (`claude --print`, no tools), not the raw Anthropic API, so it is an
+  agent runtime's answer, and subscription use is personal only. Runs judged by
+  `codex/gpt-6-luna` (up to the dev/test split) or `gpt-6-luna` are not directly comparable.
 - **Terse answers cost correctness.** Several RAG answers give only the ID and title
   ("[AML.T0131] Crafted AI Assistant Links.") while the sources hold the details the key facts
   expect. The system prompt says "be concise"; asking for the relevant details from the source is
