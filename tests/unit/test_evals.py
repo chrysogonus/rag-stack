@@ -249,8 +249,22 @@ async def test_retrieval_only_scores_the_golden_set_without_an_llm(capsys):
     assert out.startswith("split: dev")
     assert "all            recall@10 1.000  mrr 1.000" in out
 
-    # A split without questions fails instead of reporting nothing.
-    asked = len(kb.asked)
-    assert await retrieval_only(Settings(), kb, split="test") == 1
-    assert len(kb.asked) == asked
+    # Only the asked split is retrieved: dev and test questions don't mix.
+    dev = set(kb.asked)
+    assert await retrieval_only(Settings(), kb, split="test") == 0
+    assert kb.asked[len(dev) :] and dev.isdisjoint(kb.asked[len(dev) :])
+
+
+@pytest.mark.anyio
+async def test_retrieval_only_fails_on_a_split_without_questions(capsys, monkeypatch):
+    from fakes.embeddings import FakeRetriever
+
+    from rag_stack.config import Settings
+    from rag_stack.evals import harness
+
+    monkeypatch.setattr(harness, "load_cases", lambda: [{"split": "dev", "gold_ids": ["A"]}])
+    kb = FakeRetriever()
+
+    assert await harness.retrieval_only(Settings(), kb, split="test") == 1
+    assert kb.calls == []
     assert "split test: no questions" in capsys.readouterr().out
