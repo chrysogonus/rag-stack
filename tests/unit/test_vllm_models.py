@@ -4,7 +4,7 @@ from typing import Any, cast
 
 import httpx
 
-from rag_stack.llm.vllm_models import QWEN3_QUERY, VllmDense, VllmReranker
+from rag_stack.llm.vllm_models import VllmDense, VllmReranker
 
 
 class StubClient:
@@ -21,20 +21,14 @@ class StubClient:
         self.embeddings = SimpleNamespace(create=create)
 
 
-def test_documents_are_embedded_in_batches_and_only_queries_get_the_instruction():
+def test_documents_are_embedded_in_batches_and_queries_as_they_are():
     client = StubClient()
     model = VllmDense(cast(Any, client), "Qwen/Qwen3-Embedding-4B", batch_size=2)
 
     assert model.dim == 2
     assert model.embed_documents(["a", "b", "c"]) == [[0.0, 1.0], [1.0, 1.0], [0.0, 1.0]]
     assert model.embed_query("q") == [0.0, 1.0]
-    assert client.inputs[1:] == [["a", "b"], ["c"], [QWEN3_QUERY + "q"]]
-
-
-def test_other_models_get_no_instruction():
-    client = StubClient()
-    VllmDense(cast(Any, client), "BAAI/bge-m3").embed_query("q")
-    assert client.inputs[-1] == ["q"]
+    assert client.inputs[1:] == [["a", "b"], ["c"], ["q"]]
 
 
 def server(reply):

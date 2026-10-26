@@ -65,6 +65,13 @@ risk → AI Act article → CVE).
   `RERANK_MIN_SCORE` is 0.005: off-topic questions top out at 0.0-0.01, but near-domain
   abstention questions reach 0.8-0.99 and are left to the model's refusal, and several
   answerable CVE questions score 0.005-0.12 (they name their IDs, which bypass the cut-off).
+  Queries are embedded without an instruction. The first eval run used a cybersecurity
+  instruction, and KI-MIG § 17 Abs. 1 fell to dense rank 70, out of the 20 candidates: a German
+  legal question was refused (the run history's one regression). Recall@10 / MRR on all
+  questions: cybersecurity instruction 0.968 / 0.914, Qwen's default web-search instruction
+  0.976 / 0.909, none 0.988 / 0.916 (freshness recall 0.88 → 0.96; cross-source MRR 0.975 →
+  0.938, its recall 0.95 → 0.97). BM25 can't catch such cases: without stemming, "Behörden"
+  doesn't match "Verwaltungsbehörden".
 - **Reranker: the int8 build of `BAAI/bge-reranker-v2-m3`, reading the first 1000 characters of
   each candidate.** On this machine's CPU the full-precision model took 35-50 s to rerank 50
   candidates; int8 with the cut takes 6-8 s with near-identical top 5s (measured on three

@@ -6,9 +6,6 @@ from collections.abc import Sequence
 import httpx
 from openai import OpenAI  # noqa: TID251
 
-# Qwen3-Embedding is trained with an instruction on queries and none on documents.
-QWEN3_QUERY = "Instruct: Given a cybersecurity question, retrieve passages that answer it\nQuery: "
-
 
 class VllmDense:
     def __init__(self, client: OpenAI, model: str, batch_size: int = 32) -> None:
@@ -16,7 +13,6 @@ class VllmDense:
         self._model = model
         self.name = f"vllm:{model}"
         self._batch_size = batch_size
-        self._query_prefix = QWEN3_QUERY if "qwen3" in model.lower() else ""
         self._dim = len(self._embed(["dimension probe"])[0])
 
     @property
@@ -35,7 +31,10 @@ class VllmDense:
         ]
 
     def embed_query(self, text: str) -> list[float]:
-        return self._embed([self._query_prefix + text])[0]
+        # No instruction, though Qwen3-Embedding supports one: on the golden set a cybersecurity
+        # instruction dropped KI-MIG § 17 out of the candidates and cost recall@10 (0.968 vs
+        # 0.988 without); Qwen's default web-search instruction scored 0.976 (docs/PLAN.md).
+        return self._embed([text])[0]
 
 
 class VllmReranker:
