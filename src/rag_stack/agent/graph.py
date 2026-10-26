@@ -1,4 +1,5 @@
 import operator
+from collections.abc import Sequence
 from typing import Annotated, Any, TypedDict
 
 from langchain_core.runnables import RunnableConfig
@@ -22,6 +23,20 @@ class State(TypedDict):
     # The ranked chunks retrieved for the latest question (replaced every turn), as plain dicts.
     # The answer uses the first settings.retrieval_top_k; evals score the whole ranking.
     sources: list[dict[str, Any]]
+
+
+def model_input(
+    messages: list[Message], sources: Sequence[Chunk], settings: Settings
+) -> list[Message]:
+    """What the model is sent for the latest question: the recent turns, earlier answers without
+    their appended source lists, and the sources ahead of the question."""
+    history: list[Message] = [
+        {"role": "assistant", "content": m["content"].split(FOOTER_START, 1)[0]}
+        if m["role"] == "assistant"
+        else m
+        for m in build_input(messages, settings.max_history_messages)
+    ]
+    return with_sources(history, sources, settings.max_chunk_chars)
 
 
 def build_graph(
@@ -83,14 +98,7 @@ def build_graph(
 
         parts: list[str] = []
         usage = 0
-        # Earlier answers go back without their appended source lists.
-        history: list[Message] = [
-            {"role": "assistant", "content": m["content"].split(FOOTER_START, 1)[0]}
-            if m["role"] == "assistant"
-            else m
-            for m in build_input(state["messages"], settings.max_history_messages)
-        ]
-        prompt = with_sources(history, sources, settings.max_chunk_chars)
+        prompt = model_input(state["messages"], sources, settings)
         async for event in llm.stream(
             prompt, instructions=SYSTEM_PROMPT, max_output_tokens=settings.max_output_tokens
         ):

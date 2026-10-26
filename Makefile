@@ -164,8 +164,8 @@ ask: ## Answer one question from the knowledge base: make ask Q="What is AML.T00
 	@[ -n "$(Q)" ] || { echo 'Usage: make ask Q="your question"' >&2; exit 1; }
 	$(CLI) ask "$(Q)"
 
-eval: ## The paid eval run: golden set vs. the baseline (saved baseline answers reused; FRESH=1 asks again), writes report.md
-	$(CLI) eval $(if $(FRESH),--fresh-baseline)
+eval: ## The paid eval run: asks and judges only questions whose inputs changed (FULL=1 all, FRESH=1 the baseline too), writes report.md
+	$(CLI) eval $(if $(FULL),--full) $(if $(FRESH),--fresh-baseline)
 
 eval-retrieval: ## Retrieval scores and latency, no LLM calls: make eval-retrieval [SPLIT=dev|test|all]
 	$(CLI) eval --retrieval-only --split $(or $(SPLIT),dev)
@@ -213,7 +213,7 @@ web-check: ## Lint, test and build the web UI
 	npm test --prefix web -- --run
 	npm run --prefix web build
 
-evals: ## AI tests: thresholds on the saved `make eval` results (fails if stale) + injection (1 call)
+evals: migrate ## AI tests: thresholds on the saved `make eval` results (fails if any question is stale) + injection (1 call)
 	uv run pytest tests/ai
 
 e2e: migrate ## Run end-to-end tests (real Postgres, Qdrant and LLM)

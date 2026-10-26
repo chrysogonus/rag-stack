@@ -155,52 +155,6 @@ def test_judge_defaults_to_the_rag_provider_and_can_run_elsewhere():
     assert gateway._model == "codex/gpt-6-luna"
 
 
-def test_saved_results_are_stale_when_anything_they_depend_on_changes(tmp_path, monkeypatch):
-    import shutil
-
-    from rag_stack.config import Settings
-    from rag_stack.evals import harness
-
-    shutil.copy(DATASET / "golden.jsonl", tmp_path / "golden.jsonl")
-    monkeypatch.setattr(harness, "DATASET", tmp_path)
-    settings = Settings(data_dir=str(tmp_path / "data"), llm_model="gpt-6-astra")
-
-    assert harness.stale_reasons(settings) == ["no results with a fingerprint"]
-
-    (tmp_path / "results.json").write_text("[]")
-    (tmp_path / "fingerprint.json").write_text(json.dumps(harness.fingerprint(settings)))
-    assert harness.stale_reasons(settings) == []
-
-    assert harness.stale_reasons(settings.model_copy(update={"llm_model": "gpt-6-luna"})) == [
-        "settings changed"
-    ]
-    (tmp_path / "golden.jsonl").write_text("{}\n")
-    assert harness.stale_reasons(settings) == ["golden changed"]
-
-
-def test_tools_that_never_run_in_the_eval_leave_its_code_hash_alone(tmp_path, monkeypatch):
-    import shutil
-
-    from rag_stack.config import Settings
-    from rag_stack.evals import harness
-
-    for tool in harness.NOT_IN_EVAL:
-        assert (harness.ROOT / tool).exists(), tool  # not a stale name
-    shutil.copytree(harness.ROOT / "src", tmp_path / "src")
-    monkeypatch.setattr(harness, "ROOT", tmp_path)
-    settings = Settings(data_dir=str(tmp_path / "data"))
-    code = lambda: harness.fingerprint(settings)["code"]  # noqa: E731
-    before = code()
-
-    for tool in harness.NOT_IN_EVAL:
-        with (tmp_path / tool).open("a") as f:
-            f.write("\n# edited\n")
-    assert code() == before
-    with (tmp_path / "src/rag_stack/agent/prompts.py").open("a") as f:
-        f.write("\n# edited\n")
-    assert code() != before
-
-
 @pytest.mark.anyio
 async def test_a_follow_up_case_asks_its_previous_question_first_in_the_same_thread():
     from fakes.embeddings import FakeRetriever
@@ -213,7 +167,8 @@ async def test_a_follow_up_case_asks_its_previous_question_first_in_the_same_thr
 
     settings = Settings()
     rag = FakeChatModel("AML.T0051 is LLM Prompt Injection.", "Use guardrails [AML.M0020].")
-    graph = build_graph(rag, InMemorySaver(), settings, FakeRetriever(chunk("AML.M0020")))
+    kb = FakeRetriever(chunk("AML.M0020"))
+    graph = build_graph(rag, InMemorySaver(), settings, kb)
     baseline = FakeChatModel("It is prompt injection.", "Use guardrails.")
     verdict = '{"correctness": 5, "faithfulness": 5, "reason": "ok"}'
     judge = FakeChatModel(verdict, verdict)
@@ -227,7 +182,7 @@ async def test_a_follow_up_case_asks_its_previous_question_first_in_the_same_thr
         "key_facts": ["Guardrails"],
     }
 
-    result = await run_case(case, settings, graph, baseline, judge)
+    result = await run_case(case, settings, kb, graph, baseline, judge)
 
     asked = [m["content"] for m in rag.calls[1]["messages"] if m["role"] == "user"]
     assert asked[0] == "What is AML.T0051?"
@@ -243,9 +198,34 @@ async def test_a_follow_up_case_asks_its_previous_question_first_in_the_same_thr
     assert result["recall_at_10"] == 1.0
 
 
-@pytest.mark.anyio
-async def test_a_saved_baseline_answer_and_verdict_are_reused_while_their_inputs_match():
-    from fakes.embeddings import FakeRetriever
+VERDICT = '{"correctness": 4, "faithfulness": 5, "reason": "close"}'
+CASE = {
+    "id": "c",
+    "category": "id-exact",
+    "split": "dev",
+    "question": "What is A?",
+    "gold_ids": ["A"],
+    "key_facts": ["A is a"],
+}
+
+
+class ByQuestion:
+    """Retrieves the scripted chunks of each question."""
+
+    def __init__(self, found: dict[str, list]) -> None:
+        self.found = found
+
+    async def retrieve(self, query: str, context: str = ""):
+        from rag_stack.retrieval.retriever import Retrieved
+
+        return [Retrieved(c, 1.0, "hybrid") for c in self.found[query]]
+
+    async def catalog(self) -> list[str]:
+        return ["MITRE ATLAS"]
+
+
+async def ask(case, kb, saved=None, rag=("A is a [A].",), baseline=("A is a.",), verdicts=2):
+    """One run of `case`, and the models it used."""
     from fakes.llm import FakeChatModel
     from langgraph.checkpoint.memory import InMemorySaver
 
@@ -253,40 +233,126 @@ async def test_a_saved_baseline_answer_and_verdict_are_reused_while_their_inputs
     from rag_stack.config import Settings
     from rag_stack.evals.harness import run_case
 
-    settings = Settings()
-    graph = build_graph(FakeChatModel(), InMemorySaver(), settings, FakeRetriever(chunk("A")))
-    verdict = '{"correctness": 4, "faithfulness": 5, "reason": "close"}'
-    case = {
-        "id": "c",
-        "category": "id-exact",
-        "split": "dev",
-        "question": "What is A?",
-        "gold_ids": ["A"],
-        "key_facts": ["A is a"],
-    }
-    first = await run_case(
-        case, settings, graph, FakeChatModel("A is a."), FakeChatModel(verdict, verdict)
-    )
-    assert not first["baseline_reused"]
+    models = [FakeChatModel(*rag), FakeChatModel(*baseline), FakeChatModel(*[VERDICT] * verdicts)]
+    graph = build_graph(models[0], InMemorySaver(), Settings(), kb)
+    result = await run_case(case, Settings(), kb, graph, models[1], models[2], saved)
+    return result, [len(m.calls) for m in models]
 
-    # Same question, prompt and models: no baseline call, and only the RAG answer is judged.
-    baseline, judge = FakeChatModel(), FakeChatModel(verdict)
-    again = await run_case(case, settings, graph, baseline, judge, first)
-    assert baseline.calls == [] and len(judge.calls) == 1 and again["baseline_reused"]
-    assert again["baseline_answer"] == "A is a." and again["baseline_correctness"] == 0.75
 
-    # Corrected key facts: the saved answer is judged again.
-    judge = FakeChatModel(verdict, verdict)
-    fixed = await run_case(
-        {**case, "key_facts": ["A is b"]}, settings, graph, baseline, judge, first
-    )
-    assert baseline.calls == [] and len(judge.calls) == 2
+@pytest.mark.anyio
+async def test_saved_answers_and_verdicts_are_reused_while_their_inputs_match():
+    kb = ByQuestion({"What is A?": [chunk("A", "A is a.")]})
+    first, calls = await ask(CASE, kb)
+    assert calls == [1, 1, 2] and not first["answer_reused"] and not first["baseline_reused"]
 
-    # Another question: the baseline is asked.
-    judge = FakeChatModel(verdict, verdict)
-    await run_case({**case, "question": "And B?"}, settings, graph, baseline, judge, first)
-    assert len(baseline.calls) == 1
-    assert fixed["baseline_judge_key"] != first["baseline_judge_key"]
+    # Same inputs: no model is called, and the result is the same.
+    again, calls = await ask(CASE, kb, first)
+    assert calls == [0, 0, 0] and again["answer_reused"] and again["baseline_reused"]
+    assert again | {"answer_reused": False, "baseline_reused": False} == first
+
+    # Corrected key facts: both saved answers are judged again, neither is asked again.
+    fixed, calls = await ask({**CASE, "key_facts": ["A is b"]}, kb, first)
+    assert calls == [0, 0, 2] and fixed["judge_key"] != first["judge_key"]
+
+    # A new source version alone: nothing is asked, the footer names the new version.
+    kb.found["What is A?"] = [chunk("A", "A is a.", source_version="2026.10")]
+    bumped, calls = await ask(CASE, kb, first)
+    assert calls == [0, 0, 0] and bumped["answer_reused"]
+    assert "MITRE ATLAS 2026.10" in bumped["answer"] and "2026.09" not in bumped["answer"]
+
+    # A changed source: the RAG answer is asked and judged again, the baseline's stays.
+    kb.found["What is A?"] = [chunk("A", "A is a, revised.")]
+    changed, calls = await ask(CASE, kb, first)
+    assert calls == [1, 0, 1] and changed["answer_key"] != first["answer_key"]
+
+    # Another question: everything is asked again.
+    kb.found["And B?"] = kb.found["What is A?"]
+    _, calls = await ask({**CASE, "question": "And B?"}, kb, first)
+    assert calls == [1, 1, 2]
+
+
+@pytest.mark.anyio
+async def test_a_follow_up_is_stale_when_its_previous_turn_retrieves_something_else():
+    case = {**CASE, "category": "follow-up", "follow_up_of": "What is B?"}
+    kb = ByQuestion({"What is B?": [chunk("B")], "What is A?": [chunk("A")]})
+    first, calls = await ask(case, kb, rag=("B is b.", "A is a [A]."))
+    assert calls == [2, 2, 2]
+
+    _, calls = await ask(case, kb, first)
+    assert calls == [0, 0, 0]
+
+    kb.found["What is B?"] = [chunk("B", "B is c.")]
+    _, calls = await ask(case, kb, first, rag=("B is c.", "A is a [A]."))
+    assert calls[0] == 2
+
+
+@pytest.mark.anyio
+async def test_stale_questions_lists_what_make_eval_would_change(tmp_path, monkeypatch):
+    from rag_stack.config import Settings
+    from rag_stack.evals import harness
+
+    monkeypatch.setattr(harness, "DATASET", tmp_path)
+    cases = [CASE, {**CASE, "id": "d", "question": "What is D?", "gold_ids": ["D"]}]
+    monkeypatch.setattr(harness, "load_cases", lambda: cases)
+    kb = ByQuestion({"What is A?": [chunk("A")], "What is D?": [chunk("D")]})
+    stale = lambda: harness.stale_questions(Settings(), kb)  # noqa: E731
+
+    assert await stale() == ["c", "d"]  # no results yet
+    results = [(await ask(case, kb))[0] for case in cases]
+    (tmp_path / "results.json").write_text(json.dumps(results))
+    assert await stale() == []
+
+    kb.found["What is D?"] = [chunk("D", "D is new.")]  # a model input
+    assert await stale() == ["d"]
+    kb.found["What is D?"] = [chunk("D")]
+    cases[0] = {**CASE, "key_facts": ["A is b"]}  # a judge input
+    assert await stale() == ["c"]
+    cases[0] = {**CASE, "gold_ids": ["A", "Z"]}  # a score, no model needed
+    assert await stale() == ["c"]
+    del cases[0]  # a result without a question
+    assert await stale() == ["c"]
+    cases.insert(0, CASE)
+    kb.found["What is D?"] = [chunk("D", source_version="2026.10")]  # a rebuilt footer
+    assert await stale() == ["d"]
+
+
+def test_indexed_versions_reads_the_searched_collection():
+    from fakes.embeddings import FakeEmbedder, FakeSparseEmbedder
+    from qdrant_client import QdrantClient
+
+    from rag_stack.evals.harness import indexed_versions
+    from rag_stack.retrieval.index import ensure_collection, index_source
+
+    client = QdrantClient(":memory:")
+    ensure_collection(client, "kb", FakeEmbedder().dim)
+    for source_id, version in (("owasp-llm-2026", "2026@abc"), ("atlas", "2026.09")):
+        found = [
+            chunk(f"{source_id}-{i}", source_id=source_id, source_version=version) for i in range(3)
+        ]
+        index_source(client, "kb", source_id, "sha", found, FakeEmbedder(), FakeSparseEmbedder())
+
+    assert indexed_versions(client, "kb") == {"atlas": "2026.09", "owasp-llm-2026": "2026@abc"}
+
+
+def test_regressions_pair_questions_across_runs():
+    from rag_stack.evals.harness import regressions
+
+    def scores(correctness, abstention=1.0):
+        return {"correctness": correctness, "abstention_accuracy": abstention}
+
+    before = {"a": scores(1.0), "b": scores(1.0), "c": scores(0.75), "d": scores(None)}
+    after = [
+        {"id": "a", **scores(0.5)},
+        {"id": "b", **scores(0.75)},
+        {"id": "c", **scores(0.75, 0.0)},
+        {"id": "d", **scores(0.0)},
+        {"id": "new", **scores(0.0)},
+    ]
+
+    assert regressions(before, after) == [
+        "a: correctness 1.00 → 0.50",
+        "c: abstention correct → wrong",
+    ]
 
 
 @pytest.mark.anyio

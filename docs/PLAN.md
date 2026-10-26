@@ -78,12 +78,12 @@ risk → AI Act article → CVE).
 - **Follow-up questions** reuse the IDs of the previous question when they name none (no LLM
   query rewrite yet).
 
-## Next: regular ingestion and incremental evals (step 1 built)
+## Regular ingestion and incremental evals (built)
 
-The knowledge base is to grow and refresh on a schedule. Today any change makes the whole eval
-stale: `fingerprint()` in `evals/harness.py` hashes every `.py` under `src/rag_stack`, the
-processed corpus, the rubric, the golden set and the model settings, so a weekly CVE ingest or an
-API-only change fails `make evals` until a full paid run (about 550 calls, 26-40 min). Of those
+The knowledge base is to grow and refresh on a schedule. Before step 3 any change made the whole
+eval stale: one fingerprint hashed every `.py` under `src/rag_stack`, the processed corpus, the
+rubric, the golden set and the model settings, so a weekly CVE ingest or an API-only change
+failed `make evals` until a full paid run (about 550 calls, 26-40 min). Of those
 calls, half are the baseline answer and its judge call, which no change to our code or corpus
 affects. The goal is to track regressions on every change while paying only for what changed.
 
@@ -105,6 +105,17 @@ and judged again.
    `make eval` re-runs only stale questions (`FULL=1` re-runs all); `make evals` fails only if a
    question is stale. Parser, prompt and graph-expansion changes need no rule of their own: they
    change the hashed inputs.
+   **Built:** each result keeps `answer_key` (model settings, `SYSTEM_PROMPT`, the source names a
+   refusal lists, and each turn's input as `model_input` in `agent/graph.py` builds it, with a
+   placeholder for an earlier answer) and `judge_key`. `make eval` always retrieves and recomputes
+   every score, and asks and judges only where a key changed. `make evals` runs the same eval with
+   models that may not be called (`stale_questions`): a question is stale if a model would be
+   called or a recomputed result differs (a changed gold ID, scoring code, a ranking change below
+   the top 8, a footer rebuilt for a new source version) or a gold ID is missing from the index,
+   so it needs the index and takes about 5 minutes of retrieval, no calls. The
+   catalog of source names is hashed whole: adding a source makes every answer stale. Not
+   hashed: request parameters set inside the provider adapters (`src/rag_stack/llm/`); after
+   changing those, run `make eval FULL=1`.
 2. **Cache baseline answers and their judge scores** under the same two fingerprints:
    `BASELINE_PROMPT`, the question and its follow-up history, and the baseline model for the
    answer; the judge input, rubric and judge model for the score. A full run then costs about half.
@@ -115,13 +126,17 @@ and judged again.
    per-question scores and the summary for every run. A regression is a paired, per-question
    change: correctness down 2 points or more, or a correct refusal that turns into an answer.
    Means alone hide it: the test split's correctness interval is 0.80-0.90 (95%, n=76).
+   **Built:** `make eval` searches the generation the alias names at its start (a promotion
+   mid-run doesn't switch it), records it and the source versions read from it, appends one line
+   per run and lists the regressions since the previous
+   line in `report.md` (an abstention turning wrong either way counts). They are reported, not
+   failed on: thresholds decide pass or fail.
 4. **Key-fact review flag:** when a question's gold chunk text changes (a CVE gets a fix, ATLAS
    revises a technique), the question is flagged for key-fact review, so an outdated key fact
    doesn't show up as a regression.
 
 No random subsets: each run would score different questions, so runs aren't comparable and a
-category can be missed. Until (1) exists, a fixed, stratified smoke set of about 30 dev questions,
-RAG side only (about 60 calls, 5 min), is the interim check; the test split stays for full runs.
+category can be missed. Item 4, the key-fact review flag, is not built.
 
 | Trigger | Checks | Cost |
 |---|---|---|
@@ -165,8 +180,8 @@ sources run on that one schedule: unchanged ones are skipped at ingest.
 
 The first refresh adopts the collection indexed before generations (copied, counted, then
 replaced by the alias). `make index` still indexes in place into the served generation, without
-checks. Not yet built: the stale-question step (step 3), so the gateway isn't needed yet, and
-`make evals` reports "corpus changed" after each promotion until then. Snapshot retention is
+checks. A refresh runs no LLM eval: after a promotion `make evals` lists the questions whose
+retrieved passages changed, and `make eval` asks only those. Snapshot retention is
 deferred: `data/raw` and `data/processed` grow about 0.5 GB a year with weekly CVE snapshots.
 After a blocked run `LATEST` names the blocked snapshot, so a manual `make index` would index it.
 
@@ -178,7 +193,7 @@ its questions then fall under the per-question fingerprints like the rest.
 1. Scheduled ingestion with the diff gates and the free retrieval eval: regression tracking for
    ingestion at no LLM cost. Built.
 2. Baseline caching: halves a full run. Built.
-3. Per-question fingerprints and the run history.
+3. Per-question fingerprints and the run history. Built.
 
 ## Not built (out of scope)
 

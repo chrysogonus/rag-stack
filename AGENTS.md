@@ -54,7 +54,7 @@ tests/
   unit/        # tight: no network, LLM/embeddings faked, Qdrant in-memory
   ai/          # evals against a real LLM, marked @pytest.mark.ai
   e2e/         # question -> chatbot answer, real Qdrant
-evals/datasets/<name>/  # golden.jsonl, thresholds.yaml, report.md, corpus/manifest.json
+evals/datasets/<name>/  # golden.jsonl, thresholds.yaml, report.md, results.json, history.jsonl, corpus/manifest.json
 evals/rubrics/          # versioned LLM-judge rubrics
 ```
 

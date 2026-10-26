@@ -282,22 +282,23 @@ def knowledge_base(
     )
 
 
-def open_knowledge_base(settings: Settings) -> KnowledgeBase:
+def open_knowledge_base(settings: Settings, pinned: bool = False) -> KnowledgeBase:
     """Connect to Qdrant and Postgres and load the local models (slow: run it off the loop).
-    Searches go through the alias; the edges are those of the generation it names now."""
+    Searches go through the alias, or with `pinned` to the generation it names now, as an eval
+    run does; the edges are those of the generation it names now."""
     from rag_stack.db.edges import load_edges
     from rag_stack.llm.factory import create_embedder, create_reranker, create_sparse_embedder
     from rag_stack.retrieval.generations import generation_of, serving
 
     client = QdrantClient(url=settings.qdrant_url)
     alias = settings.qdrant_collection
-    generation = generation_of(alias, serving(client, alias) or alias)
+    served = serving(client, alias) or alias
     return knowledge_base(
         settings,
         client,
-        alias,
+        served if pinned else alias,
         create_embedder(settings.embedding_model),
         create_sparse_embedder(settings.sparse_model),
         create_reranker(settings.reranker_model),
-        EdgeGraph(load_edges(settings.database_url, generation)),
+        EdgeGraph(load_edges(settings.database_url, generation_of(alias, served))),
     )

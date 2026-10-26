@@ -84,6 +84,11 @@ def main(argv: list[str] | None = None) -> int:
         help="golden-set split for --retrieval-only: tune on dev, confirm on test",
     )
     run_eval.add_argument(
+        "--full",
+        action="store_true",
+        help="answer and judge every question again instead of only those whose inputs changed",
+    )
+    run_eval.add_argument(
         "--fresh-baseline",
         action="store_true",
         help="ask the baseline again instead of reusing its saved answers",
@@ -142,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.retrieval_only:
         return asyncio.run(harness.retrieval_only(settings, split=args.split))
-    return asyncio.run(harness.main(settings, args.fresh_baseline))
+    return asyncio.run(harness.main(settings, args.full, args.fresh_baseline))
 
 
 if __name__ == "__main__":

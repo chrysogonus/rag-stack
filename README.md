@@ -36,7 +36,7 @@ make schedule                # run `make refresh` weekly (systemd user timer); `
 make ask Q="Which ATLAS mitigations address AML.T0051?"
 make up                      # API (:8000) and chat UI: open http://localhost:5173
 make tracing                 # optional: self-hosted Langfuse at http://localhost:3000 (traces, ratings)
-make eval                    # golden set, RAG vs. no-retrieval baseline -> evals/datasets/ai_security/report.md
+make eval                    # golden set, RAG vs. baseline, only changed questions -> evals/datasets/ai_security/report.md
 make eval-retrieval          # retrieval only, free: tune on the dev split, confirm with SPLIT=test
 make eval-draft SOURCE=atlas CATEGORY=freshness N=5   # draft test questions for review -> drafts.jsonl
 make eval-labels             # 40 answers to label yourself; then `make eval-agreement` scores the judge
@@ -57,7 +57,7 @@ rate limits apply per user rather than per proxy.
 | Layer | Command | Needs |
 |-------|---------|-------|
 | Unit | `make test` | nothing (fixtures in `tests/fixtures/`, in-memory Qdrant, fake models) |
-| AI (evals) | `make eval` (paid, ~280 calls with saved baseline answers, ~550 with `FRESH=1`), then `make evals` | LLM access, an indexed knowledge base; `make evals` checks the saved results (1 call) and fails if they are stale |
+| AI (evals) | `make eval` (paid: ~2 calls per question whose inputs changed, ~550 with `FULL=1`), then `make evals` | LLM access, an indexed knowledge base; `make evals` checks the saved results (~5 min of retrieval, 1 call) and fails if any question is stale |
 | End-to-end | `make e2e` | `make services`, LLM access, embedding models; the rating test also `make tracing` (skipped without `LANGFUSE_*`) |
 | Web | `make web-check` | nothing |
 
