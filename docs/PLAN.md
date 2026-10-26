@@ -31,7 +31,8 @@ risk → AI Act article → CVE).
 | `retrieval/retriever.py` | Exact IDs → dense + BM25 → RRF (k=60) → cross-encoder rerank of the top 50 → 1-hop graph expansion → same-language legal text; keeps the top 8 for the answer |
 | `agent/graph.py`, `agent/prompts.py`, `agent/answer.py` | LangGraph `retrieve → generate`; delimited sources and injection rules; deterministic footer with attribution, versions and the Art. 50 AI label; abstention |
 | `evals/` (`src/rag_stack/evals/`) | Metrics, LLM judge with a versioned rubric, RAG vs. no-retrieval baseline, report |
-| `cli.py` | `ingest`, `index`, `ask`, `eval`, `eval-draft` (wrapped by `make`) |
+| `cli.py` | `ingest`, `index`, `refresh`, `rollback`, `ask`, `eval`, `eval-draft` (wrapped by `make`) |
+| `refresh.py`, `retrieval/generations.py` | Scheduled refresh: diff against the served index, checks, a candidate generation behind the `kb_chunks` alias, retrieval scores, promote or block, rollback |
 | `observability.py` | Langfuse tracing (`make tracing`, self-hosted): one trace per chat turn with `retrieve` (and its id lookup, hybrid search, graph expansion, rerank and language stages) and `generate` (model, tokens); a reader's rating (`POST /api/threads/{id}/feedback`) is a `helpful` score on it. Does nothing without `LANGFUSE_*` |
 
 ## Deviations from the brief's defaults
@@ -76,6 +77,105 @@ risk → AI Act article → CVE).
   the block structure with an injected chunk; an AI test checks the real LLM doesn't obey it.
 - **Follow-up questions** reuse the IDs of the previous question when they name none (no LLM
   query rewrite yet).
+
+## Next: regular ingestion and incremental evals (step 1 built)
+
+The knowledge base is to grow and refresh on a schedule. Today any change makes the whole eval
+stale: `fingerprint()` in `evals/harness.py` hashes every `.py` under `src/rag_stack`, the
+processed corpus, the rubric, the golden set and the model settings, so a weekly CVE ingest or an
+API-only change fails `make evals` until a full paid run (about 550 calls, 26-40 min). Of those
+calls, half are the baseline answer and its judge call, which no change to our code or corpus
+affects. The goal is to track regressions on every change while paying only for what changed.
+
+### Incremental evals
+
+Retrieval is deterministic and free, so it always runs on all questions. A question's answer and
+score stay valid while its inputs are unchanged; only questions whose inputs changed are answered
+and judged again.
+
+1. **Per-question fingerprints** instead of one for the run, as hashes of the exact model inputs
+   rather than a list of things that might matter. Two per side:
+   - *generation*: the serialized messages sent to the model (system prompt, the sources block as
+     `build_sources_block` renders it, with URLs, titles and `relation`, in order), plus the model
+     settings. For a follow-up, the previous turn's inputs too: its generated answer is in the
+     history, so a follow-up is stale whenever its previous turn is.
+   - *judging*: the judge's input (question, previous question, key facts, answer, sources), the
+     rubric and the judge model. Corrected key facts re-judge without re-answering.
+
+   `make eval` re-runs only stale questions (`FULL=1` re-runs all); `make evals` fails only if a
+   question is stale. Parser, prompt and graph-expansion changes need no rule of their own: they
+   change the hashed inputs.
+2. **Cache baseline answers and their judge scores** under the same two fingerprints:
+   `BASELINE_PROMPT`, the question and its follow-up history, and the baseline model for the
+   answer; the judge input, rubric and judge model for the score. A full run then costs about half.
+3. **Run history** (`evals/datasets/ai_security/history.jsonl`): date, commit, source versions,
+   per-question scores and the summary for every run. A regression is a paired, per-question
+   change: correctness down 2 points or more, or a correct refusal that turns into an answer.
+   Means alone hide it: the test split's correctness interval is 0.80-0.90 (95%, n=76).
+4. **Key-fact review flag:** when a question's gold chunk text changes (a CVE gets a fix, ATLAS
+   revises a technique), the question is flagged for key-fact review, so an outdated key fact
+   doesn't show up as a regression.
+
+No random subsets: each run would score different questions, so runs aren't comparable and a
+category can be missed. Until (1) exists, a fixed, stratified smoke set of about 30 dev questions,
+RAG side only (about 60 calls, 5 min), is the interim check; the test split stays for full runs.
+
+| Trigger | Checks | Cost |
+|---|---|---|
+| Every commit | Unit tests and CI, as now | free |
+| Every ingest, every retrieval change | `make eval-retrieval` on all questions, gold-ID presence (`missing_gold_ids`), ingest gates below | free, minutes |
+| Prompt, agent or LLM change; an ingest that changed retrieved passages | Stale questions only, RAG side | about 2 calls per question |
+| Milestone, model or rubric change, monthly | Full run of all 135 questions with the baseline (today's `make eval`) | about 270 calls with the cached baseline |
+
+### Scheduled ingestion
+
+| Source | Cadence | Notes |
+|---|---|---|
+| `ai-vulns` | daily to weekly | Set `NVD_API_KEY`: without it NVD is paced at 6.5 s per request |
+| `atlas` | weekly | Follows `ATLAS-latest.yaml`; releases come monthly to quarterly |
+| `eu-ai-act` | monthly | The SPARQL query finds the latest consolidated version |
+| `ki-mig` | monthly | Re-ingest once the "dokumentarisch noch nicht bearbeitet" note is gone (OPEN_QUESTIONS) |
+| `owasp-llm-2026`, `owasp-agentic-2026` | manual | Pinned on purpose: bump the commit or PDF deliberately; check quarterly for a new release |
+
+**Built (step 1):** `make refresh` (`src/rag_stack/refresh.py`), run weekly by a systemd user
+timer (`make schedule`; Sunday 03:00, or at the next start if the machine or WSL was off). All
+sources run on that one schedule: unchanged ones are skipped at ingest.
+
+1. `make ingest SOURCE=all`; a source whose fetch or parse fails keeps its previous snapshot.
+2. Diff native IDs per source against what is served (payloads in Qdrant): added, removed, changed.
+3. Checks before building, any of which blocks: a source with no snapshot, a drop of more than
+   10% in chunks or IDs (`FORCE=1` allows it), a gold ID of the golden set missing.
+4. Build a candidate *generation*: a Qdrant collection `kb_chunks_<generation>` and its edges in
+   `kb_edges` under the same `generation` (migration 0002). Unchanged sources are copied from the
+   served collection with their vectors; only changed ones are embedded. Chunks and edges move
+   together because graph expansion joins them.
+5. Score retrieval (recall@10, MRR, all questions, no LLM) on the candidate and the served
+   generation. Blocks below `thresholds.yaml` or more than 0.02 below the served generation: the
+   thresholds sit far below today's scores, so only the relative check catches a regression.
+6. Promote: the alias `kb_chunks` moves to the candidate and `kb_chunks_previous` to what was
+   served, in one atomic change; the alias is the only pointer (the served edge generation is
+   read from its target). `make refresh` then restarts the API if it runs, since `EdgeGraph` loads
+   the edges at startup. `make rollback` swaps the two (again to undo). A blocked candidate is kept
+   until the next run; older generations are deleted.
+7. One line per run in `data/refresh.log` (PROMOTED, BLOCKED, NO CHANGE or FAILED with the
+   changes and scores); `make status` shows the last one and the next run.
+
+The first refresh adopts the collection indexed before generations (copied, counted, then
+replaced by the alias). `make index` still indexes in place into the served generation, without
+checks. Not yet built: the stale-question step (step 3), so the gateway isn't needed yet, and
+`make evals` reports "corpus changed" after each promotion until then. Snapshot retention is
+deferred: `data/raw` and `data/processed` grow about 0.5 GB a year with weekly CVE snapshots.
+After a blocked run `LATEST` names the blocked snapshot, so a manual `make index` would index it.
+
+A new source needs a parser, an allowlist entry and dev and test questions (`make eval-draft`);
+its questions then fall under the per-question fingerprints like the rest.
+
+### Order
+
+1. Scheduled ingestion with the diff gates and the free retrieval eval: regression tracking for
+   ingestion at no LLM cost. Built.
+2. Baseline caching: halves a full run.
+3. Per-question fingerprints and the run history.
 
 ## Not built (out of scope)
 

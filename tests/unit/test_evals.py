@@ -277,6 +277,12 @@ async def test_retrieval_only_scores_the_golden_set_without_an_llm(capsys):
     assert await retrieval_only(Settings(), kb, split="test") == 0
     assert kb.asked[len(dev) :] and dev.isdisjoint(kb.asked[len(dev) :])
 
+    # `all` asks both splits, as a refresh scores a candidate index.
+    both = set(kb.asked)
+    kb.asked.clear()
+    assert await retrieval_only(Settings(), kb, split="all") == 0
+    assert set(kb.asked) == both
+
 
 @pytest.mark.anyio
 async def test_retrieval_only_fails_on_a_split_without_questions(capsys, monkeypatch):

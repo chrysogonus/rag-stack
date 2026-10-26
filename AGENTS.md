@@ -41,12 +41,13 @@ src/rag_stack/
   api/         # FastAPI app: chat (SSE), threads, ratings, rate limits
   db/          # Postgres: checkpointer, edge table, Alembic migrations
   evals/       # golden-set harness: metrics, LLM judge, RAG vs. baseline report
-  cli.py       # ingest | index | ask | eval | eval-draft (wrapped by make)
+  cli.py       # ingest | index | refresh | rollback | ask | eval | eval-draft (wrapped by make)
+  refresh.py   # scheduled refresh: diff, checks, candidate index generation, promote or block
   observability.py  # Langfuse tracing and ratings; the only module that imports its SDK
 config/sources.yaml     # the source allowlist and pinned upstream refs
 data/                   # raw snapshots, processed chunks, HTTP cache (not committed)
 web/           # chat UI
-deploy/        # Helm chart (planned)
+deploy/        # systemd timer for `make refresh` (`make schedule`); Helm chart (planned)
 tests/
   fakes/       # fake LLM / embedder / reranker / retriever shared by unit tests
   fixtures/    # small verbatim excerpts of each source (see NOTICE.md)

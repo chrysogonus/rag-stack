@@ -31,6 +31,8 @@ make install                 # Python and web dependencies; creates .env (pick t
 make services                # Postgres and Qdrant
 make ingest SOURCE=all       # fetch, snapshot and chunk the sources (unchanged ones are skipped)
 make index                   # create the edge table, embed chunks into Qdrant (models download once)
+make refresh                 # later updates: ingest, check, build and score a new index, serve it if it passes
+make schedule                # run `make refresh` weekly (systemd user timer); `make rollback` undoes a refresh
 make ask Q="Which ATLAS mitigations address AML.T0051?"
 make up                      # API (:8000) and chat UI: open http://localhost:5173
 make tracing                 # optional: self-hosted Langfuse at http://localhost:3000 (traces, ratings)

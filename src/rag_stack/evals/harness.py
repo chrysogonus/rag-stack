@@ -394,19 +394,13 @@ def stale_reasons(settings: Settings) -> list[str]:
     return [f"{key} changed" for key in new if old.get(key) != new[key]]
 
 
-async def retrieval_only(
-    settings: Settings, kb: Retriever | None = None, split: str = "dev"
-) -> int:
-    """Recall@10, MRR and retrieval time on one split of the golden set, with no LLM calls and
-    no files written: a quick loop for tuning retrieval settings on dev, confirmed on test."""
-    if not any(case["split"] == split for case in load_cases()):
-        print(f"split {split}: no questions")
-        return 1
-    kb = kb or await asyncio.to_thread(open_knowledge_base, settings)
+async def retrieval_scores(
+    kb: Retriever, split: str
+) -> tuple[dict[str, dict[str, float | None]], list[float]]:
+    """Mean recall@10 and MRR per category and `all`, and each retrieval's seconds, sorted."""
     rows = []
-    print(f"split: {split}")
     for case in load_cases():
-        if not case["gold_ids"] or case["split"] != split:
+        if not case["gold_ids"] or split not in ("all", case["split"]):
             continue
         start = time.perf_counter()
         found = await kb.retrieve(case["question"], context=case.get("follow_up_of", ""))
@@ -421,12 +415,25 @@ async def retrieval_only(
         )
     summary = {}
     for name in [*CATEGORIES, "all"]:
-        group = [r for r in rows if name in ("all", r["category"])]
-        if group:
+        if group := [r for r in rows if name in ("all", r["category"])]:
             summary[name] = {m: mean([r[m] for r in group]) for m in ("recall_at_10", "mrr")}
-            recall, rank = summary[name]["recall_at_10"], summary[name]["mrr"]
-            print(f"{name:14} recall@10 {recall:.3f}  mrr {rank:.3f}")
-    seconds = sorted(r["seconds"] for r in rows)
+    return summary, sorted(r["seconds"] for r in rows)
+
+
+async def retrieval_only(
+    settings: Settings, kb: Retriever | None = None, split: str = "dev"
+) -> int:
+    """Recall@10, MRR and retrieval time on one split of the golden set (or `all`), with no LLM
+    calls and no files written: a quick loop for tuning retrieval settings on dev, confirmed on
+    test."""
+    if not any(split in ("all", case["split"]) for case in load_cases()):
+        print(f"split {split}: no questions")
+        return 1
+    kb = kb or await asyncio.to_thread(open_knowledge_base, settings)
+    print(f"split: {split}")
+    summary, seconds = await retrieval_scores(kb, split)
+    for name, scores in summary.items():
+        print(f"{name:14} recall@10 {scores['recall_at_10']:.3f}  mrr {scores['mrr']:.3f}")
     p50, p95 = seconds[len(seconds) // 2], seconds[int(len(seconds) * 0.95)]
     print(f"retrieval p50 {p50:.2f} s, p95 {p95:.2f} s")
     thresholds = yaml.safe_load((DATASET / "thresholds.yaml").read_text())

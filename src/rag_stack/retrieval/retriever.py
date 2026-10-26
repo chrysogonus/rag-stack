@@ -260,19 +260,44 @@ def unique(chunks: list[Chunk]) -> list[Chunk]:
     return list({c.point_id: c for c in chunks}.values())
 
 
-def open_knowledge_base(settings: Settings) -> KnowledgeBase:
-    """Connect to Qdrant and Postgres and load the local models (slow: run it off the loop)."""
-    from rag_stack.db.edges import load_edges
-    from rag_stack.llm.factory import create_embedder, create_reranker, create_sparse_embedder
-
+def knowledge_base(
+    settings: Settings,
+    client: QdrantClient,
+    collection: str,
+    embedder: Embedder,
+    sparse: SparseEmbedder,
+    reranker: Reranker,
+    graph: EdgeGraph,
+) -> KnowledgeBase:
     return KnowledgeBase(
-        QdrantClient(url=settings.qdrant_url),
-        settings.qdrant_collection,
-        create_embedder(settings.embedding_model),
-        create_sparse_embedder(settings.sparse_model),
-        create_reranker(settings.reranker_model),
-        EdgeGraph(load_edges(settings.database_url)),
+        client,
+        collection,
+        embedder,
+        sparse,
+        reranker,
+        graph,
         candidates=settings.retrieval_candidates,
         min_score=settings.rerank_min_score,
         rerank_chars=settings.rerank_max_chars,
+    )
+
+
+def open_knowledge_base(settings: Settings) -> KnowledgeBase:
+    """Connect to Qdrant and Postgres and load the local models (slow: run it off the loop).
+    Searches go through the alias; the edges are those of the generation it names now."""
+    from rag_stack.db.edges import load_edges
+    from rag_stack.llm.factory import create_embedder, create_reranker, create_sparse_embedder
+    from rag_stack.retrieval.generations import generation_of, serving
+
+    client = QdrantClient(url=settings.qdrant_url)
+    alias = settings.qdrant_collection
+    generation = generation_of(alias, serving(client, alias) or alias)
+    return knowledge_base(
+        settings,
+        client,
+        alias,
+        create_embedder(settings.embedding_model),
+        create_sparse_embedder(settings.sparse_model),
+        create_reranker(settings.reranker_model),
+        EdgeGraph(load_edges(settings.database_url, generation)),
     )

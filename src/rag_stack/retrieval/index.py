@@ -82,22 +82,33 @@ def index_source(
 
 
 def index_all(settings: Settings, source: str = "all") -> Iterator[str]:
+    """Index in place into the served generation, without the checks of `make refresh`."""
     from rag_stack.db.edges import replace_edges
     from rag_stack.ingestion.pipeline import MODULES, load_processed
     from rag_stack.llm.factory import create_embedder, create_sparse_embedder
+    from rag_stack.retrieval.generations import (
+        collection_name,
+        generation_of,
+        new_generation,
+        promote,
+        serving,
+    )
 
     embedder = create_embedder(settings.embedding_model)
     sparse = create_sparse_embedder(settings.sparse_model)
     client = QdrantClient(url=settings.qdrant_url)
-    ensure_collection(client, settings.qdrant_collection, embedder.dim)
+    alias = settings.qdrant_collection
+    if (collection := serving(client, alias)) is None:
+        collection = collection_name(alias, new_generation())
+        ensure_collection(client, collection, embedder.dim)
+        promote(client, alias, collection)
+    generation = generation_of(alias, collection)
     for source_id in MODULES if source == "all" else [source]:
         processed = load_processed(settings, source_id)
         if processed is None:
             yield f"{source_id}: nothing to index, run `make ingest SOURCE={source_id}` first"
             continue
         sha, chunks, edges = processed
-        yield index_source(
-            client, settings.qdrant_collection, source_id, sha, chunks, embedder, sparse
-        )
-        replace_edges(settings.database_url, source_id, edges)
+        yield index_source(client, collection, source_id, sha, chunks, embedder, sparse)
+        replace_edges(settings.database_url, generation, source_id, edges)
         yield f"{source_id}: {len(edges)} edges"
