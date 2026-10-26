@@ -79,7 +79,7 @@ def citations(text: str, sources: list[Chunk]) -> list[str]:
     return list(dict.fromkeys(found))
 
 
-async def judge(llm: ChatModel, case: dict, answer: str, sources: list[dict] | None) -> dict:
+def judge_input(case: dict, answer: str, sources: list[dict] | None) -> str:
     payload = {
         **({"previous_question": case["follow_up_of"]} if "follow_up_of" in case else {}),
         "question": case["question"],
@@ -92,10 +92,12 @@ async def judge(llm: ChatModel, case: dict, answer: str, sources: list[dict] | N
         if sources is not None
         else None,
     }
+    return json.dumps(payload, ensure_ascii=False)
+
+
+async def judge(llm: ChatModel, case: dict, answer: str, sources: list[dict] | None) -> dict:
     reply = await complete(
-        llm,
-        [{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
-        RUBRIC.read_text(),
+        llm, [{"role": "user", "content": judge_input(case, answer, sources)}], RUBRIC.read_text()
     )
     # Take the first {...} block: some models wrap the JSON in prose or a code fence.
     found = re.search(r"\{.*\}", reply, re.DOTALL)
@@ -139,6 +141,35 @@ def judge_model(settings: Settings) -> ChatModel:
     )
 
 
+def digest(*parts: object) -> str:
+    return hashlib.sha256(json.dumps(parts, ensure_ascii=False).encode()).hexdigest()
+
+
+def baseline_key(settings: Settings, case: dict) -> str:
+    """What a baseline answer depends on: a saved answer with the same key is reused, since no
+    change to our code or corpus changes it."""
+    if settings.eval_baseline_provider:
+        model = [
+            settings.eval_baseline_provider,
+            settings.eval_baseline_base_url,
+            settings.eval_baseline_model or settings.llm_model,
+        ]
+    else:
+        model = [settings.llm_provider, settings.llm_base_url, settings.llm_model]
+    return digest(model, BASELINE_PROMPT, case.get("follow_up_of"), case["question"])
+
+
+def baseline_judge_key(settings: Settings, case: dict, answer: str) -> str:
+    """What the judge's verdict on a baseline answer depends on."""
+    own = bool(settings.eval_judge_provider)
+    judge_llm = [
+        settings.eval_judge_provider if own else settings.llm_provider,
+        settings.eval_judge_base_url if own else settings.llm_base_url,
+        settings.eval_judge_model,
+    ]
+    return digest(judge_llm, RUBRIC.read_text(), judge_input(case, answer, None))
+
+
 def baseline_name(settings: Settings) -> str:
     if not settings.eval_baseline_provider:
         return f"the same model (`{settings.llm_model}`) and questions without retrieval"
@@ -147,19 +178,23 @@ def baseline_name(settings: Settings) -> str:
 
 
 async def run_case(
-    case: dict, settings: Settings, graph, baseline_llm: ChatModel, judge_llm: ChatModel
+    case: dict,
+    settings: Settings,
+    graph,
+    baseline_llm: ChatModel,
+    judge_llm: ChatModel,
+    saved: dict | None = None,
 ) -> dict:
+    """One golden-set case. `saved` is its result from an earlier run: its baseline answer and
+    verdict are reused while the inputs they depend on are unchanged."""
     expect_abstain = case["category"] == "abstention"
     gold = case["gold_ids"]
+    answer_key = baseline_key(settings, case)
+    reuse = saved if saved and saved.get("baseline_key") == answer_key else None
     # A follow-up case asks its previous question first, in the same thread for both bots.
     config = {"configurable": {"thread_id": str(uuid.uuid4()), "tags": ["eval"]}}
-    history: list[Message] = []
     if previous := case.get("follow_up_of"):
         await graph.ainvoke({"messages": [{"role": "user", "content": previous}]}, config)
-        history = [{"role": "user", "content": previous}]
-        history.append(
-            {"role": "assistant", "content": await complete(baseline_llm, history, BASELINE_PROMPT)}
-        )
     state = await graph.ainvoke(
         {"messages": [{"role": "user", "content": case["question"]}]}, config
     )
@@ -167,13 +202,34 @@ async def run_case(
     ranked = [s["native_id"] for s in state["sources"]]
     chunks = [Chunk.model_validate(s) for s in state["sources"][: settings.retrieval_top_k]]
     body = full.split(FOOTER_START, 1)[0]
-    baseline = await complete(
-        baseline_llm, [*history, {"role": "user", "content": case["question"]}], BASELINE_PROMPT
-    )
+    if reuse:
+        baseline = reuse["baseline_answer"]
+    else:
+        history: list[Message] = []
+        if previous:
+            history = [{"role": "user", "content": previous}]
+            history.append(
+                {
+                    "role": "assistant",
+                    "content": await complete(baseline_llm, history, BASELINE_PROMPT),
+                }
+            )
+        baseline = await complete(
+            baseline_llm, [*history, {"role": "user", "content": case["question"]}], BASELINE_PROMPT
+        )
+    score_key = baseline_judge_key(settings, case, baseline)
+
+    async def baseline_verdict() -> dict:
+        if reuse and reuse.get("baseline_judge_key") == score_key:
+            return {
+                "correctness": reuse["baseline_correctness"],
+                "reason": reuse["baseline_judge_reason"],
+            }
+        return await judge(judge_llm, case, baseline, None)
 
     rag_verdict, base_verdict = await asyncio.gather(
         judge(judge_llm, case, body, state["sources"][: settings.retrieval_top_k]),
-        judge(judge_llm, case, baseline, None),
+        baseline_verdict(),
     )
     rag_abstained, base_abstained = is_abstention(body), baseline.strip().startswith(ABSTAIN)
     return {
@@ -200,11 +256,17 @@ async def run_case(
         "baseline_judge_reason": base_verdict["reason"],
         "answer": full,
         "baseline_answer": baseline,
+        "baseline_reused": reuse is not None,
+        "baseline_key": answer_key,
+        "baseline_judge_key": score_key,
     }
 
 
 async def run(
-    settings: Settings, kb: KnowledgeBase | None = None, concurrency: int = 4
+    settings: Settings,
+    kb: KnowledgeBase | None = None,
+    concurrency: int = 4,
+    saved: dict[str, dict] | None = None,
 ) -> list[dict]:
     kb = kb or await asyncio.to_thread(open_knowledge_base, settings)
     cases = load_cases()
@@ -225,7 +287,9 @@ async def run(
 
     async def one(case: dict) -> dict:
         async with gate:
-            return await run_case(case, settings, graph, baseline_llm, judge_llm)
+            return await run_case(
+                case, settings, graph, baseline_llm, judge_llm, (saved or {}).get(case["id"])
+            )
 
     return await asyncio.gather(*(one(case) for case in cases))
 
@@ -313,9 +377,12 @@ def report(results: list[dict], settings: Settings) -> str:
         f"Chat model `{settings.llm_model}` ({settings.llm_provider}); judge "
         f"`{settings.eval_judge_model}` ({settings.eval_judge_provider or settings.llm_provider}) "
         f"with rubric `{RUBRIC.relative_to(ROOT)}`. Baseline: "
-        f"{baseline_name(settings)}. Scores are means in [0, 1] with 95% bootstrap intervals for "
-        "RAG; judge scores map 1-5 to 0-1. Retrieval metrics and citation precision skip "
-        "abstention questions. Settings are tuned on `dev`; `test` is the holdout.\n\n"
+        f"{baseline_name(settings)}; {sum(r.get('baseline_reused', False) for r in results)} "
+        f"of {len(results)} baseline answers reused from earlier runs (same question, prompt and "
+        "model; `make eval FRESH=1` asks again). Scores are means in [0, 1] with 95% bootstrap "
+        "intervals for RAG; judge scores map 1-5 to 0-1. Retrieval metrics and citation "
+        "precision skip abstention questions. Settings are tuned on `dev`; `test` is the "
+        "holdout.\n\n"
         f"Thresholds (`thresholds.yaml`, on the `{row}` row): {status}.\n\n"
         + header
         + "\n".join(rows)
@@ -444,8 +511,14 @@ async def retrieval_only(
     return 1 if failed else 0
 
 
-async def main(settings: Settings) -> int:
-    results = await run(settings)
+async def main(settings: Settings, fresh_baseline: bool = False) -> int:
+    previous = DATASET / "results.json"
+    saved = (
+        {}
+        if fresh_baseline or not previous.exists()
+        else {r["id"]: r for r in json.loads(previous.read_text())}
+    )
+    results = await run(settings, saved=saved)
     (DATASET / "fingerprint.json").write_text(json.dumps(fingerprint(settings), indent=1) + "\n")
     (DATASET / "corpus").mkdir(exist_ok=True)
     (DATASET / "corpus/manifest.json").write_text(

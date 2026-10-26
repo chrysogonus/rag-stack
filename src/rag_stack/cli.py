@@ -83,6 +83,11 @@ def main(argv: list[str] | None = None) -> int:
         default="dev",
         help="golden-set split for --retrieval-only: tune on dev, confirm on test",
     )
+    run_eval.add_argument(
+        "--fresh-baseline",
+        action="store_true",
+        help="ask the baseline again instead of reusing its saved answers",
+    )
     draft_cmd = commands.add_parser(
         "eval-draft", help="draft test questions from unasked units into drafts.jsonl for review"
     )
@@ -137,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.retrieval_only:
         return asyncio.run(harness.retrieval_only(settings, split=args.split))
-    return asyncio.run(harness.main(settings))
+    return asyncio.run(harness.main(settings, args.fresh_baseline))
 
 
 if __name__ == "__main__":

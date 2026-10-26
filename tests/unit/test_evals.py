@@ -244,6 +244,52 @@ async def test_a_follow_up_case_asks_its_previous_question_first_in_the_same_thr
 
 
 @pytest.mark.anyio
+async def test_a_saved_baseline_answer_and_verdict_are_reused_while_their_inputs_match():
+    from fakes.embeddings import FakeRetriever
+    from fakes.llm import FakeChatModel
+    from langgraph.checkpoint.memory import InMemorySaver
+
+    from rag_stack.agent.graph import build_graph
+    from rag_stack.config import Settings
+    from rag_stack.evals.harness import run_case
+
+    settings = Settings()
+    graph = build_graph(FakeChatModel(), InMemorySaver(), settings, FakeRetriever(chunk("A")))
+    verdict = '{"correctness": 4, "faithfulness": 5, "reason": "close"}'
+    case = {
+        "id": "c",
+        "category": "id-exact",
+        "split": "dev",
+        "question": "What is A?",
+        "gold_ids": ["A"],
+        "key_facts": ["A is a"],
+    }
+    first = await run_case(
+        case, settings, graph, FakeChatModel("A is a."), FakeChatModel(verdict, verdict)
+    )
+    assert not first["baseline_reused"]
+
+    # Same question, prompt and models: no baseline call, and only the RAG answer is judged.
+    baseline, judge = FakeChatModel(), FakeChatModel(verdict)
+    again = await run_case(case, settings, graph, baseline, judge, first)
+    assert baseline.calls == [] and len(judge.calls) == 1 and again["baseline_reused"]
+    assert again["baseline_answer"] == "A is a." and again["baseline_correctness"] == 0.75
+
+    # Corrected key facts: the saved answer is judged again.
+    judge = FakeChatModel(verdict, verdict)
+    fixed = await run_case(
+        {**case, "key_facts": ["A is b"]}, settings, graph, baseline, judge, first
+    )
+    assert baseline.calls == [] and len(judge.calls) == 2
+
+    # Another question: the baseline is asked.
+    judge = FakeChatModel(verdict, verdict)
+    await run_case({**case, "question": "And B?"}, settings, graph, baseline, judge, first)
+    assert len(baseline.calls) == 1
+    assert fixed["baseline_judge_key"] != first["baseline_judge_key"]
+
+
+@pytest.mark.anyio
 async def test_retrieval_only_scores_the_golden_set_without_an_llm(capsys):
     from rag_stack.config import Settings
     from rag_stack.evals.harness import retrieval_only

@@ -57,7 +57,7 @@ rate limits apply per user rather than per proxy.
 | Layer | Command | Needs |
 |-------|---------|-------|
 | Unit | `make test` | nothing (fixtures in `tests/fixtures/`, in-memory Qdrant, fake models) |
-| AI (evals) | `make eval` (paid, ~550 calls, ~40 min), then `make evals` | LLM access, an indexed knowledge base; `make evals` checks the saved results (1 call) and fails if they are stale |
+| AI (evals) | `make eval` (paid, ~280 calls with saved baseline answers, ~550 with `FRESH=1`), then `make evals` | LLM access, an indexed knowledge base; `make evals` checks the saved results (1 call) and fails if they are stale |
 | End-to-end | `make e2e` | `make services`, LLM access, embedding models; the rating test also `make tracing` (skipped without `LANGFUSE_*`) |
 | Web | `make web-check` | nothing |
 

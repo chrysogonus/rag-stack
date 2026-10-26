@@ -164,8 +164,8 @@ ask: ## Answer one question from the knowledge base: make ask Q="What is AML.T00
 	@[ -n "$(Q)" ] || { echo 'Usage: make ask Q="your question"' >&2; exit 1; }
 	$(CLI) ask "$(Q)"
 
-eval: ## The paid eval run (~550 LLM calls, ~40 min): golden set vs. the baseline, writes report.md
-	$(CLI) eval
+eval: ## The paid eval run: golden set vs. the baseline (saved baseline answers reused; FRESH=1 asks again), writes report.md
+	$(CLI) eval $(if $(FRESH),--fresh-baseline)
 
 eval-retrieval: ## Retrieval scores and latency, no LLM calls: make eval-retrieval [SPLIT=dev|test|all]
 	$(CLI) eval --retrieval-only --split $(or $(SPLIT),dev)

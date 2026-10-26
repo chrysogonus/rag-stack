@@ -108,6 +108,9 @@ and judged again.
 2. **Cache baseline answers and their judge scores** under the same two fingerprints:
    `BASELINE_PROMPT`, the question and its follow-up history, and the baseline model for the
    answer; the judge input, rubric and judge model for the score. A full run then costs about half.
+   **Built:** each result in `results.json` keeps `baseline_key` and `baseline_judge_key`; a run
+   reuses the saved answer and verdict while they match, and the report says how many it reused.
+   `make eval FRESH=1` asks the baseline again, e.g. to refresh a web-searching chatbot's answers.
 3. **Run history** (`evals/datasets/ai_security/history.jsonl`): date, commit, source versions,
    per-question scores and the summary for every run. A regression is a paired, per-question
    change: correctness down 2 points or more, or a correct refusal that turns into an answer.
@@ -174,7 +177,7 @@ its questions then fall under the per-question fingerprints like the rest.
 
 1. Scheduled ingestion with the diff gates and the free retrieval eval: regression tracking for
    ingestion at no LLM cost. Built.
-2. Baseline caching: halves a full run.
+2. Baseline caching: halves a full run. Built.
 3. Per-question fingerprints and the run history.
 
 ## Not built (out of scope)
