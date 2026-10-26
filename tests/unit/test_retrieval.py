@@ -6,11 +6,11 @@ from qdrant_client import QdrantClient
 
 from rag_stack.db.edges import EdgeGraph
 from rag_stack.ingestion.models import Edge, Snapshot
-from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS
+from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS, SOURCES
 from rag_stack.ingestion.sources import atlas, eu_law
 from rag_stack.retrieval.fusion import rrf
 from rag_stack.retrieval.ids import detect_ids
-from rag_stack.retrieval.index import ensure_collection, index_source
+from rag_stack.retrieval.index import catalog_label, ensure_collection, index_source
 from rag_stack.retrieval.language import detect_language
 from rag_stack.retrieval.retriever import KnowledgeBase
 
@@ -227,6 +227,13 @@ async def test_a_list_question_finds_the_list_overview(kb):
 async def test_catalog_names_each_source_once_without_versions(kb):
     # The fixture index holds two EU AI Act versions (consolidated and OJ).
     assert await kb.catalog() == ["EU AI Act (Regulation (EU) 2024/1689)", "MITRE ATLAS"]
+
+
+async def test_a_retired_source_still_served_is_named_by_its_id(kb, monkeypatch):
+    monkeypatch.delitem(SOURCES, "atlas")
+
+    assert await kb.catalog() == ["EU AI Act (Regulation (EU) 2024/1689)", "atlas"]
+    assert catalog_label(chunk("AML.T0051")) == "atlas 2026.09"
 
 
 def test_index_source_skips_an_unchanged_snapshot_and_replaces_a_changed_one():

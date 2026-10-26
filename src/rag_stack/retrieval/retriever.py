@@ -90,7 +90,10 @@ class KnowledgeBase:
 
     async def catalog(self) -> list[str]:
         facets = await asyncio.to_thread(self.client.facet, self.collection, "source_id", limit=50)
-        return sorted(SOURCES[str(hit.value)].name for hit in facets.hits)
+        # A retired source stays served, under its id, until the next refresh drops it.
+        return sorted(
+            s.name if (s := SOURCES.get(str(h.value))) else str(h.value) for h in facets.hits
+        )
 
     def _retrieve(self, query: str, context: str) -> list[Retrieved]:
         language = detect_language(query)

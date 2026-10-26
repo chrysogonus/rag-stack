@@ -202,6 +202,29 @@ async def test_a_source_that_shrank_blocks_before_anything_is_built(env):
 
 
 @pytest.mark.anyio
+async def test_a_retired_source_is_dropped_and_one_without_a_snapshot_blocks(env, monkeypatch):
+    await env.run()
+    served = gens.serving(env.client, "kb")
+    monkeypatch.setattr(harness, "load_cases", lambda: CASES[:1])
+    monkeypatch.setattr(refresh, "MODULES", {"atlas": "atlas"})
+
+    code, line = await env.run()
+
+    assert code == 0 and " PROMOTED " in line and "removed: owasp-llm-2026" in line, line
+    candidate = gens.serving(env.client, "kb")
+    assert candidate != served and env.client.count(candidate).count == 10
+
+    # A source still in MODULES whose snapshot is gone is not retired: it blocks.
+    monkeypatch.setattr(refresh, "MODULES", {"atlas": "atlas", "ki-mig": "gesetze_im_internet"})
+    env.client.upsert(
+        candidate, env.client.retrieve(served, [owasp()[0].point_id], with_vectors=True)
+    )
+    env.client.set_payload(candidate, {"source_id": "ki-mig"}, [owasp()[0].point_id])
+    code, line = await env.run()
+    assert code == 1 and "BLOCKED: ki-mig has no processed snapshot" in line, line
+
+
+@pytest.mark.anyio
 async def test_a_missing_gold_id_blocks_even_when_forced(env):
     await env.run()
     env.write("atlas", "a2", atlas()[1:])

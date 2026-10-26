@@ -190,7 +190,11 @@ async def refresh(
         notes.insert(0, changes(diffs, processed, len(processed) - len(diffs)))
         if switch:
             notes.insert(1, f"embedding {served_model} → {settings.embedding}: rebuilt in full")
-        reasons = [f"{s} has no processed snapshot" for s in served_shas.keys() - shas.keys()]
+        # A served source no longer in MODULES was retired on purpose: the candidate drops it.
+        if removed := sorted(served_shas.keys() - MODULES.keys()):
+            notes.insert(1, f"removed: {', '.join(removed)}")
+        missing = served_shas.keys() - shas.keys() - set(removed)
+        reasons = [f"{s} has no processed snapshot" for s in sorted(missing)]
         reasons += [] if force else gate(diffs)
         if missing := missing_gold(c for _, chunks, _ in processed.values() for c in chunks):
             reasons.append(f"gold IDs missing: {', '.join(missing)}")

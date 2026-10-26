@@ -22,8 +22,10 @@ KEYWORD_FIELDS = (
 
 
 def catalog_label(chunk: Chunk) -> str:
-    """How a source and its version are named to users, e.g. 'MITRE ATLAS 2026.09'."""
-    return f"{SOURCES[chunk.source_id].name} {chunk.source_version}"
+    """How a source and its version are named to users, e.g. 'MITRE ATLAS 2026.09'. A retired
+    source has no registry entry but stays served until the next refresh drops it."""
+    source = SOURCES.get(chunk.source_id)
+    return f"{source.name if source else chunk.source_id} {chunk.source_version}"
 
 
 def ensure_collection(client: QdrantClient, collection: str, dim: int) -> None:

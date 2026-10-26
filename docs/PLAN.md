@@ -190,7 +190,9 @@ sources run on that one schedule: unchanged ones are skipped at ingest.
 1. `make ingest SOURCE=all`; a source whose fetch or parse fails keeps its previous snapshot.
 2. Diff native IDs per source against what is served (payloads in Qdrant): added, removed, changed.
 3. Checks before building, any of which blocks: a source with no snapshot, a drop of more than
-   10% in chunks or IDs (`FORCE=1` allows it), a gold ID of the golden set missing.
+   10% in chunks or IDs (`FORCE=1` allows it), a gold ID of the golden set missing. A served
+   source no longer in `MODULES` was retired on purpose: the candidate drops it and the log says
+   `removed:`. Until then it stays served, named by its id where the registry no longer has it.
 4. Build a candidate *generation*: a Qdrant collection `kb_chunks_<generation>` and its edges in
    `kb_edges` under the same `generation` (migration 0002). Unchanged sources are copied from the
    served collection with their vectors; only changed ones are embedded. Chunks and edges move
