@@ -1,9 +1,9 @@
 [
  {
   "source_id": "ai-vulns",
-  "version": "2026-10-24",
-  "sha256": "e93872890d74f270332569c52b0d6a95c85ed90a5f2d7f423493ebe0c8c189a9",
-  "retrieved_at": "2026-10-24T17:43:14+00:00"
+  "version": "2026-10-26",
+  "sha256": "7118b98b0b554c0b661487d746a62ef972919d0958f87a4d6123134bb34abf52",
+  "retrieved_at": "2026-10-26T12:56:35+00:00"
  },
  {
   "source_id": "atlas",
