@@ -17,5 +17,7 @@ attribution of each cited source. Small verbatim excerpts are committed as test 
 | CISA Known Exploited Vulnerabilities catalog | CC0 1.0 | None required; credited as CISA KEV. |
 
 The open-weights models used at runtime (`intfloat/multilingual-e5-large`, MIT;
-`BAAI/bge-reranker-v2-m3` (int8 build), Apache-2.0; `Qdrant/bm25`) are downloaded on first use and are not
-redistributed here.
+`BAAI/bge-reranker-v2-m3` (int8 build), Apache-2.0; `Qdrant/bm25`; with the `gpu` profile
+`Qwen/Qwen3-Embedding-4B` and `Qwen/Qwen3-Reranker-0.6B`, Apache-2.0) are downloaded on first use
+and are not redistributed here. `deploy/vllm/qwen3_reranker.jinja` is adapted from vLLM's
+example template (Apache-2.0).

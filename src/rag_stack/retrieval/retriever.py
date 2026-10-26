@@ -297,8 +297,12 @@ def open_knowledge_base(settings: Settings, pinned: bool = False) -> KnowledgeBa
         settings,
         client,
         served if pinned else alias,
-        create_embedder(settings.embedding_model),
+        create_embedder(
+            settings.embedding_model, settings.embedding_provider, settings.embedding_base_url
+        ),
         create_sparse_embedder(settings.sparse_model),
-        create_reranker(settings.reranker_model),
+        create_reranker(
+            settings.reranker_model, settings.reranker_provider, settings.reranker_base_url
+        ),
         EdgeGraph(load_edges(settings.database_url, generation_of(alias, served))),
     )

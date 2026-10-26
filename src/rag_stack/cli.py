@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import logging
 import sys
+from typing import cast
 
 from rag_stack.config import Settings
 from rag_stack.ingestion.pipeline import MODULES
@@ -29,14 +30,29 @@ def refresh(settings: Settings, command: str, force: bool) -> int:
     from qdrant_client import QdrantClient
 
     from rag_stack import refresh as kb
-    from rag_stack.llm.factory import create_embedder, create_reranker, create_sparse_embedder
+    from rag_stack.llm.factory import (
+        ModelHost,
+        create_embedder,
+        create_reranker,
+        create_sparse_embedder,
+    )
 
     def load_models():
         return (
-            create_embedder(settings.embedding_model),
+            create_embedder(
+                settings.embedding_model, settings.embedding_provider, settings.embedding_base_url
+            ),
             create_sparse_embedder(settings.sparse_model),
-            create_reranker(settings.reranker_model),
+            create_reranker(
+                settings.reranker_model, settings.reranker_provider, settings.reranker_base_url
+            ),
         )
+
+    def load_embedder(name: str):
+        """The served generation's embedding model, to score it after a model switch."""
+        provider, model = name.split(":", 1)
+        url = settings.embedding_base_url if provider == settings.embedding_provider else None
+        return create_embedder(model, cast(ModelHost, provider), url)
 
     client = QdrantClient(url=settings.qdrant_url)
     try:
@@ -45,7 +61,9 @@ def refresh(settings: Settings, command: str, force: bool) -> int:
                 code, line = kb.rollback(settings, client)
             else:
                 failed = ingest(settings, "all")
-                code, line = asyncio.run(kb.refresh(settings, client, failed, load_models, force))
+                code, line = asyncio.run(
+                    kb.refresh(settings, client, failed, load_models, force, load_embedder)
+                )
     except BlockingIOError:
         print("another refresh or index is running", file=sys.stderr)
         return 1
@@ -127,6 +145,9 @@ def main(argv: list[str] | None = None) -> int:
                     print(line, flush=True)
         except BlockingIOError:
             print("another refresh or index is running", file=sys.stderr)
+            return 1
+        except ValueError as error:
+            print(error, file=sys.stderr)
             return 1
         return 0
     if args.command == "ask":

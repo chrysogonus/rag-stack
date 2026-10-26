@@ -1,6 +1,10 @@
 services:
   qdrant:
     image: qdrant/qdrant:v1.15.5
+    # Each collection keeps files open per segment and payload index; refreshes hold several
+    # generations at once, and Docker's default soft limit (1024) ran out.
+    ulimits:
+      nofile: {soft: 65535, hard: 65535}
     ports:
       - "127.0.0.1:6333:6333"
     volumes:
@@ -23,6 +27,51 @@ services:
       timeout: 3s
       retries: 15
 
+
+  # --- GPU models (vLLM): COMPOSE_PROFILES=gpu in .env, with EMBEDDING_PROVIDER=vllm and
+  # RERANKER_PROVIDER=vllm. Embedding 4B and reranker 0.6B in fp8 (a 4B reranker doesn't fit
+  # beside the desktop's ~7 GB); --gpu-memory-utilization is a share of the whole card and vLLM won't start unless that much is free (see README, "GPU models").
+  embeddings:
+    profiles: [gpu]
+    image: vllm/vllm-openai:v0.31.0
+    command: >-
+      --model Qwen/Qwen3-Embedding-4B --runner pooling
+      --quantization fp8 --kv-cache-dtype fp8 --max-model-len 2048
+      --max-num-batched-tokens 4096 --enforce-eager
+      --gpu-memory-utilization ${EMBEDDINGS_GPU_SHARE:-0.37}
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes: &hf-cache
+      - hf_cache:/root/.cache/huggingface
+    ipc: host
+    deploy: &gpu
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+    healthcheck: &vllm-health
+      test: ["CMD", "curl", "-fs", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 120
+
+  reranker:
+    profiles: [gpu]
+    image: vllm/vllm-openai:v0.31.0
+    command: >-
+      --model Qwen/Qwen3-Reranker-0.6B --runner pooling
+      --hf-overrides '{"architectures": ["Qwen3ForSequenceClassification"], "classifier_from_token": ["no", "yes"], "is_original_qwen3_reranker": true}'
+      --chat-template /templates/qwen3_reranker.jinja
+      --quantization fp8 --kv-cache-dtype fp8 --max-model-len 2048
+      --max-num-batched-tokens 4096 --enforce-eager
+      --gpu-memory-utilization ${RERANKER_GPU_SHARE:-0.16}
+    ports:
+      - "127.0.0.1:8002:8000"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+      - ./deploy/vllm/qwen3_reranker.jinja:/templates/qwen3_reranker.jinja:ro
+    ipc: host
+    deploy: *gpu
+    healthcheck: *vllm-health
 
   # --- Tracing (Langfuse, self-hosted): `make tracing`, UI at http://localhost:3000 ----------
   # Off by default (profile), so `make services` stays light. Local dev credentials only; only
@@ -153,6 +202,7 @@ services:
 
 volumes:
   qdrant_data:
+  hf_cache:
   postgres_data:
   langfuse_postgres_data:
   langfuse_clickhouse_data:

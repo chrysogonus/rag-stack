@@ -16,8 +16,12 @@ writes an answer grounded in them.
   (Responses API), `anthropic` (Messages API) or `openai-compatible` (Chat Completions at
   `LLM_BASE_URL`: Ollama, vLLM, LM Studio, gateways). Use the official `openai` and `anthropic`
   SDKs; ruff bans importing them outside `llm/`, and bans `langchain-openai` everywhere.
-- The RAG chatbot runs on the OpenAI API (`gpt-6-luna`, key in `.env`). The sub2api gateway
-  (`~/workspace/sub2api`, personal ChatGPT and Claude subscriptions) runs the eval's live-chatbot
+  Embedding and reranker models run in-process on the CPU (`fastembed`) or on the vLLM GPU
+  services (`EMBEDDING_PROVIDER` / `RERANKER_PROVIDER=vllm`, `llm/vllm_models.py`); every
+  vector records its model, and a new model means a full rebuild through `make refresh`.
+- The RAG chatbot runs on the OpenAI API (`gpt-6-luna`, key in `.env`). The subscription gateway
+  (formerly sub2api; `~/workspace/subscription-gateway`, started with `subscription-gateway
+  serve`; personal ChatGPT and Claude subscriptions) runs the eval's live-chatbot
   reference (`EVAL_BASELINE_*`, `codex/gpt-6-luna`) and its judge and question drafter
   (`EVAL_JUDGE_*`, `claude-code/claude-haiku-5-5`, another model family than the RAG model).
   Never deploy with the gateway.

@@ -24,7 +24,7 @@ from rag_stack.ingestion.models import Chunk, Edge
 from rag_stack.ingestion.pipeline import MODULES, load_processed
 from rag_stack.llm.embeddings import Embedder, Reranker, SparseEmbedder
 from rag_stack.retrieval import generations as gens
-from rag_stack.retrieval.index import ensure_collection, index_source, match
+from rag_stack.retrieval.index import embedding_in, ensure_collection, index_source, match
 from rag_stack.retrieval.retriever import knowledge_base
 
 logger = logging.getLogger(__name__)
@@ -133,13 +133,16 @@ def build_candidate(
     sparse: SparseEmbedder,
 ) -> int:
     """Fill the candidate: unchanged sources are copied from the served collection with their
-    vectors, changed ones embedded. Returns the number of points it should hold."""
+    vectors; of a changed source only new and changed chunks are embedded. Returns the number of
+    points it should hold."""
     for source_id, (sha, chunks, _) in processed.items():
         if served and served_shas.get(source_id) == sha:
             only = models.Filter(must=[match("source_id", source_id)])
             gens.copy_points(client, served, candidate, only)
         else:
-            index_source(client, candidate, source_id, sha, chunks, embedder, sparse)
+            index_source(
+                client, candidate, source_id, sha, chunks, embedder, sparse, reuse_from=served
+            )
     return sum(len(chunks) for _, chunks, _ in processed.values())
 
 
@@ -156,9 +159,12 @@ async def refresh(
     failed: list[str],
     load_models: Models,
     force: bool = False,
+    load_embedder: Callable[[str], Embedder] | None = None,
 ) -> tuple[int, str]:
     """One refresh after ingesting; `failed` are sources whose ingest failed (their previous
-    snapshot is used). `force` skips the shrink check. Returns (exit code, log line)."""
+    snapshot is used). `force` skips the shrink check. A new embedding model rebuilds every
+    source; `load_embedder` then loads the served one by name, to score the served generation as
+    it runs. Returns (exit code, log line)."""
     alias, db = settings.qdrant_collection, settings.database_url
     notes = [f"ingest failed: {', '.join(failed)} (previous snapshot kept)"] if failed else []
     generation = "-"
@@ -170,7 +176,9 @@ async def refresh(
         served_shas = {s: sha for s, (sha, _) in before.items()}
         processed: Processed = {s: p for s in MODULES if (p := load_processed(settings, s))}
         shas = {s: sha for s, (sha, _, _) in processed.items()}
-        if shas == served_shas:
+        served_model = embedding_in(client, served) if served else None
+        switch = served_model not in (None, settings.embedding)
+        if shas == served_shas and not switch:
             tidy(client, alias, db)
             return log(settings, 0, generation, "NO CHANGE", notes)
 
@@ -180,6 +188,8 @@ async def refresh(
             if served_shas.get(s) != sha
         }
         notes.insert(0, changes(diffs, processed, len(processed) - len(diffs)))
+        if switch:
+            notes.insert(1, f"embedding {served_model} → {settings.embedding}: rebuilt in full")
         reasons = [f"{s} has no processed snapshot" for s in served_shas.keys() - shas.keys()]
         reasons += [] if force else gate(diffs)
         if missing := missing_gold(c for _, chunks, _ in processed.values() for c in chunks):
@@ -194,8 +204,9 @@ async def refresh(
         if client.collection_exists(candidate):  # never build into a collection in use
             raise RuntimeError(f"{candidate} exists already")
         ensure_collection(client, candidate, embedder.dim)
+        # Vectors of another model are never copied or reused.
         expected = build_candidate(
-            client, served, served_shas, candidate, processed, embedder, sparse
+            client, None if switch else served, served_shas, candidate, processed, embedder, sparse
         )
         for source_id, (_, _, edges) in processed.items():
             edge_store.replace_edges(db, generation, source_id, edges)
@@ -205,13 +216,22 @@ async def refresh(
                 settings, 1, generation, f"BLOCKED: {points} points, {expected} expected", notes
             )
 
-        async def scores(collection: str) -> dict[str, float | None]:
+        async def scores(collection: str, queries: Embedder) -> dict[str, float | None]:
             graph = EdgeGraph(edge_store.load_edges(db, gens.generation_of(alias, collection)))
-            kb = knowledge_base(settings, client, collection, embedder, sparse, reranker, graph)
+            kb = knowledge_base(settings, client, collection, queries, sparse, reranker, graph)
             return (await harness.retrieval_scores(kb, "all"))[0]["all"]
 
-        new = await scores(candidate)
-        old = await scores(served) if served else None
+        new = await scores(candidate, embedder)
+        old = None
+        if served and served_model and switch:
+            try:
+                if load_embedder is None:
+                    raise ValueError("no loader given")
+                old = await scores(served, load_embedder(served_model))
+            except Exception as error:
+                notes.append(f"served generation not scored ({served_model}: {error})")
+        elif served:
+            old = await scores(served, embedder)
         notes.append(
             ", ".join(
                 f"{m} {new[m]:.3f}" + (f" (served {old[m]:.3f})" if old else "") for m in METRICS

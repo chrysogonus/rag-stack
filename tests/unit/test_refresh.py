@@ -12,7 +12,7 @@ from rag_stack.evals import harness
 from rag_stack.ingestion.models import Edge
 from rag_stack.ingestion.pipeline import write_processed
 from rag_stack.retrieval import generations as gens
-from rag_stack.retrieval.index import ensure_collection, index_source
+from rag_stack.retrieval.index import embedding_in, ensure_collection, index_source
 
 CASES = [
     {"question": "What is AML.T0001?", "split": "dev", "category": "id-exact",
@@ -47,6 +47,7 @@ def env(tmp_path, monkeypatch):
     settings = Settings(data_dir=str(tmp_path), qdrant_collection="kb", database_url="fake")
     store = FakeEdgeStore().install(monkeypatch)
     embedder = CountingEmbedder()
+    embedder.name = settings.embedding  # the configured model, as a real index would hold
 
     def write(source_id: str, sha: str, chunks: list, edges=()) -> None:
         root = tmp_path / "processed" / source_id
@@ -165,6 +166,28 @@ async def test_a_changed_source_is_embedded_and_the_rest_copied_then_promoted(en
 
 
 @pytest.mark.anyio
+async def test_only_new_and_changed_chunks_of_a_changed_source_are_embedded(env):
+    await env.run()
+    changed = [*atlas(9), chunk("AML.T0010", "revised 10"), chunk("AML.T0011", "text 11")]
+    env.write("atlas", "a2", changed, [EDGE])
+
+    code, line = await env.run()
+
+    assert code == 0 and " PROMOTED " in line, line
+    assert env.embedder.embedded == 2
+
+    # A new source version alone embeds nothing, but the payload carries the new version.
+    bumped = [c.model_copy(update={"source_version": "2026.10"}) for c in changed]
+    env.write("atlas", "a3", bumped, [EDGE])
+    code, line = await env.run()
+    assert code == 0 and env.embedder.embedded == 2, line
+    served = gens.serving(env.client, "kb")
+    assert served
+    point = env.client.retrieve(served, [bumped[0].point_id], with_payload=True)[0]
+    assert point.payload and point.payload["source_version"] == "2026.10"
+
+
+@pytest.mark.anyio
 async def test_a_source_that_shrank_blocks_before_anything_is_built(env):
     await env.run()
     env.write("atlas", "a2", atlas(5))
@@ -258,3 +281,59 @@ async def test_a_failed_cleanup_still_reports_the_promotion(env, monkeypatch):
     code, line = await env.run()
 
     assert code == 0 and " PROMOTED " in line and "cleanup failed: Postgres went away" in line
+
+
+@pytest.mark.anyio
+async def test_a_new_embedding_model_rebuilds_everything_and_scores_the_served_index_as_it_ran(
+    env,
+):
+    await env.run()
+    served = gens.serving(env.client, "kb")
+    settings = env.settings.model_copy(update={"embedding_model": "intfloat/other"})
+    new = CountingEmbedder()
+    new.name = settings.embedding
+    loaded: list[str] = []
+
+    def load_embedder(name: str):
+        loaded.append(name)
+        return env.embedder
+
+    code, line = await refresh.refresh(
+        settings,
+        env.client,
+        [],
+        lambda: (new, FakeSparseEmbedder(), FakeReranker()),
+        load_embedder=load_embedder,
+    )
+
+    assert code == 0 and " PROMOTED " in line, line
+    assert f"embedding {env.settings.embedding} → {settings.embedding}: rebuilt in full" in line
+    assert new.embedded == 11 and env.embedder.embedded == 0  # nothing copied or reused
+    assert loaded == [env.settings.embedding] and "(served 1.000)" in line
+    candidate = gens.serving(env.client, "kb")
+    assert candidate and candidate != served
+    assert embedding_in(env.client, candidate) == settings.embedding
+
+    # Same model again: nothing to do.
+    def no_models():
+        raise AssertionError("nothing to build")
+
+    code, line = await refresh.refresh(settings, env.client, [], no_models)
+    assert line.endswith(" - NO CHANGE"), line
+
+
+def test_vectors_of_another_model_are_never_reused():
+    client = QdrantClient(":memory:")
+    old, new = CountingEmbedder(), CountingEmbedder()
+    new.name = "fastembed:other"
+    for collection in ("served", "candidate"):
+        ensure_collection(client, collection, old.dim)
+    index_source(client, "served", "atlas", "a1", atlas(3), old, FakeSparseEmbedder())
+
+    index_source(
+        client, "candidate", "atlas", "a1", atlas(3), new, FakeSparseEmbedder(), reuse_from="served"
+    )
+
+    assert new.embedded == 3
+    assert embedding_in(client, "candidate") == "fastembed:other"
+    assert embedding_in(client, "served") == old.name

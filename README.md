@@ -46,6 +46,28 @@ make down                    # stop everything (stored conversations and the ind
 The CVE source queries NVD once per CVE; without `NVD_API_KEY` in `.env` NVD allows 5 requests
 per 30 seconds, so the first ingest of `ai-vulns` takes about an hour (responses are cached).
 
+**GPU models (optional).** With an NVIDIA GPU, embeddings and reranking run on two vLLM
+services (`docker compose` profile `gpu`): Qwen3-Embedding-4B and Qwen3-Reranker-0.6B, both
+fp8. Put this into `.env`, then run `make refresh` (a new embedding model rebuilds the whole
+index, scored against the old one):
+
+```bash
+COMPOSE_PROFILES=gpu
+EMBEDDING_PROVIDER=vllm
+EMBEDDING_MODEL=Qwen/Qwen3-Embedding-4B
+EMBEDDING_BASE_URL=http://127.0.0.1:8001/v1
+RERANKER_PROVIDER=vllm
+RERANKER_MODEL=Qwen/Qwen3-Reranker-0.6B
+RERANKER_BASE_URL=http://127.0.0.1:8002/v1
+RERANK_MIN_SCORE=0.005
+```
+
+Together they take about 8 GB of VRAM (`EMBEDDINGS_GPU_SHARE`, `RERANKER_GPU_SHARE` set each
+one's share of the card; vLLM doesn't start unless that much is free). The API, `make refresh`
+and the evals then need both services; other GPU work slows retrieval down. `make rollback`
+after the switch also needs the old settings back in `.env`: queries are embedded with the
+configured model.
+
 `make` lists every command, including `make restart`, `make status`, `make logs` and `make ci`
 (the CI pipeline, run locally).
 

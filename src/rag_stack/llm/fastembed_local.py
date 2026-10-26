@@ -13,6 +13,7 @@ class FastembedDense:
         from fastembed import TextEmbedding  # noqa: TID251
 
         self._model = TextEmbedding(model)
+        self.name = f"fastembed:{model}"
         # e5 models are trained with these prefixes and fastembed doesn't add them.
         self._prefixes = ("query: ", "passage: ") if "e5" in model else ("", "")
         self._dim = len(next(iter(self._model.embed(["dimension probe"]))))
