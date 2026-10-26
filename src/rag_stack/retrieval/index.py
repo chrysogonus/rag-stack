@@ -18,6 +18,7 @@ KEYWORD_FIELDS = (
     "language",
     "unit_key",
     "catalog",
+    "processed_sha",
 )
 
 
