@@ -231,8 +231,8 @@ The chatbot is to cover cybersecurity research in general, with AI security as a
 about 10x the corpus (35-40k chunks), only citable sources whose licenses allow storing and
 quoting them. The new sources were chosen for the joins they add between each other and with
 today's: ATT&CK ↔ ATLAS ↔ CAPEC ↔ CWE ↔ CVE/KEV, ATT&CK ↔ D3FEND, Sigma and Atomic tests,
-SP 800-53 ↔ CSF 2.0, NIS2 → BSIG and CRA. The ATLAS → ATT&CK and OWASP → CWE edges stored today
-then lead somewhere (OPEN_QUESTIONS).
+SP 800-53 ↔ CSF 2.0, NIS2 → BSIG and CRA. The edges stored today to ATT&CK and CWE IDs (ATLAS
+`adapted_from`, OWASP `maps_to`, CVE `has_weakness`) then lead somewhere (OPEN_QUESTIONS).
 
 ### Sources, in four waves
 

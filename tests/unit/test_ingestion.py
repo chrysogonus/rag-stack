@@ -131,13 +131,13 @@ def test_ingest_snapshots_with_sha256_and_skips_unchanged_input(tmp_path, monkey
     first = pipeline.ingest("atlas", settings, fetcher)
     second = pipeline.ingest("atlas", settings, fetcher)
 
-    assert first == "atlas 2026.09: 6 chunks, 5 edges"
+    assert first == "atlas 2026.09: 6 chunks, 6 edges"
     assert second.startswith("atlas 2026.09: unchanged (sha256 ")
     raw = tmp_path / "data/raw/atlas/2026.09"
     assert (raw / "ATLAS.yaml").read_bytes() == yaml_bytes
     assert "ATLAS.yaml" in (raw / "SHA256SUMS").read_text()
     sha, chunks, edges = pipeline.load_processed(settings, "atlas")  # type: ignore[misc]
-    assert len(chunks) == 6 and len(edges) == 5 and len(sha) == 64
+    assert len(chunks) == 6 and len(edges) == 6 and len(sha) == 64
 
 
 def test_split_text_breaks_at_paragraphs_and_never_exceeds_the_limit():

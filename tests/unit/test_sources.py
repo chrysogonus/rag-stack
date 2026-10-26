@@ -54,6 +54,7 @@ def test_atlas_one_chunk_per_object_with_relationships_as_edges():
         (e.src_id, e.rel, e.dst_id) for e in edges
     }
     assert "AML.M0019" not in technique.text
+    assert ("AML.TA0005", "adapted_from", "TA0002") in {(e.src_id, e.rel, e.dst_id) for e in edges}
     # A case study's procedure is its own content and stays in its text.
     assert "Procedure:" in found[("AML.CS0016", "en")].text
     overview = found[("ATLAS Tactics", "en")]
