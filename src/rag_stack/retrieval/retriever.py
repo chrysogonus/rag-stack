@@ -30,7 +30,10 @@ RELATED = re.compile(
 MITIGATIONS = re.compile(DEFENSE, re.I)
 MAX_PER_ID = 6  # parts of a named article or annex
 MAX_PER_UNIT = 3  # sections of one named unit (an OWASP entry has eight or more)
-MAX_NEIGHBORS = 12
+MAX_NEIGHBORS = 12  # related units kept, the reranker's best
+# shortcut: past this many neighbors (an ATT&CK technique has hundreds of users) the reranker sees
+# the first ones in edge order; filter edges by relation if joins miss the right ones.
+NEIGHBOR_CANDIDATES = 100
 
 
 @dataclass(frozen=True)
@@ -137,6 +140,7 @@ class KnowledgeBase:
                 key=lambda r: -r.score,
             )
 
+        neighbors = ranked(related, "graph")[:MAX_NEIGHBORS]
         named = [c for c in exact if c.native_id in ids or set(c.aliases) & set(ids)]
 
         def parent_of(chunk: Chunk) -> str:
@@ -147,12 +151,12 @@ class KnowledgeBase:
         if not exact:
             # No IDs named: the search hits lead, the neighbors of the top one follow. Without
             # a relevant hit there is nothing to relate to, so the answer is an abstention.
-            found = [*relevant, *ranked(related, "graph")] if relevant else []
+            found = [*relevant, *neighbors] if relevant else []
         else:
             # Named units, then units related to them, then parts of named articles and annexes.
             found = [
                 *self._cap(ranked(named, "id"), lambda c: c.native_id, MAX_PER_UNIT),
-                *ranked(related, "graph"),
+                *neighbors,
                 *self._cap(ranked(parts, "id"), parent_of, MAX_PER_ID),
                 *relevant,
             ]
@@ -231,7 +235,7 @@ class KnowledgeBase:
         chunks.sort(key=lambda c: list(relation).index(c.native_id))
         return [
             c.model_copy(update={"meta": {**c.meta, "relation": relation[c.native_id]}})
-            for c in chunks[:MAX_NEIGHBORS]
+            for c in chunks[:NEIGHBOR_CANDIDATES]
         ]
 
     def _in_language(self, found: list[Retrieved], language: str) -> list[Retrieved]:

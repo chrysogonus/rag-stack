@@ -8,6 +8,7 @@ from rag_stack.db.edges import EdgeGraph
 from rag_stack.ingestion.models import Edge, Snapshot
 from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS, SOURCES
 from rag_stack.ingestion.sources import atlas, eu_law
+from rag_stack.retrieval import retriever
 from rag_stack.retrieval.fusion import rrf
 from rag_stack.retrieval.ids import detect_ids
 from rag_stack.retrieval.index import catalog_label, ensure_collection, index_source
@@ -322,6 +323,23 @@ async def test_a_search_hit_that_is_also_a_graph_neighbor_keeps_its_relation():
     relations = {r.chunk.native_id: r.chunk.meta.get("relation") for r in found}
     assert set(relations) == {"AML.T0001", "AML.M0001"}
     assert "AML.M0001 mitigates AML.T0001" in relations.values()
+
+
+async def test_the_reranker_picks_which_neighbors_are_kept():
+    # 20 groups use the technique; edge order lists the off-topic ones first.
+    technique = chunk("T1059", "command and scripting interpreter", source_id="attack")
+    groups = [
+        chunk(f"G{i:04d}", "powershell" if i > 12 else "unrelated", source_id="attack")
+        for i in range(1, 21)
+    ]
+    edges = [Edge(src_id=g.native_id, rel="uses", dst_id="T1059", origin="attack") for g in groups]
+    kb = small_kb([technique, *groups], edges, limit=20)
+
+    found = await kb.retrieve("Which groups are related to T1059 with powershell?")
+
+    kept = [r.chunk.native_id for r in found if r.via == "graph"]
+    assert len(kept) == retriever.MAX_NEIGHBORS
+    assert set(kept[:8]) == {f"G{i:04d}" for i in range(13, 21)}
 
 
 async def test_the_section_cap_counts_language_copies_once():
