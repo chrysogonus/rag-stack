@@ -1,14 +1,16 @@
 """Parsers against small excerpts of the real sources (tests/fixtures, see NOTICE.md)."""
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 from rag_stack.ingestion.models import Snapshot
+from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS, SOURCES
 from rag_stack.ingestion.sources import (
     ai_vulns,
     atlas,
-    eu_ai_act,
-    ki_mig,
+    eu_law,
+    gesetze_im_internet,
     owasp_agentic,
     owasp_llm,
 )
@@ -136,9 +138,7 @@ def test_owasp_agentic_entries_skip_the_toc_and_stop_at_the_appendix():
 
 def test_eu_ai_act_units_in_both_languages_linked_by_unit_key():
     names = ["consolidated_en.xhtml", "consolidated_de.xhtml", "oj_en.xhtml", "oj_de.xhtml"]
-    chunks, edges = eu_ai_act.parse(
-        snapshot("eu-ai-act", "02024R1689-20260727", "eu_ai_act", names)
-    )
+    chunks, edges = eu_law.parse(snapshot("eu-ai-act", "02024R1689-20260727", "eu_ai_act", names))
 
     found = by_id(chunks)
     assert edges == []
@@ -168,7 +168,9 @@ def test_eu_ai_act_units_in_both_languages_linked_by_unit_key():
 
 
 def test_ki_mig_one_chunk_per_paragraph():
-    chunks, _ = ki_mig.parse(snapshot("ki-mig", "20260729215513", "ki_mig", ["ki-mig.xml"]))
+    snap = snapshot("ki-mig", "20260729215513", "ki_mig", ["ki-mig.xml"])
+    snap.urls["ki-mig.xml"] = "https://www.gesetze-im-internet.de/ki-mig/"
+    chunks, _ = gesetze_im_internet.parse(snap)
 
     ids = [c.native_id for c in chunks]
     assert ids[:3] == ["KI-MIG § 1", "KI-MIG § 2 Abs. 1", "KI-MIG § 2 Abs. 2"]
@@ -185,6 +187,32 @@ def test_ki_mig_one_chunk_per_paragraph():
     ]
     # Numbered lists keep one line per item.
     assert "\n1. Institute nach § 1 Absatz 1b" in chunks[3].text
+
+
+def test_legal_parsers_take_ids_and_licenses_from_the_registry(monkeypatch):
+    """Another act through the same parsers: its short name prefixes every ID; only the AI Act
+    keeps bare recital and annex IDs."""
+    for source_id in ("nis2", "bsig"):
+        monkeypatch.setitem(SOURCES, source_id, replace(SOURCES["eu-ai-act"], id=source_id))
+    monkeypatch.setitem(EU_ACTS, "nis2", ("NIS2", "NIS2"))
+    monkeypatch.setitem(GERMAN_LAWS, "bsig", ("BSIG", "BSIG"))
+    names = ["consolidated_en.xhtml", "oj_en.xhtml"]
+    act, _ = eu_law.parse(snapshot("nis2", "02022L2555-20230116", "eu_ai_act", names))
+    files = {"bsig.xml": (FIXTURES / "ki_mig/ki-mig.xml").read_bytes()}
+    snap = Snapshot("bsig", "20251206", WHEN, files, {"bsig.xml": "https://g/bsig_2025/"})
+    law, _ = gesetze_im_internet.parse(snap)
+
+    found = by_id(act)
+    assert {
+        ("NIS2 Art. 50(1)", "en"),
+        ("NIS2 Recital 133", "en"),
+        ("NIS2 Annex III 1(a)", "en"),
+    } <= set(found)
+    assert found[("NIS2 Annex III 1(a)", "en")].parent_ids == ["NIS2 Annex III", "NIS2 Annex III 1"]
+    assert found[("NIS2 Recital 133", "en")].source_version == "OJ 2022/2555"
+    assert law[1].native_id == "BSIG § 2 Abs. 1"
+    assert law[1].parent_ids == ["BSIG § 2"]
+    assert law[1].url == "https://g/bsig_2025/__2.html"
 
 
 def test_ai_vulns_merges_aliases_into_one_advisory_per_cve(tmp_path):

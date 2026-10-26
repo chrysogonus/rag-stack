@@ -6,7 +6,8 @@ from qdrant_client import QdrantClient
 
 from rag_stack.db.edges import EdgeGraph
 from rag_stack.ingestion.models import Edge, Snapshot
-from rag_stack.ingestion.sources import atlas, eu_ai_act
+from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS
+from rag_stack.ingestion.sources import atlas, eu_law
 from rag_stack.retrieval.fusion import rrf
 from rag_stack.retrieval.ids import detect_ids
 from rag_stack.retrieval.index import ensure_collection, index_source
@@ -39,9 +40,53 @@ FIXTURES = Path(__file__).parents[1] / "fixtures"
         ("What does Section 3 of the KI-MIG cover?", ["KI-MIG § 3"]),
         ("Section 2 of Annex I", ["Annex I"]),
         ("How do attackers poison a RAG corpus?", []),
+        # ATT&CK, not the technique inside an ATLAS ID
+        (
+            "T1059.001, t1566 and TA0002 vs. AML.T0051",
+            ["AML.T0051", "T1059.001", "T1566", "TA0002"],
+        ),
+        (
+            "Is M1038 used by G0016 (S0154, C0024, DET0001)?",
+            ["M1038", "G0016", "S0154", "C0024", "DET0001"],
+        ),
+        ("Map cwe-79 and CAPEC 66 to D3-MFA", ["CWE-79", "CAPEC-66", "D3-MFA"]),
+        (
+            "PR.AA-01, AC-2 (1), SI-4 and SSDF PO.1.1",
+            ["PR.AA-01", "AC-2(1)", "SI-4", "SSDF PO.1.1"],
+        ),
+        ("What does AI RMF GOVERN 1.1 ask?", ["AI RMF GOVERN 1.1"]),
+        ("A01:2025, A03 and A05:2021", ["A01:2025", "A03:2025"]),
+        ("ASVS 1.2.5 and v5.0.0-2.1.1", ["v5.0.0-1.2.5", "v5.0.0-2.1.1"]),
+        (
+            "Summarize arXiv:2601.01234v2 and arxiv.org/abs/2512.09876",
+            ["arXiv:2601.01234", "arXiv:2512.09876"],
+        ),
     ],
 )
 def test_detect_ids(question, ids):
+    assert detect_ids(question) == ids
+
+
+@pytest.mark.parametrize(
+    ("question", "ids"),
+    [
+        ("Was verlangt Art. 21 Abs. 2 NIS2?", ["NIS2 Art. 21(2)"]),
+        (
+            "Compare NIS2 Article 21 with Article 15 of the AI Act",
+            ["NIS2 Art. 21", "AI Act Art. 15"],
+        ),
+        ("Art. 50 KI-VO", ["AI Act Art. 50"]),
+        # No act named: every indexed act, and the reranker decides.
+        ("What does Article 5 say?", ["AI Act Art. 5", "NIS2 Art. 5"]),
+        ("Recital 12", ["Recital 12", "NIS2 Recital 12"]),
+        ("NIS2 Annex I point 2", ["NIS2 Annex I 2"]),
+        ("§ 30 Abs. 1 BSIG und § 2 KI-MIG", ["BSIG § 30 Abs. 1", "KI-MIG § 2"]),
+        ("Was regelt § 8?", ["KI-MIG § 8", "BSIG § 8"]),
+    ],
+)
+def test_detect_ids_picks_the_act(monkeypatch, question, ids):
+    monkeypatch.setitem(EU_ACTS, "nis2", ("NIS2", r"NIS ?2"))
+    monkeypatch.setitem(GERMAN_LAWS, "bsig", ("BSIG", "BSIG"))
     assert detect_ids(question) == ids
 
 
@@ -91,7 +136,7 @@ def kb() -> KnowledgeBase:
 
     atlas_chunks, atlas_edges = load(atlas, "atlas", "2026.09", "atlas", ["ATLAS.yaml"])
     act_chunks, _ = load(
-        eu_ai_act,
+        eu_law,
         "eu-ai-act",
         "02024R1689-20260727",
         "eu_ai_act",

@@ -244,7 +244,7 @@ then lead somewhere (OPEN_QUESTIONS).
 | 2 | `nist-csf` | CSF 2.0, CPRT JSON | `PR.AA-01` | US government work |
 | 2 | `nist-800-53` | SP 800-53 Rev. 5, OSCAL JSON | `AC-2(1)` | US government work |
 | 2 | `nist-pubs` | SP 800-218 SSDF, SP 800-61r3, AI RMF 1.0, AI 600-1, AI 100-2 E2025 (PDF) | `SSDF PO.1.1`, `AI RMF GOVERN 1.1` | US government work |
-| 2 | `owasp-top10-2025`, `owasp-asvs-5`, `owasp-cheatsheets` | GitHub Markdown, pinned commits | `A01:2025`, ASVS 5.0 IDs, sheet and section | CC BY-SA 4.0 |
+| 2 | `owasp-top10-2025`, `owasp-asvs-5`, `owasp-cheatsheets` | GitHub Markdown, pinned commits | `A01:2025`, ASVS `v5.0.0-1.2.5`, sheet and section | CC BY-SA 4.0 |
 | 2 | `owasp-ai-exchange` | GitHub Markdown | section | to verify: the site says CC0, the project page Apache-2.0 |
 | 3 | `nis2`, `cra`, `csa`, `dora` | Directive (EU) 2022/2555, Regulations (EU) 2024/2847, 2019/881, 2022/2554, EN and DE via CELLAR | `NIS2 Art. 21(2)`, `CRA Annex I` | Decision 2011/833/EU |
 | 3 | `bsig` | BSIG as amended by the NIS2UmsuCG (in force 6 Dec 2025), gesetze-im-internet.de XML | `BSIG § 30 Abs. 1` | § 5 UrhG |
@@ -272,10 +272,24 @@ commands: they are source data for testing detections, quoted under the "sources
    p95 0.98 s (135 questions), to compare after each wave.
 3. **One parser per legal system:** the AI Act parser becomes an EU-law parser configured by
    CELEX and short name (AI Act IDs unchanged), the KI-MIG parser a gesetze-im-internet parser.
+   **Built:** `sources/eu_law.py` and `sources/gesetze_im_internet.py`. The CELEX number and URLs
+   stay in `config/sources.yaml`; the short name and the names questions use for an act are in
+   `registry.EU_ACTS` / `GERMAN_LAWS`. Another act's IDs carry its short name throughout
+   (`NIS2 Art. 21(2)`, `NIS2 Recital 5`, `CRA Annex I`); only the AI Act's recitals and annexes
+   stay bare. Re-parsing the served snapshots gives identical chunks.
 4. **Act-aware ID detection** (`retrieval/ids.py`): today every `Art. N` is the AI Act's and
    every `§ N` the KI-MIG's. Act names and aliases pick the act; a bare article expands to every
    indexed act and the reranker decides. New ID families for ATT&CK, CWE, CAPEC, D3FEND, NIST,
    OWASP and arXiv.
+   **Built:** a legal reference goes to the act named nearest to it in the question, before or
+   after ("Art. 21 NIS2", "AI Act Article 50"); with none named, to every act in the registry.
+   An act that isn't indexed (GDPR) isn't recognized, so its articles still expand to the indexed
+   ones. New families: ATT&CK `T1059.001` `TA0002` `M1038` `G0016` `S0154` `C0024` `DET0001`,
+   `CWE-79`, `CAPEC-66`, `D3-MFA`, CSF `PR.AA-01`, SP 800-53 `AC-2(1)`, `SSDF PO.1.1`,
+   `AI RMF GOVERN 1.1`, `A01:2025`, ASVS `v5.0.0-1.2.5` (its official format), `arXiv:2601.01234`;
+   the cheat sheets and the AI Exchange have no IDs. No golden question's detected IDs changed.
+   Bracketed CWE and ATT&CK IDs in answers now count as citations: the baseline's citation
+   precision on the saved answers drops from 0.455 to 0.443.
 5. **Scope:** the system and baseline prompts, README and this plan's intro name general
    cybersecurity. Every eval question goes stale once; one incremental run.
 

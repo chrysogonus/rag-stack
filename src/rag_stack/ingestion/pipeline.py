@@ -19,8 +19,8 @@ MODULES = {
     "atlas": "atlas",
     "owasp-llm-2026": "owasp_llm",
     "owasp-agentic-2026": "owasp_agentic",
-    "eu-ai-act": "eu_ai_act",
-    "ki-mig": "ki_mig",
+    "eu-ai-act": "eu_law",
+    "ki-mig": "gesetze_im_internet",
     "ai-vulns": "ai_vulns",
 }
 CONFIG = Path(__file__).parents[3] / "config/sources.yaml"
@@ -50,7 +50,7 @@ def digest(files: dict[str, bytes]) -> str:
 
 def ingest(source_id: str, settings: Settings, fetcher: Fetcher) -> str:
     """Fetch, snapshot and parse one source. Returns a one-line status."""
-    config: dict[str, Any] = yaml.safe_load(CONFIG.read_text())[source_id]
+    config: dict[str, Any] = {"id": source_id, **yaml.safe_load(CONFIG.read_text())[source_id]}
     module = source_module(source_id)
     retrieved_at = datetime.now(UTC).isoformat(timespec="seconds")
     snapshot: Snapshot = module.fetch(fetcher, config, retrieved_at)

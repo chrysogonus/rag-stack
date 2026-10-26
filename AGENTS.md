@@ -38,7 +38,7 @@ writes an answer grounded in them.
 
 ```
 src/rag_stack/
-  ingestion/   # fetch (polite HTTP), sha256 snapshots, one parser per source in sources/
+  ingestion/   # fetch (polite HTTP), sha256 snapshots, one parser per source or legal system in sources/
   retrieval/   # Qdrant index, ID detection, hybrid search + RRF + rerank + graph expansion
   agent/       # knowledge base agent: LangGraph graph, prompts, answer footer, `ask`
   llm/         # chat, embedding and reranker interfaces and adapters

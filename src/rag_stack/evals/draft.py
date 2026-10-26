@@ -14,11 +14,12 @@ from rag_stack.config import Settings
 from rag_stack.evals.harness import DATASET, complete, judge_model, load_cases
 from rag_stack.ingestion.models import Chunk, Edge
 from rag_stack.ingestion.pipeline import MODULES, load_processed
+from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS
 from rag_stack.llm.base import ChatModel
 from rag_stack.retrieval.ids import detect_ids
 
 DRAFTS = DATASET / "drafts.jsonl"
-LEGAL = ("eu-ai-act", "ki-mig")
+LEGAL = {*EU_ACTS, *GERMAN_LAWS}
 # What each category asks for; the drafter sees this and the unit's text.
 KINDS = {
     "id-exact": "names the unit's id and asks what it is or says",
@@ -93,8 +94,8 @@ def candidates(settings: Settings, source: str, category: str) -> list[tuple[lis
         if not covered(c, used)
         and c.meta.get("kind") != "overview"
         # One language per unit: German for German legal questions, otherwise the unit's own
-        # first language (KI-MIG is German only).
-        and (c.language == language if language else c.language == "en" or source == "ki-mig")
+        # first language (German laws are German only).
+        and (c.language == language if language else c.language == "en" or source in GERMAN_LAWS)
     ]
 
 

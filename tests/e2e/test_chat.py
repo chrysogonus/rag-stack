@@ -18,7 +18,7 @@ from rag_stack.api.app import create_app
 from rag_stack.config import Settings
 from rag_stack.db.edges import EdgeGraph
 from rag_stack.ingestion.models import Snapshot
-from rag_stack.ingestion.sources import atlas, eu_ai_act
+from rag_stack.ingestion.sources import atlas, eu_law
 from rag_stack.llm.factory import create_embedder, create_reranker, create_sparse_embedder
 from rag_stack.retrieval.index import ensure_collection, index_source
 from rag_stack.retrieval.retriever import KnowledgeBase
@@ -27,9 +27,9 @@ pytestmark = pytest.mark.e2e
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 
 
-def parse(module, source_id: str, folder: str, names: list[str]):
+def parse(module, source_id: str, folder: str, names: list[str], version: str = "fixture"):
     files = {n: (FIXTURES / folder / n).read_bytes() for n in names}
-    snap = Snapshot(source_id, "fixture", "2026-10-24", files, {n: f"https://x/{n}" for n in files})
+    snap = Snapshot(source_id, version, "2026-10-24", files, {n: f"https://x/{n}" for n in files})
     return module.parse(snap)
 
 
@@ -43,10 +43,11 @@ def knowledge_base() -> Iterator[KnowledgeBase]:
     ensure_collection(client, collection, embedder.dim)
     atlas_chunks, edges = parse(atlas, "atlas", "atlas", ["ATLAS.yaml"])
     act_chunks, _ = parse(
-        eu_ai_act,
+        eu_law,
         "eu-ai-act",
         "eu_ai_act",
         ["consolidated_en.xhtml", "consolidated_de.xhtml", "oj_en.xhtml", "oj_de.xhtml"],
+        "02024R1689-20260727",
     )
     index_source(client, collection, "atlas", "e2e", atlas_chunks, embedder, sparse)
     index_source(client, collection, "eu-ai-act", "e2e", act_chunks, embedder, sparse)
