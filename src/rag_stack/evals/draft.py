@@ -31,8 +31,9 @@ KINDS = {
 
 PROMPT = """\
 You write one evaluation question for a chatbot that answers only from a knowledge base on \
-attacks on AI systems and EU AI regulation. The question must be answerable from the source \
-text below alone, and the way a real user would ask it. It {kind}. Write it in {language}.
+cybersecurity research, specializing in attacks on AI systems and EU and German regulation. \
+The question must be answerable from the source text below alone, and the way a real user would \
+ask it. It {kind}. Write it in {language}.
 
 Also list two or three key facts: short statements, taken from the source text, that a correct \
 answer must contain. Don't invent anything the text doesn't say.

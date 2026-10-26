@@ -294,6 +294,11 @@ commands: they are source data for testing detections, quoted under the "sources
    precision on the saved answers drops from 0.455 to 0.443.
 5. **Scope:** the system and baseline prompts, README and this plan's intro name general
    cybersecurity. Every eval question goes stale once; one incremental run.
+   **Built for the model:** the system, baseline and question-drafter prompts. What users read
+   (README, the refusal hints, the web UI's heading, placeholder and starters) changes with the
+   source that makes it true, so it never names IDs that aren't indexed yet. The judge rubric
+   stays `judge_v1.md`: the hand labels were checked against it. The new baseline prompt makes
+   every baseline answer stale too, so the wave's paid run re-asks both sides.
 
 Per source: a parser with a fixture test, a registry entry, an allowlist entry, its license in
 `NOTICE.md`, about 5 dev and 5 test questions (`make eval-draft`, reviewed), ingest through
