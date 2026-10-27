@@ -65,6 +65,13 @@ SOURCES: dict[str, SourceInfo] = {
             "permission of The MITRE Corporation.",
             "https://attack.mitre.org",
         ),
+        SourceInfo(
+            "capec",
+            "MITRE CAPEC",
+            "LicenseRef-MITRE-CAPEC-Terms",
+            "CAPEC™, Copyright © 2007–2026, The MITRE Corporation",
+            "https://capec.mitre.org",
+        ),
     ]
 }
 

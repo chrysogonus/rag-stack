@@ -43,6 +43,11 @@ attack:
   base_url: https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master
   version: "20.0"
 
+capec:
+  # One XML catalog per release; versioned files never change.
+  base_url: https://capec.mitre.org/data/xml
+  version: "3.9"
+
 ai-vulns:
   window_months: 24
   osv_url: https://api.osv.dev/v1/query

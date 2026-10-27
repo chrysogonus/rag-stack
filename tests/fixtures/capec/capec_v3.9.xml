@@ -1,0 +1,531 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Attack_Pattern_Catalog xmlns="http://capec.mitre.org/capec-3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:capec="http://capec.mitre.org/capec-3" xmlns:xhtml="http://www.w3.org/1999/xhtml" Name="CAPEC" Version="3.9" Date="2023-01-24" xsi:schemaLocation="http://capec.mitre.org/capec-3 http://capec.mitre.org/data/xsd/ap_schema_v3.5.xsd">
+   <Attack_Patterns>
+      <Attack_Pattern ID="106" Name="DEPRECATED: XSS through Log Files" Abstraction="Detailed" Status="Deprecated">
+         <Description>This attack pattern has been deprecated as it referes to an existing chain relationship between "CAPEC-93 : Log Injection-Tampering-Forging" and "CAPEC-63 : Cross-Site Scripting". Please refer to these CAPECs going forward.</Description>
+         <Content_History>
+            <Submission>
+               <Submission_Name>CAPEC Content Team</Submission_Name>
+               <Submission_Organization>The MITRE Corporation</Submission_Organization>
+               <Submission_Date>2014-06-23</Submission_Date>
+            </Submission>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2017-01-09</Modification_Date>
+               <Modification_Comment>Updated Related_Attack_Patterns</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2017-05-01</Modification_Date>
+               <Modification_Comment>Updated Activation_Zone, Architectural_Paradigms, Attack_Motivation-Consequences, Attack_Phases, Attack_Prerequisites, Attacker_Skills_or_Knowledge_Required, CIA_Impact, Description, Description Summary, Examples-Instances, Frameworks, Injection_Vector, Languages, Methods_of_Attack, Payload, Payload_Activation_Impact, Platforms, Probing_Techniques, Purposes, Related_Attack_Patterns, Related_Security_Principles, Related_Weaknesses, Relevant_Security_Requirements, Resources_Required, Solutions_and_Mitigations, Technical_Context, Typical_Likelihood_of_Exploit, Typical_Severity</Modification_Comment>
+            </Modification>
+            <Previous_Entry_Name Date="2017-05-01">Cross Site Scripting through Log Files</Previous_Entry_Name>
+         </Content_History>
+      </Attack_Pattern>
+      <Attack_Pattern ID="11" Name="Cause Web Server Misclassification" Abstraction="Detailed" Status="Draft">
+         <Description>An attack of this type exploits a Web server's decision to take action based on filename or file extension. Because different file types are handled by different server processes, misclassification may force the Web server to take unexpected action, or expected actions in an unexpected sequence. This may cause the server to exhaust resources, supply debug or system data to the attacker, or bind an attacker to a remote process.</Description>
+         <Extended_Description>
+            <xhtml:p>This type of vulnerability has been found in many widely used servers including IIS, Lotus Domino, and Orion. The attacker's job in this case is straightforward, standard communication protocols and methods are used and are generally appended with malicious information at the tail end of an otherwise legitimate request. The attack payload varies, but it could be special characters like a period or simply appending a tag that has a special meaning for operations on the server side like .jsp for a java application server. The essence of this attack is that the attacker deceives the server into executing functionality based on the name of the request, i.e. login.jsp, not the contents.</xhtml:p>
+         </Extended_Description>
+         <Likelihood_Of_Attack>Medium</Likelihood_Of_Attack>
+         <Typical_Severity>High</Typical_Severity>
+         <Related_Attack_Patterns>
+            <Related_Attack_Pattern Nature="ChildOf" CAPEC_ID="635"/>
+         </Related_Attack_Patterns>
+         <Execution_Flow>
+            <Attack_Step>
+               <Step>1</Step>
+               <Phase>Explore</Phase>
+               <Description>[Footprint file input vectors] Manually or using an automated tool, an attacker searches for all input locations where a user has control over the filenames or MIME types of files submitted to the web server.</Description>
+               <Technique>Attacker manually crawls application to identify file inputs</Technique>
+               <Technique>Attacker uses an automated tool to crawl application identify file inputs</Technique>
+               <Technique>Attacker manually assesses strength of access control protecting native application files from user control</Technique>
+               <Technique>Attacker explores potential for submitting files directly to the web server via independently constructed HTTP Requests</Technique>
+            </Attack_Step>
+            <Attack_Step>
+               <Step>2</Step>
+               <Phase>Experiment</Phase>
+               <Description>[File misclassification shotgunning] An attacker makes changes to file extensions and MIME types typically processed by web servers and looks for abnormal behavior.</Description>
+               <Technique>Attacker submits files with switched extensions (e.g. .php on a .jsp file) to web server.</Technique>
+               <Technique>Attacker adds extra characters (e.g. adding an extra . after the file extension) to filenames of files submitted to web server.</Technique>
+            </Attack_Step>
+            <Attack_Step>
+               <Step>3</Step>
+               <Phase>Experiment</Phase>
+               <Description>[File misclassification sniping] Understanding how certain file types are processed by web servers, an attacker crafts varying file payloads and modifies their file extension or MIME type to be that of the targeted type to see if the web server is vulnerable to misclassification of that type.</Description>
+               <Technique>Craft a malicious file payload, modify file extension to the targeted file type and submit it to the web server.</Technique>
+               <Technique>Craft a malicious file payload, modify its associated MIME type to the targeted file type and submit it to the web server.</Technique>
+            </Attack_Step>
+            <Attack_Step>
+               <Step>4</Step>
+               <Phase>Exploit</Phase>
+               <Description>[Disclose information] The attacker, by manipulating a file extension or MIME type is able to make the web server return raw information (not executed).</Description>
+               <Technique>Manipulate the file names that are explicitly sent to the server.</Technique>
+               <Technique>Manipulate the MIME sent in order to confuse the web server.</Technique>
+            </Attack_Step>
+         </Execution_Flow>
+         <Prerequisites>
+            <Prerequisite>Web server software must rely on file name or file extension for processing.</Prerequisite>
+            <Prerequisite>The attacker must be able to make HTTP requests to the web server.</Prerequisite>
+         </Prerequisites>
+         <Skills_Required>
+            <Skill Level="Low">To modify file name or file extension</Skill>
+            <Skill Level="Medium">To use misclassification to force the Web server to disclose configuration information, source, or binary data</Skill>
+         </Skills_Required>
+         <Resources_Required>
+            <Resource>None: No specialized resources are required to execute this type of attack.</Resource>
+         </Resources_Required>
+         <Consequences>
+            <Consequence>
+               <Scope>Confidentiality</Scope>
+               <Impact>Read Data</Impact>
+            </Consequence>
+            <Consequence>
+               <Scope>Confidentiality</Scope>
+               <Scope>Access Control</Scope>
+               <Scope>Authorization</Scope>
+               <Impact>Gain Privileges</Impact>
+            </Consequence>
+         </Consequences>
+         <Mitigations>
+            <Mitigation>Implementation: Server routines should be determined by content not determined by filename or file extension.</Mitigation>
+         </Mitigations>
+         <Example_Instances>
+            <Example>
+               <xhtml:p>J2EE application servers are supposed to execute Java Server Pages (JSP). There have been disclosure issues relating to Orion Application Server, where an attacker that appends either a period (.) or space characters to the end of a legitimate Http request, then the server displays the full source code in the attackers' web browser.</xhtml:p>
+               <xhtml:div style="margin-left:1em;" class="attack">http://victim.site/login.jsp.</xhtml:div>
+               <xhtml:p>Since remote data and directory access may be accessed directly from the JSP, this is a potentially very serious issue.</xhtml:p>
+               <xhtml:p>[REF-6]</xhtml:p>
+            </Example>
+         </Example_Instances>
+         <Related_Weaknesses>
+            <Related_Weakness CWE_ID="430"/>
+         </Related_Weaknesses>
+         <Taxonomy_Mappings>
+            <Taxonomy_Mapping Taxonomy_Name="ATTACK">
+               <Entry_ID>1036.006</Entry_ID>
+               <Entry_Name>Masquerading: Space after Filename</Entry_Name>
+            </Taxonomy_Mapping>
+         </Taxonomy_Mappings>
+         <References>
+            <Reference External_Reference_ID="REF-1"/>
+            <Reference External_Reference_ID="REF-6"/>
+         </References>
+         <Content_History>
+            <Submission>
+               <Submission_Name>CAPEC Content Team</Submission_Name>
+               <Submission_Organization>The MITRE Corporation</Submission_Organization>
+               <Submission_Date>2014-06-23</Submission_Date>
+            </Submission>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2017-01-09</Modification_Date>
+               <Modification_Comment>Updated Related_Attack_Patterns</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2017-08-04</Modification_Date>
+               <Modification_Comment>Updated Attack_Prerequisites, Resources_Required</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2018-07-31</Modification_Date>
+               <Modification_Comment>Updated Related_Attack_Patterns, Related_Weaknesses</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2019-04-04</Modification_Date>
+               <Modification_Comment>Updated Related_Weaknesses</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2020-07-30</Modification_Date>
+               <Modification_Comment>Updated Example_Instances</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2022-02-22</Modification_Date>
+               <Modification_Comment>Updated Description, Extended_Description</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2022-09-29</Modification_Date>
+               <Modification_Comment>Updated Example_Instances, Taxonomy_Mappings</Modification_Comment>
+            </Modification>
+         </Content_History>
+      </Attack_Pattern>
+      <Attack_Pattern ID="170" Name="Web Application Fingerprinting" Abstraction="Detailed" Status="Draft">
+         <Description>An attacker sends a series of probes to a web application in order to elicit version-dependent and type-dependent behavior that assists in identifying the target. An attacker could learn information such as software versions, error pages, and response headers, variations in implementations of the HTTP protocol, directory structures, and other similar information about the targeted service. This information can then be used by an attacker to formulate a targeted attack plan. While web application fingerprinting is not intended to be damaging (although certain activities, such as network scans, can sometimes cause disruptions to vulnerable applications inadvertently) it may often pave the way for more damaging attacks.</Description>
+         <Likelihood_Of_Attack>High</Likelihood_Of_Attack>
+         <Typical_Severity>Low</Typical_Severity>
+         <Related_Attack_Patterns>
+            <Related_Attack_Pattern Nature="ChildOf" CAPEC_ID="541"/>
+         </Related_Attack_Patterns>
+         <Execution_Flow>
+            <Attack_Step>
+               <Step>1</Step>
+               <Phase>Explore</Phase>
+               <Description>[Request fingerprinting] Use automated tools or send web server specific commands to web server and wait for server's response.</Description>
+               <Technique>Use automated tools or send web server specific commands to web server and then receive server's response.</Technique>
+            </Attack_Step>
+            <Attack_Step>
+               <Step>2</Step>
+               <Phase>Experiment</Phase>
+               <Description>[Increase the accuracy of server fingerprinting of Web servers] Attacker usually needs to send several different commands to accurately identify the web server. Attacker can also use automated tools to send requests to the server. The responses of the server may be different in terms of protocol behavior.</Description>
+               <Technique>Observe the ordering of the several HTTP response headers. The ordering of the header of each server may have unique identities.</Technique>
+               <Technique>Send bad requests or requests of nonexistent pages to the server.</Technique>
+               <Technique>Attacker takes existing automated tools to recognize the type and the version of the web server in use.</Technique>
+            </Attack_Step>
+            <Attack_Step>
+               <Step>3</Step>
+               <Phase>Experiment</Phase>
+               <Description>[Identify Web Application Software] After the web server platform software has been identified, the attacker start to identify web application technologies such as ASP, .NET, PHP and Java on the server.</Description>
+               <Technique>Examine the file name extensions in URL, for example .php indicates PHP script interfaced with Apache server.</Technique>
+               <Technique>Examine the HTTP Response Headers. This may leak information about software signatures</Technique>
+               <Technique>Examine Cookies that may contain server's software information.</Technique>
+               <Technique>Check error pages.</Technique>
+            </Attack_Step>
+            <Attack_Step>
+               <Step>4</Step>
+               <Phase>Experiment</Phase>
+               <Description>[Identify Backend Database Version] Determining the database engine type can assist attackers' attempt to successfully execute SQL injection. Some database API such as ODBC will show a database type as part of the driver information when reporting an error.</Description>
+               <Technique>Use tools to send bogus SQL query to the server and check error pages.</Technique>
+            </Attack_Step>
+         </Execution_Flow>
+         <Prerequisites>
+            <Prerequisite>Any web application can be fingerprinted. However, some configuration choices can limit the useful information an attacker may collect during a fingerprinting attack.</Prerequisite>
+         </Prerequisites>
+         <Skills_Required>
+            <Skill Level="Low">Attacker knows how to send HTTP request, SQL query to a web application.</Skill>
+         </Skills_Required>
+         <Resources_Required>
+            <Resource>While simple fingerprinting can be accomplished with only a web browser, for more thorough fingerprinting an attacker requires a variety of tools to collect information about the target. These tools might include protocol analyzers, web-site crawlers, and fuzzing tools. Footprinting a service adequately may also take a few days if the attacker wishes the footprinting attempt to go undetected.</Resource>
+         </Resources_Required>
+         <Consequences>
+            <Consequence>
+               <Scope>Confidentiality</Scope>
+               <Impact>Other</Impact>
+               <Note>Information Leakage</Note>
+            </Consequence>
+         </Consequences>
+         <Mitigations>
+            <Mitigation>Implementation: Obfuscate server fields of HTTP response.</Mitigation>
+            <Mitigation>Implementation: Hide inner ordering of HTTP response header.</Mitigation>
+            <Mitigation>Implementation: Customizing HTTP error codes such as 404 or 500.</Mitigation>
+            <Mitigation>Implementation: Hide URL file extension.</Mitigation>
+            <Mitigation>Implementation: Hide HTTP response header software information filed.</Mitigation>
+            <Mitigation>Implementation: Hide cookie's software information filed.</Mitigation>
+            <Mitigation>Implementation: Appropriately deal with error messages.</Mitigation>
+            <Mitigation>Implementation: Obfuscate database type in Database API's error message.</Mitigation>
+         </Mitigations>
+         <Example_Instances>
+            <Example>
+               <xhtml:p>An attacker sends malformed requests or requests of nonexistent pages to the server. Consider the following HTTP responses.</xhtml:p>
+               <xhtml:b>Response from Apache 1.3.23</xhtml:b>
+               <xhtml:div style="margin-left:1em;" class="informative">$ nc apache.server.com<xhtml:br/>80 GET / HTTP/3.0<xhtml:br/>
+                  <xhtml:br/>HTTP/1.1 400 Bad Request<xhtml:br/>Date: Sun, 15 Jun 2003 17:12: 37 GMT<xhtml:br/>Server: Apache/1.3.23<xhtml:br/>Connection: close<xhtml:br/>Transfer: chunked<xhtml:br/>Content-Type: text/HTML; charset=iso-8859-1</xhtml:div>
+               <xhtml:b>Response from IIS 5.0</xhtml:b>
+               <xhtml:div style="margin-left:1em;" class="informative">$ nc iis.server.com 80<xhtml:br/>GET / HTTP/3.0<xhtml:br/>
+                  <xhtml:br/>HTTP/1.1 200 OK<xhtml:br/>Server: Microsoft-IIS/5.0<xhtml:br/>Content-Location: http://iis.example.com/Default.htm<xhtml:br/>Date: Fri, 01 Jan 1999 20:14: 02 GMT<xhtml:br/>Content-Type: text/HTML<xhtml:br/>Accept-Ranges: bytes Last-Modified: Fri, 01 Jan 1999 20:14: 02 GMT<xhtml:br/>ETag: W/e0d362a4c335be1: ae1<xhtml:br/>Content-Length: 133</xhtml:div>
+               <xhtml:p>[REF-37]</xhtml:p>
+            </Example>
+         </Example_Instances>
+         <Related_Weaknesses>
+            <Related_Weakness CWE_ID="497"/>
+         </Related_Weaknesses>
+         <References>
+            <Reference External_Reference_ID="REF-36"/>
+            <Reference External_Reference_ID="REF-37" Section="Testing for Web Application Fingerprint (OWASP-IG-004)"/>
+            <Reference External_Reference_ID="REF-38"/>
+            <Reference External_Reference_ID="REF-39" Section="WASC-45 - Fingerprinting"/>
+         </References>
+         <Content_History>
+            <Submission>
+               <Submission_Name>CAPEC Content Team</Submission_Name>
+               <Submission_Organization>The MITRE Corporation</Submission_Organization>
+               <Submission_Date>2014-06-23</Submission_Date>
+            </Submission>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2015-11-09</Modification_Date>
+               <Modification_Comment>Updated Attack_Phases</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2015-12-07</Modification_Date>
+               <Modification_Comment>Updated Attack_Phases</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2017-01-09</Modification_Date>
+               <Modification_Comment>Updated Attack_Phases</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2017-05-01</Modification_Date>
+               <Modification_Comment>Updated Attack_Phases</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2017-08-04</Modification_Date>
+               <Modification_Comment>Updated Attack_Phases</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2018-07-31</Modification_Date>
+               <Modification_Comment>Updated Attack_Phases, References</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2019-04-04</Modification_Date>
+               <Modification_Comment>Updated Related_Weaknesses</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2020-07-30</Modification_Date>
+               <Modification_Comment>Updated Example_Instances</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2022-09-29</Modification_Date>
+               <Modification_Comment>Updated Example_Instances</Modification_Comment>
+            </Modification>
+         </Content_History>
+      </Attack_Pattern>
+      <Attack_Pattern ID="248" Name="Command Injection" Abstraction="Meta" Status="Stable">
+         <Description>An adversary looking to execute a command of their choosing, injects new items into an existing command thus modifying interpretation away from what was intended. Commands in this context are often standalone strings that are interpreted by a downstream component and cause specific responses. This type of attack is possible when untrusted values are used to build these command strings. Weaknesses in input validation or command construction can enable the attack and lead to successful exploitation.</Description>
+         <Likelihood_Of_Attack>Medium</Likelihood_Of_Attack>
+         <Typical_Severity>High</Typical_Severity>
+         <Prerequisites>
+            <Prerequisite>The target application must accept input from the user and then use this input in the construction of commands to be executed. In virtually all cases, this is some form of string input that is concatenated to a constant string defined by the application to form the full command to be executed.</Prerequisite>
+         </Prerequisites>
+         <Consequences>
+            <Consequence>
+               <Scope>Confidentiality</Scope>
+               <Scope>Integrity</Scope>
+               <Scope>Availability</Scope>
+               <Impact>Execute Unauthorized Commands</Impact>
+               <Note>A successful command injection attack enables an adversary to alter the command being executed and achieve a variety of negative consequences depending on the makeup of the new command. This includes potential information disclosure or the corruption of application data.</Note>
+            </Consequence>
+         </Consequences>
+         <Mitigations>
+            <Mitigation>All user-controllable input should be validated and filtered for potentially unwanted characters. Using an allowlist for input is desired, but if use of a denylist approach is necessary, then focusing on command related terms and delimiters is necessary.</Mitigation>
+            <Mitigation>Input should be encoded prior to use in commands to make sure command related characters are not treated as part of the command. For example, quotation characters may need to be encoded so that the application does not treat the quotation as a delimiter.</Mitigation>
+            <Mitigation>Input should be parameterized, or restricted to data sections of a command, thus removing the chance that the input will be treated as part of the command itself.</Mitigation>
+         </Mitigations>
+         <Related_Weaknesses>
+            <Related_Weakness CWE_ID="77"/>
+         </Related_Weaknesses>
+         <Taxonomy_Mappings>
+            <Taxonomy_Mapping Taxonomy_Name="OWASP Attacks">
+               <Entry_Name>Command Injection</Entry_Name>
+            </Taxonomy_Mapping>
+         </Taxonomy_Mappings>
+         <References>
+            <Reference External_Reference_ID="REF-615" Section="Testing for Command Injection"/>
+         </References>
+         <Content_History>
+            <Submission>
+               <Submission_Name>CAPEC Content Team</Submission_Name>
+               <Submission_Organization>The MITRE Corporation</Submission_Organization>
+               <Submission_Date>2014-06-23</Submission_Date>
+            </Submission>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2017-01-09</Modification_Date>
+               <Modification_Comment>Updated Attack_Motivation-Consequences, Attack_Prerequisites, Description, Description Summary, Solutions_and_Mitigations</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2017-05-01</Modification_Date>
+               <Modification_Comment>Updated Related_Weaknesses, Solutions_and_Mitigations, Typical_Likelihood_of_Exploit, Typical_Severity</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2020-07-30</Modification_Date>
+               <Modification_Comment>Updated Mitigations</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2020-12-17</Modification_Date>
+               <Modification_Comment>Updated References, Taxonomy_Mappings</Modification_Comment>
+            </Modification>
+         </Content_History>
+      </Attack_Pattern>
+      <Attack_Pattern ID="66" Name="SQL Injection" Abstraction="Standard" Status="Draft">
+         <Description>This attack exploits target software that constructs SQL statements based on user input. An attacker crafts input strings so that when the target software constructs SQL statements based on the input, the resulting SQL statement performs actions other than those the application intended. SQL Injection results from failure of the application to appropriately validate input.</Description>
+         <Extended_Description>
+            <xhtml:p>When specially crafted user-controlled input consisting of SQL syntax is used without proper validation as part of SQL queries, it is possible to glean information from the database in ways not envisaged during application design. Depending upon the database and the design of the application, it may also be possible to leverage injection to have the database execute system-related commands of the attackers' choice. SQL Injection enables an attacker to interact directly to the database, thus bypassing the application completely. Successful injection can cause information disclosure as well as ability to add or modify data in the database.</xhtml:p>
+         </Extended_Description>
+         <Likelihood_Of_Attack>High</Likelihood_Of_Attack>
+         <Typical_Severity>High</Typical_Severity>
+         <Related_Attack_Patterns>
+            <Related_Attack_Pattern Nature="ChildOf" CAPEC_ID="248"/>
+         </Related_Attack_Patterns>
+         <Execution_Flow>
+            <Attack_Step>
+               <Step>1</Step>
+               <Phase>Explore</Phase>
+               <Description>[Survey application] The attacker first takes an inventory of the functionality exposed by the application.</Description>
+               <Technique>Spider web sites for all available links</Technique>
+               <Technique>Sniff network communications with application using a utility such as WireShark.</Technique>
+            </Attack_Step>
+            <Attack_Step>
+               <Step>2</Step>
+               <Phase>Experiment</Phase>
+               <Description>[Determine user-controllable input susceptible to injection] Determine the user-controllable input susceptible to injection. For each user-controllable input that the attacker suspects is vulnerable to SQL injection, attempt to inject characters that have special meaning in SQL (such as a single quote character, a double quote character, two hyphens, a parenthesis, etc.). The goal is to create a SQL query with an invalid syntax.</Description>
+               <Technique>Use web browser to inject input through text fields or through HTTP GET parameters.</Technique>
+               <Technique>Use a web application debugging tool such as Tamper Data, TamperIE, WebScarab,etc. to modify HTTP POST parameters, hidden fields, non-freeform fields, etc.</Technique>
+               <Technique>Use network-level packet injection tools such as netcat to inject input</Technique>
+               <Technique>Use modified client (modified by reverse engineering) to inject input.</Technique>
+            </Attack_Step>
+            <Attack_Step>
+               <Step>3</Step>
+               <Phase>Experiment</Phase>
+               <Description>[Experiment with SQL Injection vulnerabilities] After determining that a given input is vulnerable to SQL Injection, hypothesize what the underlying query looks like. Iteratively try to add logic to the query to extract information from the database, or to modify or delete information in the database.</Description>
+               <Technique>Use public resources such as "SQL Injection Cheat Sheet" at http://ferruh.mavituna.com/makale/sql-injection-cheatsheet/, and try different approaches for adding logic to SQL queries.</Technique>
+               <Technique>Add logic to query, and use detailed error messages from the server to debug the query. For example, if adding a single quote to a query causes an error message, try : "' OR 1=1; --", or something else that would syntactically complete a hypothesized query. Iteratively refine the query.</Technique>
+               <Technique>Use "Blind SQL Injection" techniques to extract information about the database schema.</Technique>
+               <Technique>If a denial of service attack is the goal, try stacking queries. This does not work on all platforms (most notably, it does not work on Oracle or MySQL). Examples of inputs to try include: "'; DROP TABLE SYSOBJECTS; --" and "'); DROP TABLE SYSOBJECTS; --". These particular queries will likely not work because the SYSOBJECTS table is generally protected.</Technique>
+            </Attack_Step>
+            <Attack_Step>
+               <Step>4</Step>
+               <Phase>Exploit</Phase>
+               <Description>[Exploit SQL Injection vulnerability] After refining and adding various logic to SQL queries, craft and execute the underlying SQL query that will be used to attack the target system. The goal is to reveal, modify, and/or delete database data, using the knowledge obtained in the previous step. This could entail crafting and executing multiple SQL queries if a denial of service attack is the intent.</Description>
+               <Technique>Craft and Execute underlying SQL query</Technique>
+            </Attack_Step>
+         </Execution_Flow>
+         <Prerequisites>
+            <Prerequisite>SQL queries used by the application to store, retrieve or modify data.</Prerequisite>
+            <Prerequisite>User-controllable input that is not properly validated by the application as part of SQL queries.</Prerequisite>
+         </Prerequisites>
+         <Skills_Required>
+            <Skill Level="Low">It is fairly simple for someone with basic SQL knowledge to perform SQL injection, in general. In certain instances, however, specific knowledge of the database employed may be required.</Skill>
+         </Skills_Required>
+         <Resources_Required>
+            <Resource>None: No specialized resources are required to execute this type of attack.</Resource>
+         </Resources_Required>
+         <Indicators>
+            <Indicator>Too many false or invalid queries to the database, especially those caused by malformed input.</Indicator>
+         </Indicators>
+         <Consequences>
+            <Consequence>
+               <Scope>Integrity</Scope>
+               <Impact>Modify Data</Impact>
+            </Consequence>
+            <Consequence>
+               <Scope>Confidentiality</Scope>
+               <Impact>Read Data</Impact>
+            </Consequence>
+            <Consequence>
+               <Scope>Confidentiality</Scope>
+               <Scope>Integrity</Scope>
+               <Scope>Availability</Scope>
+               <Impact>Execute Unauthorized Commands</Impact>
+               <Note>Run Arbitrary Code</Note>
+            </Consequence>
+            <Consequence>
+               <Scope>Confidentiality</Scope>
+               <Scope>Access Control</Scope>
+               <Scope>Authorization</Scope>
+               <Impact>Gain Privileges</Impact>
+            </Consequence>
+         </Consequences>
+         <Mitigations>
+            <Mitigation>Strong input validation - All user-controllable input must be validated and filtered for illegal characters as well as SQL content. Keywords such as UNION, SELECT or INSERT must be filtered in addition to characters such as a single-quote(') or SQL-comments (--) based on the context in which they appear.</Mitigation>
+            <Mitigation>Use of parameterized queries or stored procedures - Parameterization causes the input to be restricted to certain domains, such as strings or integers, and any input outside such domains is considered invalid and the query fails. Note that SQL Injection is possible even in the presence of stored procedures if the eventual query is constructed dynamically.</Mitigation>
+            <Mitigation>Use of custom error pages - Attackers can glean information about the nature of queries from descriptive error messages. Input validation must be coupled with customized error pages that inform about an error without disclosing information about the database or application.</Mitigation>
+         </Mitigations>
+         <Example_Instances>
+            <Example>With PHP-Nuke versions 7.9 and earlier, an attacker can successfully access and modify data, including sensitive contents such as usernames and password hashes, and compromise the application through SQL Injection. The protection mechanism against SQL Injection employs a denylist approach to input validation. However, because of an improper denylist, it is possible to inject content such as "foo'/**/UNION" or "foo UNION/**/" to bypass validation and glean sensitive information from the database. See also: CVE-2006-5525</Example>
+         </Example_Instances>
+         <Related_Weaknesses>
+            <Related_Weakness CWE_ID="89"/>
+            <Related_Weakness CWE_ID="1286"/>
+         </Related_Weaknesses>
+         <Taxonomy_Mappings>
+            <Taxonomy_Mapping Taxonomy_Name="WASC">
+               <Entry_ID>19</Entry_ID>
+               <Entry_Name>SQL Injection</Entry_Name>
+            </Taxonomy_Mapping>
+            <Taxonomy_Mapping Taxonomy_Name="OWASP Attacks">
+               <Entry_Name>SQL Injection</Entry_Name>
+            </Taxonomy_Mapping>
+         </Taxonomy_Mappings>
+         <References>
+            <Reference External_Reference_ID="REF-607" Section="Testing for SQL Injection"/>
+         </References>
+         <Content_History>
+            <Submission>
+               <Submission_Name>CAPEC Content Team</Submission_Name>
+               <Submission_Organization>The MITRE Corporation</Submission_Organization>
+               <Submission_Date>2014-06-23</Submission_Date>
+            </Submission>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2017-08-04</Modification_Date>
+               <Modification_Comment>Updated Resources_Required</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2018-07-31</Modification_Date>
+               <Modification_Comment>Updated References, Related_Weaknesses</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2019-04-04</Modification_Date>
+               <Modification_Comment>Updated Execution_Flow</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2020-07-30</Modification_Date>
+               <Modification_Comment>Updated Example_Instances, Related_Weaknesses</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2020-12-17</Modification_Date>
+               <Modification_Comment>Updated References, Taxonomy_Mappings</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2021-06-24</Modification_Date>
+               <Modification_Comment>Updated Description</Modification_Comment>
+            </Modification>
+            <Modification>
+               <Modification_Name>CAPEC Content Team</Modification_Name>
+               <Modification_Organization>The MITRE Corporation</Modification_Organization>
+               <Modification_Date>2022-02-22</Modification_Date>
+               <Modification_Comment>Updated Description, Extended_Description</Modification_Comment>
+            </Modification>
+         </Content_History>
+      </Attack_Pattern>
+   </Attack_Patterns>
+</Attack_Pattern_Catalog>

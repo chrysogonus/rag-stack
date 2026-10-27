@@ -1,8 +1,9 @@
 # rag-stack
 
-A self-hosted RAG chatbot on attacks against AI systems and EU AI regulation. It answers from seven
-openly licensed sources and cites every claim with its exact ID (ATT&CK or ATLAS technique, OWASP
-risk, AI Act provision, KI-MIG section, CVE), quoting legal text verbatim in English or German.
+A self-hosted RAG chatbot on attacks against AI systems and EU AI regulation. It answers from eight
+openly licensed sources and cites every claim with its exact ID (ATT&CK or ATLAS technique, CAPEC
+attack pattern, OWASP risk, AI Act provision, KI-MIG section, CVE), quoting legal text verbatim in
+English or German.
 
 **How it works:** sources are fetched politely, snapshotted with sha256 and chunked one unit per
 chunk (technique, risk section, article paragraph, recital, annex point, advisory). Chunks are
@@ -16,6 +17,7 @@ versions, and an AI-generated label (EU AI Act Art. 50(1)).
 |---|---|---|
 | MITRE ATLAS | content version from the release (2026.09 at the last ingest) | Apache-2.0 |
 | MITRE ATT&CK (Enterprise, Mobile, ICS) | release pinned in `config/sources.yaml` (20.0) | ATT&CK terms of use |
+| MITRE CAPEC | release pinned in `config/sources.yaml` (3.9) | CAPEC terms of use |
 | OWASP Top 10 for LLM Applications 2026 | `2026/final`, pinned commit | CC BY-SA 4.0 |
 | OWASP Top 10 for Agentic Applications 2026 | PDF of 2025-12-09 | CC BY-SA 4.0 |
 | EU AI Act (EN, DE) | latest consolidated version (02024R1689-20260727), recitals from the OJ | © EU, Decision 2011/833/EU |

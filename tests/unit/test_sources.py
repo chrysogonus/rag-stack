@@ -4,12 +4,15 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+
 from rag_stack.ingestion.models import Snapshot
 from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS, SOURCES
 from rag_stack.ingestion.sources import (
     ai_vulns,
     atlas,
     attack,
+    capec,
     eu_law,
     gesetze_im_internet,
     owasp_agentic,
@@ -173,6 +176,67 @@ def test_attack_fetch_gets_each_domain_of_the_pinned_release():
         "mobile-attack-20.0.json",
         "ics-attack-20.0.json",
     ]
+
+
+def test_capec_one_chunk_per_live_attack_pattern_with_its_links_as_edges():
+    chunks, edges = capec.parse(snapshot("capec", "3.9", "capec", ["capec_v3.9.xml"]))
+
+    found = by_id(chunks)
+    # CAPEC-106 is deprecated.
+    assert {i for i, _ in found} == {"CAPEC-11", "CAPEC-66", "CAPEC-170", "CAPEC-248"}
+    sqli = found[("CAPEC-66", "en")]
+    assert sqli.title == "SQL Injection"
+    assert sqli.url == "https://capec.mitre.org/data/definitions/66.html"
+    assert sqli.license == "LicenseRef-MITRE-CAPEC-Terms"
+    assert "The MITRE Corporation" in sqli.attribution
+    assert sqli.text.startswith("SQL Injection (attack pattern, standard)\n\nThis attack exploits")
+    assert "Likelihood of attack: High\nTypical severity: High" in sqli.text
+    assert "Execution flow:\n- 1. Explore: [Survey application] The attacker first" in sqli.text
+    assert "WireShark" not in sqli.text  # a step's techniques stay out
+    assert (
+        "- Confidentiality, Integrity, Availability: Execute Unauthorized Commands "
+        "(Run Arbitrary Code)" in sqli.text
+    )
+    assert "- Use of parameterized queries or stored procedures" in sqli.text
+    assert sqli.meta["abstraction"] == "Standard"
+    # XHTML paragraphs are flattened to text.
+    misclassification = found[("CAPEC-11", "en")].text
+    assert (
+        "This type of vulnerability has been found in many widely used servers" in misclassification
+    )
+    assert "<" not in misclassification
+    # <br/> keeps a command and each HTTP header on a line of its own.
+    fingerprinting = found[("CAPEC-170", "en")].text
+    assert "$ nc iis.server.com 80\nGET / HTTP/3.0" in fingerprinting
+    assert "HTTP/1.1 200 OK\nServer: Microsoft-IIS/5.0\n" in fingerprinting
+    triples = {(e.src_id, e.rel, e.dst_id) for e in edges}
+    assert {
+        ("CAPEC-66", "child_of", "CAPEC-248"),
+        ("CAPEC-66", "related_weakness", "CWE-89"),
+        ("CAPEC-11", "maps_to", "T1036.006"),
+    } <= triples
+    assert not {t for t in triples if t[0] == "CAPEC-106"}
+
+
+def test_capec_fetch_gets_the_pinned_catalog_and_checks_its_version():
+    xml = (FIXTURES / "capec/capec_v3.9.xml").read_bytes()
+
+    class Fetcher:
+        def __init__(self):
+            self.urls = []
+
+        def get(self, url):
+            self.urls.append(url)
+            return xml
+
+    fetcher = Fetcher()
+    config = {"base_url": "https://h/data/xml", "version": "3.9"}
+    snap = capec.fetch(fetcher, config, WHEN)  # type: ignore[arg-type]
+
+    assert fetcher.urls == ["https://h/data/xml/capec_v3.9.xml"]
+    assert snap.version == "3.9" and list(snap.files) == ["capec_v3.9.xml"]
+    with pytest.raises(ValueError, match="not the CAPEC 3.10 catalog"):
+        capec.fetch(fetcher, {**config, "version": "3.10"}, WHEN)  # type: ignore[arg-type]
 
 
 def test_owasp_llm_one_chunk_per_section_and_mappings_as_edges():

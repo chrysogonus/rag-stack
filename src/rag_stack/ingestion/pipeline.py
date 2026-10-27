@@ -23,6 +23,7 @@ MODULES = {
     "ki-mig": "gesetze_im_internet",
     "ai-vulns": "ai_vulns",
     "attack": "attack",
+    "capec": "capec",
 }
 CONFIG = Path(__file__).parents[3] / "config/sources.yaml"
 
