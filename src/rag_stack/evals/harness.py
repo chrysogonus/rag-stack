@@ -106,14 +106,21 @@ def judge_input(case: dict, answer: str, sources: list[dict] | None) -> str:
 
 
 async def judge(llm: ChatModel, case: dict, answer: str, sources: list[dict] | None) -> dict:
-    reply = await complete(
-        llm, [{"role": "user", "content": judge_input(case, answer, sources)}], RUBRIC.read_text()
-    )
-    # Take the first {...} block: some models wrap the JSON in prose or a code fence.
-    found = re.search(r"\{.*\}", reply, re.DOTALL)
-    if not found:
-        raise ValueError(f"{case['id']}: judge returned no JSON: {reply!r}")
-    verdict = json.loads(found.group())
+    messages: list[Message] = [{"role": "user", "content": judge_input(case, answer, sources)}]
+    # Judges now and then reply with broken JSON (an unescaped quote); asking again fixes that.
+    reply = ""
+    for _ in range(2):
+        reply = await complete(llm, messages, RUBRIC.read_text())
+        # Take the first {...} block: some models wrap the JSON in prose or a code fence.
+        found = re.search(r"\{.*\}", reply, re.DOTALL)
+        try:
+            verdict = json.loads(found.group()) if found else None
+        except json.JSONDecodeError:
+            verdict = None
+        if verdict is not None:
+            break
+    else:
+        raise ValueError(f"{case['id']}: judge returned no valid JSON twice, last: {reply!r}")
     scale = lambda v: None if v is None else (float(v) - 1) / 4  # noqa: E731
     return {
         "correctness": scale(verdict["correctness"]),

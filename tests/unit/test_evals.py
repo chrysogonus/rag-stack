@@ -156,6 +156,24 @@ def test_judge_defaults_to_the_rag_provider_and_can_run_elsewhere():
 
 
 @pytest.mark.anyio
+async def test_the_judge_is_asked_once_more_when_its_json_is_broken():
+    from fakes.llm import FakeChatModel
+
+    from rag_stack.evals.harness import judge
+
+    case = {"id": "x", "question": "Q?", "key_facts": ["F"]}
+    broken = '{"correctness": 5 "reason": "says "hi""}'
+    llm = FakeChatModel(broken, '```json\n{"correctness": 5, "reason": "ok"}\n```')
+    assert await judge(llm, case, "A", None) == {
+        "correctness": 1.0, "faithfulness": None, "reason": "ok"
+    }  # fmt: skip
+    assert llm.calls[0] == llm.calls[1]
+
+    with pytest.raises(ValueError, match="x: judge returned no valid JSON twice"):
+        await judge(FakeChatModel(broken, "no verdict"), case, "A", None)
+
+
+@pytest.mark.anyio
 async def test_a_follow_up_case_asks_its_previous_question_first_in_the_same_thread():
     from fakes.embeddings import FakeRetriever
     from fakes.llm import FakeChatModel
