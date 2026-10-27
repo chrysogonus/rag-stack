@@ -90,6 +90,12 @@ def number(label: str) -> str:
     return label.strip().strip("().").strip()
 
 
+def is_point(label: Tag | None) -> bool:
+    """A paragraph or point label of the act itself: not a dash bullet, and not a label quoted
+    from the act an amending article inserts it into ('5., „(5))."""
+    return label is not None and bool(re.fullmatch(r"\d+[a-z]?|[a-z]+", number(label.get_text())))
+
+
 def classes(el: Tag) -> list[str]:
     return list(el.get_attribute_list("class"))
 
@@ -130,7 +136,7 @@ def items(el: Tag) -> list[tuple[str, Tag]]:
             continue  # nested inside another item of el
         label = grid.find("div", class_="grid-list-column-1", recursive=False)
         content = grid.find("div", class_="grid-list-column-2", recursive=False)
-        if label and content:
+        if label and content and is_point(label):
             found.append((number(label.get_text()), content))
     return found
 
@@ -138,7 +144,8 @@ def items(el: Tag) -> list[tuple[str, Tag]]:
 def without_lists(el: Tag) -> str:
     stripped = copy.copy(el)
     for grid in stripped.select("div.grid-container"):
-        grid.decompose()
+        if is_point(grid.find("div", class_="grid-list-column-1", recursive=False)):
+            grid.decompose()
     return block_text(stripped)
 
 
@@ -153,7 +160,7 @@ def articles(soup: BeautifulSoup, act: str):
         paragraphs = [
             d
             for d in art.find_all("div", class_="norm", recursive=False)
-            if d.find("span", class_="no-parag", recursive=False)
+            if is_point(d.find("span", class_="no-parag", recursive=False))
         ]
         if paragraphs:
             for para in paragraphs:
@@ -162,10 +169,16 @@ def articles(soup: BeautifulSoup, act: str):
                     continue
                 p = number(label.get_text())
                 label.extract()
+                # A paragraph's further subparagraphs follow its div as siblings, up to the next.
+                blocks = [para]
+                for sibling in para.find_next_siblings():
+                    if any(sibling is d for d in paragraphs):
+                        break
+                    blocks.append(sibling)
                 yield (
                     f"{base}({p})",
                     title,
-                    block_text(para),
+                    "\n".join(block_text(b) for b in blocks),
                     element_id(art),
                     f"{element_id(art)}.{p}",
                     [base],

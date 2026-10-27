@@ -447,6 +447,12 @@ def test_eu_ai_act_units_in_both_languages_linked_by_unit_key():
     assert en.title.startswith("Article 50 Transparency obligations")
     assert de.title.startswith("Artikel 50 Transparenzpflichten")
     assert en.url.endswith("#art_50")
+    # Unnumbered subparagraphs belong to the numbered paragraph before them.
+    deep_fakes = found[("AI Act Art. 50(4)", "en")].text
+    assert deep_fakes.startswith("Deployers of an AI system that generates or manipulates image")
+    assert "\nDeployers of an AI system that generates or manipulates text" in deep_fakes
+    assert "Text erzeugt oder manipuliert" in found[("AI Act Art. 50(4)", "de")].text
+    assert "manipulates text" not in found[("AI Act Art. 50(3)", "en")].text
     assert en.source_version == "02024R1689-20260727"
     assert en.attribution == "© European Union, https://eur-lex.europa.eu"
     # Amendment markers (▼M1) are not part of the legal text.
@@ -454,6 +460,12 @@ def test_eu_ai_act_units_in_both_languages_linked_by_unit_key():
     # Definitions in Article 3 are points, cited as Art. 3(1).
     assert "‘AI system’ means" in found[("AI Act Art. 3(1)", "en")].text
     assert found[("AI Act Art. 3(1)", "de")].unit_key == "art_3.1"
+    # A paragraph quoted into the act an article amends is not a paragraph of the AI Act, and
+    # dashes are bullets, not points: both stay in their unit's text.
+    ids = {c.native_id for c in chunks}
+    assert not {i for i in ids if i.startswith(("AI Act Art. 105(", "Annex II "))}
+    assert "‘5.\n\nFor Artificial Intelligence systems" in found[("AI Act Art. 105", "en")].text
+    assert "terrorism,\n\n—\ntrafficking in human beings," in found[("Annex II", "en")].text
     # Annex points and their lettered sub-points.
     assert found[("Annex III 1", "en")].text.startswith("1. Biometrics")
     assert found[("Annex III 1(a)", "en")].text.startswith("(a) remote biometric identification")

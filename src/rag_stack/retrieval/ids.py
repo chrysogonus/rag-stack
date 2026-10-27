@@ -11,10 +11,12 @@ PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bASI\s?(\d{2})\b", re.I), "asi"),
     (re.compile(r"\bCVE-\d{4}-\d{4,}\b", re.I), "cve"),
     (re.compile(r"\bGHSA(?:-[23456789cfghjmpqrvwx]{4}){3}\b", re.I), "ghsa"),
-    # "Article 50(1)", "Art. 50 Abs. 1", "Artikel 50 Absatz 1", "Art. 4a"
+    # "Article 50(1)", "Art. 50 Abs. 1", "Artikel 50 Absatz 1", "Art. 4a", "Art. 66(j)",
+    # "Artikel 16 Buchstabe h"
     (
         re.compile(
-            r"\bArt(?:icle|ikel|\.)?\s*(\d+[a-z]?)\b(?:\s*\((\d+[a-z]?)\)|\s+(?:Abs\.|Absatz)\s*(\d+[a-z]?))?",
+            r"\bArt(?:icle|ikel|\.)?\s*(\d+[a-z]?)\b(?:\s*\((\d+[a-z]?|[a-z])\)"
+            r"|\s+(?:Abs\.|Absatz|Buchstabe)\s*(\d+[a-z]?|[a-z]\b))?",
             re.I,
         ),
         "article",
@@ -22,11 +24,13 @@ PATTERNS: list[tuple[re.Pattern[str], str]] = [
     # "paragraph 1 of Article 50"
     (re.compile(r"\bparagraph\s+(\d+[a-z]?)\s+of\s+Article\s+(\d+[a-z]?)\b", re.I), "paragraph"),
     (re.compile(r"\b(?:Recital|Erwägungsgrund)\s+(\d+)\b", re.I), "recital"),
-    # "Annex III", "Annex III point 1(a)", "Anhang III Nummer 1 Buchstabe a"
+    # "Annex III", "Annex III point 1(a)", "Anhang III Nummer 1 Buchstabe a", "Annex XIII e",
+    # "Annex VII point (d)", "Anhang IV Buchstabe a"
     (
         re.compile(
             r"\b(?:Annex|Anhang)\s+([IVXL]+)\b(?:\s*(?:point|Nummer|Nr\.)?\s*(\d+)"
-            r"(?:\s*(?:\(([a-z])\)|Buchstabe\s+([a-z])\b))?)?",
+            r"(?:\s*(?:\(([a-z])\)|Buchstabe\s+([a-z])\b))?"
+            r"|\s+(?:point\s+|Buchstabe\s+)?(?:\(([a-z])\)|([a-z])\b(?!\.\w|\s+[a-z])))?",
         ),
         "annex",
     ),
@@ -110,6 +114,8 @@ def normalize(kind: str, m: re.Match[str], text: str) -> list[str]:
         unit = f"Annex {annex}"
         if point:
             unit += f" {point}" + (f"({letter})" if letter else "")
+        elif letter := m.group(5) or m.group(6):
+            unit += f" {letter}"
         return [eu_id(act, unit) for act in acts(EU_ACTS, text, m)]
     if kind == "section":
         section, paragraph = m.group(1) or m.group(2), m.group(3) or m.group(4)

@@ -16,9 +16,9 @@ from rag_stack.retrieval.fusion import rrf
 from rag_stack.retrieval.ids import detect_ids
 from rag_stack.retrieval.language import detect_language
 
-# Words asking how to defend (defend, defence, harden; schützen, absichern, ...).
+# Words asking how to defend (defend, defence, counter, harden; schützen, absichern, ...).
 DEFENSE = (
-    r"mitigat|countermeasure|defen|prevent|protect|safeguard|harden|"
+    r"mitigat|\bcounter|defen|prevent|protect|safeguard|harden|"
     r"gegenma|abwehr|schutz|schütz|minder|verteidig|absicher|härt"
 )
 # Questions about related items get the 1-hop neighbors of the units they are about.
@@ -113,7 +113,8 @@ class KnowledgeBase:
         with observability.stage("hybrid search"):
             hybrid = self._hybrid(search)
         if not seeds:
-            seeds = [hybrid[0].native_id] if hybrid else []
+            # No IDs named: relate the best search hits, not only the first (often a near miss).
+            seeds = list(dict.fromkeys(c.native_id for c in hybrid))[:3]
         with observability.stage("graph expansion"):
             related = self._neighbors(query, seeds) if RELATED.search(query) else []
 
@@ -140,7 +141,8 @@ class KnowledgeBase:
                 key=lambda r: -r.score,
             )
 
-        neighbors = ranked(related, "graph")[:MAX_NEIGHBORS]
+        others = [c for c in related if c.native_id not in seeds]
+        neighbors = ranked(others, "graph")[:MAX_NEIGHBORS]
         named = [c for c in exact if c.native_id in ids or set(c.aliases) & set(ids)]
 
         def parent_of(chunk: Chunk) -> str:
@@ -149,8 +151,9 @@ class KnowledgeBase:
         parts = [c for c in exact if c not in named]
         relevant = [r for r in ranked(hybrid, "hybrid") if r.score >= self.min_score]
         if not exact:
-            # No IDs named: the search hits lead, the neighbors of the top one follow. Without
-            # a relevant hit there is nothing to relate to, so the answer is an abstention.
+            # No IDs named: the search hits lead (labeled with edges among the top ones), their
+            # neighbors follow. Without a relevant hit there is nothing to relate to, so the answer
+            # is an abstention.
             found = [*relevant, *neighbors] if relevant else []
         else:
             # Named units, then units related to them, then parts of named articles and annexes.
@@ -220,19 +223,20 @@ class KnowledgeBase:
     def _neighbors(self, query: str, seeds: list[str]) -> list[Chunk]:
         """The first chunk of each unit one hop from the seeds, labeled with the relation
         (the edge is not in either unit's text, so the model needs it spelled out)."""
-        rels = {"mitigates"} if MITIGATIONS.search(query) else None
+        rels = {"mitigates", "counters"} if MITIGATIONS.search(query) else None
         relation: dict[str, str] = {}
         for seed in seeds[:3]:
             for edge in self.graph.edges(seed, rels):
                 other = edge.dst_id if edge.src_id == seed else edge.src_id
-                if other not in seeds:
-                    relation.setdefault(other, f"{edge.src_id} {edge.rel} {edge.dst_id}")
+                # A seed is kept too: an edge between two named units labels them for the prompt.
+                relation.setdefault(other, f"{edge.src_id} {edge.rel} {edge.dst_id}")
         if not relation:
             return []
         flt = models.Filter(must=[any_of("native_id", list(relation))])
         # Edges may point outside the corpus (ATT&CK, CWE): cap only what exists.
         chunks = [c for c in self._scroll(flt) if c.chunk_index == 0]
-        chunks.sort(key=lambda c: list(relation).index(c.native_id))
+        order = list(relation)
+        chunks.sort(key=lambda c: (c.native_id not in seeds, order.index(c.native_id)))
         return [
             c.model_copy(update={"meta": {**c.meta, "relation": relation[c.native_id]}})
             for c in chunks[:NEIGHBOR_CANDIDATES]

@@ -37,6 +37,24 @@ FIXTURES = Path(__file__).parents[1] / "fixtures"
         ("Erwägungsgrund 133 und Recital 27", ["Recital 133", "Recital 27"]),
         ("Annex III point 1(a)", ["Annex III 1(a)"]),
         ("Anhang III Nummer 4 Buchstabe b", ["Annex III 4(b)"]),
+        # Lettered points of articles without paragraphs and of annexes are units of their own.
+        (
+            "What is Art. 66(j) and Artikel 16 Buchstabe h?",
+            ["AI Act Art. 66(j)", "AI Act Art. 16(h)"],
+        ),
+        (
+            "Annex XIII e, Annex VII point (d), Anhang IV Buchstabe a",
+            ["Annex XIII e", "Annex VII d", "Annex IV a"],
+        ),
+        (
+            "Article 5(1)(a) and Annex III and Annex II",
+            ["AI Act Art. 5(1)", "Annex III", "Annex II"],
+        ),
+        # A bare letter followed by a word is prose: "Annex III a list".
+        ("Is Annex III a list of uses, and Annex I a set of laws?", ["Annex III", "Annex I"]),
+        # ... and so is "e.g."; a sentence's full stop is not.
+        ("Explain Annex XIII e. Then Annex VII point (d).", ["Annex XIII e", "Annex VII d"]),
+        ("Annex III e.g. covers biometrics", ["Annex III"]),
         ("Wer ist nach § 2 Abs. 3 KI-MIG zuständig?", ["KI-MIG § 2 Abs. 3"]),
         ("What does Section 3 of the KI-MIG cover?", ["KI-MIG § 3"]),
         ("Section 2 of Annex I", ["Annex I"]),
@@ -164,7 +182,7 @@ async def test_a_whole_article_returns_its_paragraphs(kb):
     found = await kb.retrieve("What does Article 50 say?")
 
     ids = [r.chunk.native_id for r in found if r.via == "id"]
-    assert set(ids) == {"AI Act Art. 50(1)", "AI Act Art. 50(2)", "AI Act Art. 50(3)"}
+    assert set(ids) == {f"AI Act Art. 50({p})" for p in range(1, 5)}
 
 
 async def test_legal_text_comes_in_the_language_of_the_question(kb):
@@ -274,6 +292,22 @@ async def test_without_named_ids_search_hits_come_before_graph_neighbors(kb):
     assert vias == sorted(vias, key=lambda v: v != "hybrid")
 
 
+async def test_without_named_ids_an_edge_between_lower_search_hits_reaches_the_prompt():
+    # The best search hit is unrelated; the two linked units come second and third.
+    question = "can file integrity monitoring counter spearphishing link attacks"
+    detection = chunk("DET0878", question + " detection", source_id="attack")
+    countermeasure = chunk("D3-FIM", "file integrity monitoring", source_id="d3fend")
+    technique = chunk("T1566.002", "spearphishing link", source_id="attack")
+    edge = Edge(src_id="D3-FIM", rel="counters", dst_id="T1566.002", origin="d3fend")
+    kb = small_kb([detection, countermeasure, technique], [edge])
+
+    found = await kb.retrieve(question)
+
+    assert found[0].chunk.native_id == "DET0878"
+    relations = {r.chunk.native_id: r.chunk.meta.get("relation") for r in found}
+    assert "D3-FIM counters T1566.002" in relations.values()
+
+
 async def test_a_named_unit_keeps_only_its_best_sections_so_related_units_fit():
     sections = [
         chunk(
@@ -323,6 +357,23 @@ async def test_a_search_hit_that_is_also_a_graph_neighbor_keeps_its_relation():
     relations = {r.chunk.native_id: r.chunk.meta.get("relation") for r in found}
     assert set(relations) == {"AML.T0001", "AML.M0001"}
     assert "AML.M0001 mitigates AML.T0001" in relations.values()
+
+
+@pytest.mark.parametrize(
+    "question",
+    ["Does D3-SCF counter T1505.002?", "How does D3-SCF defend against T1505.002?"],
+)
+async def test_an_edge_between_two_named_units_reaches_the_prompt(question):
+    # The link is only in the edge data: without it on a named unit, the model denies it.
+    countermeasure = chunk("D3-SCF", "system call filtering", source_id="d3fend")
+    technique = chunk("T1505.002", "transport agent", source_id="attack")
+    edge = Edge(src_id="D3-SCF", rel="counters", dst_id="T1505.002", origin="d3fend")
+    kb = small_kb([countermeasure, technique], [edge])
+
+    found = await kb.retrieve(question)
+
+    assert [(r.chunk.native_id, r.via) for r in found] == [("D3-SCF", "id"), ("T1505.002", "id")]
+    assert {r.chunk.meta.get("relation") for r in found} == {"D3-SCF counters T1505.002"}
 
 
 async def test_the_reranker_picks_which_neighbors_are_kept():

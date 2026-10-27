@@ -38,7 +38,9 @@ def knowledge_base() -> Iterator[KnowledgeBase]:
     settings = Settings()
     client = QdrantClient(url=settings.qdrant_url)
     collection = f"e2e_{uuid.uuid4().hex[:8]}"
-    embedder = create_embedder(settings.embedding_model)
+    embedder = create_embedder(
+        settings.embedding_model, settings.embedding_provider, settings.embedding_base_url
+    )
     sparse = create_sparse_embedder(settings.sparse_model)
     ensure_collection(client, collection, embedder.dim)
     atlas_chunks, edges = parse(atlas, "atlas", "atlas", ["ATLAS.yaml"])
@@ -57,7 +59,9 @@ def knowledge_base() -> Iterator[KnowledgeBase]:
             collection,
             embedder,
             sparse,
-            create_reranker(settings.reranker_model),
+            create_reranker(
+                settings.reranker_model, settings.reranker_provider, settings.reranker_base_url
+            ),
             EdgeGraph(edges),
             candidates=settings.retrieval_candidates,
             min_score=settings.rerank_min_score,
@@ -105,8 +109,12 @@ def test_cited_multi_turn_answers_are_streamed_and_persisted(knowledge_base):
         assert "Die Anbieter stellen sicher" in german or "natürliche" in german
         assert "KI-generierte Antwort" in german
 
-        tactics, _ = ask(client, thread_url, "Which tactics does MITRE ATLAS define?")
-        assert "[ATLAS Tactics]" in tactics and "Execution" in tactics
+        tactics, tactic_sources = ask(client, thread_url, "Which tactics does MITRE ATLAS define?")
+        # The overview is retrieved; the fixture's one tactic is in it and in its own unit, so
+        # the answer may cite either.
+        assert any(s["id"] == "ATLAS Tactics" for s in tactic_sources)
+        assert "Execution" in tactics
+        assert "[ATLAS Tactics]" in tactics or "[AML.TA0005]" in tactics
 
         off_topic, _ = ask(client, thread_url, "What is the capital of France?")
         assert off_topic.startswith("I can't answer that from the indexed sources.")
@@ -133,6 +141,23 @@ def test_a_follow_up_asking_how_to_defend_gets_the_mitigations(knowledge_base):
     assert any(s["id"] == "AML.M0019" and s["used"] for s in sources)
     assert not answer.startswith("I can't answer that")
     assert "AML.M0019" in answer
+
+
+def test_a_question_naming_no_id_gets_the_links_between_its_search_hits(knowledge_base):
+    # MathGPT employs direct prompt injection, which achieves Execution: two hops from the top
+    # hit, so the second link comes from a lower search hit.
+    thread_url = f"/api/threads/{uuid.uuid4()}/messages"
+
+    with TestClient(create_app(retriever=knowledge_base)) as client:
+        answer, sources = ask(
+            client,
+            thread_url,
+            "Which tactic does the direct prompt injection used against MathGPT achieve?",
+        )
+
+    assert not answer.startswith("I can't answer that")
+    assert any(s["id"] == "AML.TA0005" and s["used"] for s in sources)
+    assert "Execution" in answer
 
 
 def test_an_answer_cut_off_by_the_client_is_kept_and_the_chat_goes_on(knowledge_base):
