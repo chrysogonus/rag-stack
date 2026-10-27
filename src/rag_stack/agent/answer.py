@@ -13,8 +13,9 @@ LABELS = {
         "retrieved": "Retrieved sources (none cited)",
         "versions": "Source versions",
         "indexed": "The knowledge base covers",
-        "hint": "Try naming what you're asking about: a technique ID such as AML.T0051, an OWASP "
-        "entry such as LLM01, or an AI Act article such as Article 50.",
+        "hint": "Try naming what you're asking about: a technique ID such as T1059.001 or "
+        "AML.T0051, a weakness such as CWE-79, a CVE, an OWASP entry such as LLM01, or an AI Act "
+        "article such as Article 50.",
         "ai": "*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
     },
     "de": {
@@ -22,8 +23,9 @@ LABELS = {
         "retrieved": "Abgerufene Quellen (keine zitiert)",
         "versions": "Quellenversionen",
         "indexed": "Die Wissensbasis umfasst",
-        "hint": "Nennen Sie am besten, worum es geht: eine Technik-ID wie AML.T0051, einen "
-        "OWASP-Eintrag wie LLM01 oder einen Artikel der KI-VO wie Art. 50.",
+        "hint": "Nennen Sie am besten, worum es geht: eine Technik-ID wie T1059.001 oder "
+        "AML.T0051, eine Schwachstellenart wie CWE-79, eine CVE, einen OWASP-Eintrag wie LLM01 "
+        "oder einen Artikel der KI-VO wie Art. 50.",
         "ai": "*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
     },
 }

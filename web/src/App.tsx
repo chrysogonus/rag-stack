@@ -12,9 +12,9 @@ const THREAD_KEY = 'rag-stack:thread'
 const CHATS_KEY = 'rag-stack:chats'
 
 const STARTERS = [
+  { question: 'Which D3FEND techniques counter T1110.001?', source: 'd3fend' },
   { question: 'What is AML.T0051?', source: 'atlas' },
   { question: 'What does Article 50 of the EU AI Act require?', source: 'eu-ai-act' },
-  { question: 'Which risks does the OWASP agentic Top 10 list?', source: 'owasp-agentic-2026' },
 ]
 
 type Turn = Message & { sources?: SourceRef[] }
@@ -328,7 +328,7 @@ export default function App() {
         )}
         {empty && (
           <section className="welcome">
-            <h1>What do you want to know about AI security?</h1>
+            <h1>What do you want to know about cybersecurity?</h1>
             <p>
               Each constellation is one source. When you ask, the passages behind the answer light up. Answers come
               from an AI model and can be wrong, so check anything important.
@@ -402,7 +402,7 @@ export default function App() {
             onKeyDown={onKeyDown}
             maxLength={MAX_CHARS}
             rows={1}
-            placeholder="Ask about AI security"
+            placeholder="Ask about cybersecurity"
             aria-describedby={showCount ? 'count' : undefined}
             autoFocus
           />

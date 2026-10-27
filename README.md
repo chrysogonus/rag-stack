@@ -1,9 +1,10 @@
 # rag-stack
 
-A self-hosted RAG chatbot on attacks against AI systems and EU AI regulation. It answers from ten
-openly licensed sources and cites every claim with its exact ID (ATT&CK or ATLAS technique, CAPEC
-attack pattern, CWE weakness, D3FEND countermeasure, OWASP risk, AI Act provision, KI-MIG section,
-CVE), quoting legal text verbatim in English or German.
+A self-hosted RAG chatbot on cybersecurity research, specializing in attacks against AI systems and
+EU and German AI regulation. It answers from ten openly licensed sources and cites every claim with
+its exact ID (ATT&CK or ATLAS technique, CAPEC attack pattern, CWE weakness, D3FEND countermeasure,
+OWASP risk, AI Act provision, KI-MIG section, CVE), quoting legal text verbatim in English or
+German.
 
 **How it works:** sources are fetched politely, snapshotted with sha256 and chunked one unit per
 chunk (technique, risk section, article paragraph, recital, annex point, advisory). Chunks are
