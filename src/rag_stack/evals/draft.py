@@ -23,7 +23,7 @@ LEGAL = {*EU_ACTS, *GERMAN_LAWS}
 # What each category asks for; the drafter sees this and the unit's text.
 KINDS = {
     "id-exact": "names the unit's id and asks what it is or says",
-    "freshness": "asks about the unit's content in a user's own words, without naming its id",
+    "paraphrase": "asks about the unit's content in a user's own words, without naming its id",
     "german-legal": "is in German and asks for the exact wording of the provision, naming it",
     "cve": "asks about the vulnerability by its CVE id: affected package, impact or fixed version",
     "cross-source": "asks how the two units relate, naming one of them, so answering needs both",
@@ -122,7 +122,7 @@ async def draft_one(
     question, facts = draft.get("question"), draft.get("key_facts")
     if not isinstance(question, str) or not isinstance(facts, list) or not facts:
         return None
-    if category == "freshness" and units[0].native_id.lower() in question.lower():
+    if category == "paraphrase" and units[0].native_id.lower() in question.lower():
         return None  # it was asked not to name the id: retrieval would be trivial
     return {
         "id": f"draft-{category}-{'-'.join(slug(u.native_id) for u in units)}",

@@ -12,7 +12,7 @@ REFRESH_LOG = $(shell uv run python -c 'from rag_stack.config import Settings; p
 UNITS := $(HOME)/.config/systemd/user
 
 .PHONY: help install format up down restart restart-api status logs services tracing migrate ingest index refresh rollback schedule unschedule ask \
-	eval eval-retrieval eval-draft eval-labels eval-agreement \
+	eval eval-retrieval eval-units eval-draft eval-labels eval-agreement \
 	ci lockfile lint secrets typecheck test audit build web-check evals e2e check-all
 
 SOURCE ?= all
@@ -169,6 +169,9 @@ eval: ## The paid eval run: asks and judges only questions whose inputs changed 
 
 eval-retrieval: ## Retrieval scores and latency, no LLM calls: make eval-retrieval [SPLIT=dev|test|all]
 	$(CLI) eval --retrieval-only --split $(or $(SPLIT),dev)
+
+eval-units: ## Retrieval checks generated from the corpus (ID, title, edges), no LLM calls: make eval-units [N=50]
+	$(CLI) eval-units -n $(or $(N),50)
 
 eval-labels: ## Sample 40 answers into judge_labels.jsonl for a person to label (no LLM calls)
 	$(CLI) eval-labels

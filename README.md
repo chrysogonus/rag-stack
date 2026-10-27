@@ -44,7 +44,8 @@ make up                      # API (:8000) and chat UI: open http://localhost:51
 make tracing                 # optional: self-hosted Langfuse at http://localhost:3000 (traces, ratings)
 make eval                    # golden set, RAG vs. baseline, only changed questions -> evals/datasets/ai_security/report.md
 make eval-retrieval          # retrieval only, free: tune on the dev split, confirm with SPLIT=test
-make eval-draft SOURCE=atlas CATEGORY=freshness N=5   # draft test questions for review -> drafts.jsonl
+make eval-units              # free retrieval checks generated from the corpus: IDs, titles, edges (N=50 per source)
+make eval-draft SOURCE=atlas CATEGORY=paraphrase N=5   # draft test questions for review -> drafts.jsonl
 make eval-labels             # 40 answers to label yourself; then `make eval-agreement` scores the judge
 make down                    # stop everything (stored conversations and the index are kept)
 ```

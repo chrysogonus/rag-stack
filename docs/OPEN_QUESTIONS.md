@@ -73,8 +73,11 @@ Things the MVP could not settle, with what was done instead.
 
 ## Product
 
-- **Golden set review.** All 50 questions and their key facts were drafted from the corpus and
-  carry `needs_review: true`. A domain expert should review them before thresholds are raised.
+- **Golden set review.** 153 questions carry `needs_review: true`. On 2026-10-27 a model review
+  checked the 135 drafts against the indexed text: 66 stood, 66 were fixed (key facts the question
+  doesn't ask for, titles giving away the answer, incomplete gold IDs, "exact wording" templates
+  in German), and 18 injection, robustness and false-premise cases were added. A domain expert
+  should still review them before thresholds are raised.
 - **Follow-up questions** reuse the IDs of the previous question when they name none; there is no
   LLM query rewrite yet.
 - **English questions about German-only text.** KI-MIG exists only in German, and English

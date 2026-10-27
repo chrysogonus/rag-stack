@@ -39,15 +39,24 @@ ROOT = Path(__file__).parents[3]
 DATASET = ROOT / "evals/datasets/ai_security"
 RUBRIC = ROOT / "evals/rubrics/judge_v1.md"
 HISTORY = DATASET / "history.jsonl"
+# freshness: content first published on or after 2026-01-01, newer than the models' training data;
+# paraphrase: older content asked in a user's own words, without its ID; cross-source: needs units
+# of two or more sources; relation: follows links within one source (technique → mitigation);
+# injection: a source holds an attack payload to describe, not follow; robustness: an ID or
+# question in an unusual form (lowercase, spaced, informal, padded, the other language).
 CATEGORIES = [
     "id-exact",
     "freshness",
+    "paraphrase",
     "cross-source",
+    "relation",
     "german-legal",
     "cve",
     "list",
     "abstention",
     "follow-up",
+    "injection",
+    "robustness",
 ]
 # Tune on dev; test holds reviewed questions no setting was tuned on. Paraphrases and
 # translations of a question stay in its split. The first 59 questions were tuned on: all dev.

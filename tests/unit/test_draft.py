@@ -61,7 +61,7 @@ def ids(pool):
 
 
 def test_candidates_are_units_nobody_asked_about_yet(settings):
-    assert ids(draft.candidates(settings, "atlas", "freshness")) == [["AML.T9990"]]
+    assert ids(draft.candidates(settings, "atlas", "paraphrase")) == [["AML.T9990"]]
     assert ids(draft.candidates(settings, "ki-mig", "id-exact")) == [["KI-MIG § 99"]]
     assert ids(draft.candidates(settings, "ki-mig", "german-legal")) == [["KI-MIG § 99"]]
 
@@ -76,7 +76,7 @@ def test_units_named_by_a_golden_question_or_its_key_facts_count_as_asked(settin
     monkeypatch.setattr(draft, "load_cases", lambda: [overview])
 
     # LLM99:2026 is only in a key fact; Art. 99(1) only under the named article.
-    assert draft.candidates(settings, "owasp-llm-2026", "freshness") == []
+    assert draft.candidates(settings, "owasp-llm-2026", "paraphrase") == []
     assert draft.candidates(settings, "owasp-llm-2026", "cross-source") == []
     assert draft.candidates(settings, "eu-ai-act", "german-legal") == []
 
@@ -100,12 +100,12 @@ def test_categories_that_dont_fit_the_source_are_refused(settings):
 async def test_drafts_are_appended_for_review_and_their_units_not_drafted_again(settings, capsys):
     llm = FakeChatModel(f"Sure: {DRAFTED}")
 
-    assert await draft.main(settings, "atlas", "freshness", 3, llm=llm) == 0
+    assert await draft.main(settings, "atlas", "paraphrase", 3, llm=llm) == 0
 
     [written] = [json.loads(line) for line in draft.DRAFTS.read_text().splitlines()]
     assert written == {
-        "id": "draft-freshness-aml-t9990",
-        "category": "freshness",
+        "id": "draft-paraphrase-aml-t9990",
+        "category": "paraphrase",
         "split": "test",
         "language": "en",
         "question": "What does the new technique do?",
@@ -117,7 +117,7 @@ async def test_drafts_are_appended_for_review_and_their_units_not_drafted_again(
     assert "without naming its id" in llm.calls[0]["instructions"]
     assert "1 of 1 drafts appended" in capsys.readouterr().out
     # The drafted unit counts as asked: a second run finds nothing new.
-    assert await draft.main(settings, "atlas", "freshness", 3, llm=llm) == 1
+    assert await draft.main(settings, "atlas", "paraphrase", 3, llm=llm) == 1
 
 
 @pytest.mark.anyio
@@ -125,7 +125,7 @@ async def test_unusable_drafts_are_dropped(settings):
     leaks_id = '{"question": "What is AML.T9990?", "key_facts": ["X"]}'
 
     for reply in ("not json", '{"question": "Q?", "key_facts": []}', leaks_id):
-        assert await draft.main(settings, "atlas", "freshness", 1, llm=FakeChatModel(reply)) == 1
+        assert await draft.main(settings, "atlas", "paraphrase", 1, llm=FakeChatModel(reply)) == 1
     assert draft.DRAFTS.read_text() == ""
 
 

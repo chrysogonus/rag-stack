@@ -116,10 +116,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     draft_cmd.add_argument("source", choices=list(MODULES))
     draft_cmd.add_argument(
-        "category", choices=["id-exact", "freshness", "german-legal", "cve", "cross-source"]
+        "category", choices=["id-exact", "paraphrase", "german-legal", "cve", "cross-source"]
     )
     draft_cmd.add_argument("-n", type=int, default=5, help="how many drafts (default 5)")
     draft_cmd.add_argument("--seed", type=int, default=0, help="which units are sampled")
+    units_cmd = commands.add_parser(
+        "eval-units", help="retrieval checks generated from sampled units and edges: no LLM calls"
+    )
+    units_cmd.add_argument("-n", type=int, default=50, help="units and edges per source")
     commands.add_parser("eval-labels", help="sample answers into judge_labels.jsonl to label")
     commands.add_parser(
         "eval-agreement", help="judge the labeled answers again and compare with the labels"
@@ -160,6 +164,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "eval-labels":
             return asyncio.run(calibration.write_sheet(settings))
         return asyncio.run(calibration.agreement(settings))
+    if args.command == "eval-units":
+        from rag_stack.evals import units
+
+        return asyncio.run(units.main(settings, args.n))
     if args.command == "eval-draft":
         from rag_stack.evals import draft
 
