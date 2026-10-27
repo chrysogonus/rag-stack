@@ -14,7 +14,7 @@ risk → AI Act article → CVE).
 | `owasp-agentic-2026` | OWASP Top 10 for Agentic Applications 2026 | PDF from genai.owasp.org | `ASI01` … one chunk per section |
 | `eu-ai-act` | Regulation (EU) 2024/1689, EN + DE | CELLAR REST API (EUR-Lex HTML is behind a bot challenge) | `AI Act Art. 50(1)`, `Recital 133`, `Annex III 1(a)` |
 | `ki-mig` | KI-Marktüberwachungs- und Innovationsförderungsgesetz | gesetze-im-internet.de XML | `KI-MIG § 2 Abs. 1` |
-| `ai-vulns` | CVEs in AI packages, last 24 months | OSV (GitHub advisories), NVD API 2.0, CISA KEV | `CVE-…` (GHSA/PYSEC ids as aliases) |
+| `vulns` | The whole CISA KEV catalog; GitHub-reviewed critical and high advisories and every AI-package advisory of the last 24 months | CISA KEV, GitHub advisory API, OSV, NVD API 2.0, FIRST EPSS | `CVE-…` (GHSA/PYSEC ids as aliases; an advisory without a CVE keeps its GHSA id) |
 
 ## Modules
 
@@ -177,7 +177,7 @@ category can be missed. Item 4, the key-fact review flag, is not built.
 
 | Source | Cadence | Notes |
 |---|---|---|
-| `ai-vulns` | daily to weekly | Set `NVD_API_KEY`: without it NVD is paced at 6.5 s per request |
+| `vulns` | daily to weekly | Set `GITHUB_TOKEN` and `NVD_API_KEY`: without them GitHub is paced at 61 s and NVD at 6.5 s per request |
 | `atlas` | weekly | Follows `ATLAS-latest.yaml`; releases come monthly to quarterly |
 | `eu-ai-act` | monthly | The SPARQL query finds the latest consolidated version |
 | `ki-mig` | monthly | Re-ingest once the "dokumentarisch noch nicht bearbeitet" note is gone (OPEN_QUESTIONS) |
@@ -257,6 +257,12 @@ SP 800-53 ↔ CSF 2.0, NIS2 → BSIG and CRA. The edges stored today to ATT&CK a
 Left out: BSI IT-Grundschutz (licensed commercially, no free reuse terms found) and the GDPR
 (the golden set's Art. 17 question is an abstention). Atomic Red Team holds executable attack
 commands: they are source data for testing detections, quoted under the "sources are data" rule.
+
+`vulns` deviates from "NVD 2.0 details" for GitHub's advisories: they carry their own CVSS,
+CWEs and EPSS score, and one NVD lookup each (about 12k) would take hours a week. NVD is asked
+once for all of KEV (`hasKev`) and per CVE only for AI packages; FIRST's API scores the CVEs
+GitHub has no EPSS for. A GitHub advisory's text is cut to its first 1,500 characters (often a
+proof of concept follows), so it stays one chunk; AI-package advisories keep their full text.
 
 ### Groundwork, before the first new source
 

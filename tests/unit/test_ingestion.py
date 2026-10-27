@@ -115,6 +115,30 @@ def test_fetcher_sends_per_host_headers(tmp_path):
     assert keys[-1] == "k"
 
 
+def test_fetcher_follows_the_next_link_through_every_page_and_caches_it(tmp_path):
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        seen.append(str(request.url))
+        if "after" in request.url.params:
+            return httpx.Response(200, content=b"[2]")
+        next_page = '<https://api.example.org/items?q=1&after=c1>; rel="next"'
+        return httpx.Response(200, content=b"[1]", headers={"link": next_page})
+
+    fetcher = make_fetcher(handler, tmp_path)
+    pages = fetcher.get_pages("https://api.example.org/items", params={"q": 1})
+
+    assert pages == [b"[1]", b"[2]"]
+    assert seen == [
+        "https://api.example.org/items?q=1",
+        "https://api.example.org/items?q=1&after=c1",
+    ]
+    assert fetcher.get_pages("https://api.example.org/items", params={"q": 1}) == pages
+    assert len(seen) == 2
+
+
 def test_ingest_snapshots_with_sha256_and_skips_unchanged_input(tmp_path, monkeypatch):
     yaml_bytes = (FIXTURES / "atlas/ATLAS.yaml").read_bytes()
 

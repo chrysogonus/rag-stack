@@ -51,11 +51,12 @@ SOURCES: dict[str, SourceInfo] = {
             "https://www.gesetze-im-internet.de/ki-mig/",
         ),
         SourceInfo(
-            "ai-vulns",
-            "AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV)",
+            "vulns",
+            "Vulnerabilities (CISA KEV, GitHub Advisory Database, NVD, EPSS)",
             "CC-BY-4.0",
-            "GitHub Advisory Database (CC BY 4.0) via OSV; NVD (public domain); CISA KEV (CC0)",
-            "https://osv.dev",
+            "GitHub Advisory Database (CC BY 4.0), also via OSV; NVD (public domain); "
+            "CISA KEV (CC0); EPSS by FIRST",
+            "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
         ),
         SourceInfo(
             "attack",

@@ -37,7 +37,7 @@ export const SOURCES: { id: string; label: string; short: string }[] = [
   { id: 'ki-mig', label: 'KI-MIG', short: 'KI-MIG' },
   { id: 'owasp-llm-2026', label: 'OWASP LLM Top 10', short: 'OWASP LLM' },
   { id: 'owasp-agentic-2026', label: 'OWASP Agentic Top 10', short: 'OWASP Agentic' },
-  { id: 'ai-vulns', label: 'AI package vulnerabilities', short: 'AI CVEs' },
+  { id: 'vulns', label: 'Vulnerabilities', short: 'CVEs' },
 ]
 
 /** FNV-1a: a stable 32-bit seed from a string. */

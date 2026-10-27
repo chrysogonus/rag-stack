@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     fetch_user_agent: str = "rag-stack/0.1 (AI-security knowledge base ingest)"
     fetch_cache_ttl_hours: float = 24
     nvd_api_key: SecretStr = SecretStr("")
+    github_token: SecretStr = SecretStr("")
 
     # Tracing: the self-hosted Langfuse from `make tracing`. Without keys nothing is traced.
     langfuse_base_url: str = "http://localhost:3000"

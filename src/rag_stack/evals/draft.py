@@ -63,7 +63,7 @@ def candidates(settings: Settings, source: str, category: str) -> list[tuple[lis
     """Unasked units of the source that fit the category, each with a note for the drafter: one
     unit, or the two ends of an edge between sources with the relation (it's in neither text)."""
     if (category == "german-legal" and source not in LEGAL) or (
-        category == "cve" and source != "ai-vulns"
+        category == "cve" and source != "vulns"
     ):
         raise ValueError(f"{category} questions don't fit {source}")
     corpus: dict[str, list[Chunk]] = {}

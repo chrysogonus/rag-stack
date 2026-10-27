@@ -24,7 +24,7 @@ versions, and an AI-generated label (EU AI Act Art. 50(1)).
 | OWASP Top 10 for Agentic Applications 2026 | PDF of 2025-12-09 | CC BY-SA 4.0 |
 | EU AI Act (EN, DE) | latest consolidated version (02024R1689-20260727), recitals from the OJ | © EU, Decision 2011/833/EU |
 | KI-MIG | gesetze-im-internet.de XML (BGBl. 2026 I Nr. 223) | § 5 UrhG |
-| AI package CVEs | last 24 months, OSV + NVD + CISA KEV | CC BY 4.0 / public domain / CC0 |
+| Vulnerabilities: the whole CISA KEV catalog, GitHub-reviewed critical and high advisories and every AI-package advisory of the last 24 months, with EPSS scores | KEV + GitHub Advisory Database + OSV + NVD + EPSS, daily snapshot | CC0 / CC BY 4.0 / public domain / EPSS free use |
 
 See [NOTICE.md](NOTICE.md) for attribution, [docs/PLAN.md](docs/PLAN.md) for the design and
 [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md) for what is unresolved.
@@ -48,8 +48,10 @@ make eval-labels             # 40 answers to label yourself; then `make eval-agr
 make down                    # stop everything (stored conversations and the index are kept)
 ```
 
-The CVE source queries NVD once per CVE; without `NVD_API_KEY` in `.env` NVD allows 5 requests
-per 30 seconds, so the first ingest of `ai-vulns` takes about an hour (responses are cached).
+The `vulns` source pages through GitHub's advisory API (about 130 requests) and asks NVD once
+per AI-package CVE. Without `GITHUB_TOKEN` in `.env` GitHub allows 60 requests an hour, so an
+ingest takes over two hours; without `NVD_API_KEY` NVD allows 5 requests per 30 seconds
+(responses are cached for a day).
 
 **GPU models (optional).** With an NVIDIA GPU, embeddings and reranking run on two vLLM
 services (`docker compose` profile `gpu`): Qwen3-Embedding-4B and Qwen3-Reranker-0.6B, both

@@ -1,0 +1,18 @@
+{
+ "CVE-2026-110447": {
+  "percentage": 0.11634,
+  "percentile": 0.96027
+ },
+ "CVE-2026-114625": {
+  "percentage": 0.01025,
+  "percentile": 0.63396
+ },
+ "CVE-2026-26013": {
+  "percentage": 0.0043,
+  "percentile": 0.37054
+ },
+ "CVE-2026-35002": {
+  "percentage": 0.00842,
+  "percentile": 0.57631
+ }
+}

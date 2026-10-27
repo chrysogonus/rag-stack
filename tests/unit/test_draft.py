@@ -93,7 +93,7 @@ def test_categories_that_dont_fit_the_source_are_refused(settings):
     with pytest.raises(ValueError, match="cve questions don't fit atlas"):
         draft.candidates(settings, "atlas", "cve")
     with pytest.raises(ValueError, match="not ingested"):
-        draft.candidates(settings, "ai-vulns", "cve")
+        draft.candidates(settings, "vulns", "cve")
 
 
 @pytest.mark.anyio

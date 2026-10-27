@@ -58,11 +58,16 @@ d3fend:
   base_url: https://d3fend.mitre.org/ontologies/d3fend
   version: "1.6.0"
 
-ai-vulns:
+vulns:
+  # The whole KEV catalog; GitHub-reviewed advisories and AI-package advisories of the window.
   window_months: 24
   osv_url: https://api.osv.dev/v1/query
   nvd_url: https://services.nvd.nist.gov/rest/json/cves/2.0
   kev_url: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+  github_url: https://api.github.com/advisories
+  severities: [critical, high]
+  epss_url: https://api.first.org/data/v1/epss
+  # AI packages: every advisory of the window, whatever its severity, with its full text.
   packages:
     - {name: langchain, ecosystem: PyPI}
     - {name: langchain-core, ecosystem: PyPI}

@@ -1,0 +1,142 @@
+[
+ {
+  "cve_id": "CVE-2026-35002",
+  "cvss_severities": {
+   "cvss_v3": {
+    "score": 9.8,
+    "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+   },
+   "cvss_v4": {
+    "score": 0.0,
+    "vector_string": null
+   }
+  },
+  "cwes": [
+   {
+    "cwe_id": "CWE-95",
+    "name": "Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
+   }
+  ],
+  "description": "### Impact\nAgno versions prior to 2.3.24 contain an arbitrary code execution vulnerability\nin the model execution component. The `field_type` parameter on a `FunctionCall`\ninput field was passed to Python's built-in `eval()`, allowing an attacker who\ncould influence that value to execute arbitrary Python code in the Agno process.\n\nThis is a code injection flaw (CWE-95) with full impact to confidentiality,\nintegrity, and availability. CVSS 3.1 score: 9.3 (Critical).\n\nAny deployment that exposes Agno to user-influenced FunctionCall inputs\n(for example via an API, web UI, or untrusted tool/model output) is affected.\n\n### Patches\nFixed in **Agno 2.3.24**.\n\nThe unsafe `eval()` call was replaced with a fixed `type_mapping` dictionary\nlookup, and `field_type` is now validated as either a known string key or an\nalready-resolved `type` object before use. See commit\n[cbf67552](https://github.com/agno-agi/agno/commit/cbf675521d4d2281925a051784a3b94172e56416)\n(PR #5912).\n\nAll users should upgrade to 2.3.24 or later. The current release line (2.6.x)\nincludes the fix.\n\n### Workarounds\nThere is no safe workaround. Users who cannot upgrade should ensure no\nuntrusted input can reach the `field_type` parameter of `FunctionCall`\ninput fields, but upgrading is strongly preferred.\n\n### References\n- Patch commit: https://github.com/agno-agi/agno/commit/cbf675521d4d2281925a051784a3b94172e56416\n- Patch PR: https://github.com/agno-agi/agno/pull/5912\n\n[Cut short; the full advisory: https://github.com/advisories/GHSA-m4w4-3r8h-jw98]",
+  "epss": {
+   "percentage": 0.00842,
+   "percentile": 0.57631
+  },
+  "ghsa_id": "GHSA-m4w4-3r8h-jw98",
+  "html_url": "https://github.com/advisories/GHSA-m4w4-3r8h-jw98",
+  "identifiers": [
+   {
+    "type": "GHSA",
+    "value": "GHSA-m4w4-3r8h-jw98"
+   },
+   {
+    "type": "CVE",
+    "value": "CVE-2026-35002"
+   }
+  ],
+  "published_at": "2026-10-27T13:30:41Z",
+  "severity": "critical",
+  "summary": "Agno: Arbitrary code execution via `eval()` on `field_type` in `FunctionCall`",
+  "vulnerabilities": [
+   {
+    "first_patched_version": "2.3.24",
+    "package": {
+     "ecosystem": "pip",
+     "name": "agno"
+    },
+    "vulnerable_functions": [],
+    "vulnerable_version_range": "< 2.3.24"
+   }
+  ]
+ },
+ {
+  "cve_id": "CVE-2026-48705",
+  "cvss_severities": {
+   "cvss_v3": {
+    "score": 9.3,
+    "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:N/I:H/A:L"
+   },
+   "cvss_v4": {
+    "score": 0.0,
+    "vector_string": null
+   }
+  },
+  "cwes": [
+   {
+    "cwe_id": "CWE-20",
+    "name": "Improper Input Validation"
+   }
+  ],
+  "description": "### Summary\n\nAn unauthenticated remote attacker can crash a running MONAILabel server or silently corrupt its medical AI inference results by uploading a single crafted DICOM file (~132 KB) via the REST API. The vulnerability stems from pydicom's lack of validation for Decimal String (DS) and Integer String (IS) DICOM Value Representations, which allows NaN and infinity values to pass through MONAI's PydicomReader and propagate through the entire spatial transform and ML inference pipeline.\n\nNo authentication is required for the default MONAILabel REST API. The attacker needs only network access to the server (default port 8000).\n\n**Severity:** CVSS 3.1: 8.7 HIGH  \n**CVSS Vector:** CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:N/I:H/A:L  \n**CWE:** CWE-20 (Improper Input Validation) \u2192 CWE-682 (Incorrect Calculation)\n\n### Details\n\n**Root Cause \u2014 Layer 1: pydicom accepts invalid VR values**\n\npydicom's `DSfloat.__new__()` calls Python's `float(val)`, which silently accepts \"NaN\", \"inf\", and \"-inf\". The DICOM standard (PS3.5 Table 6.2-1) defines DS as digits 0-9, +, -, ., e only. NaN and inf are not valid DS values. The `is_valid_ds()` check only runs in RAISE validation mode, which is NOT the default. The default mode is WARN, which still returns the invalid value.\n\n```python\n>>> from pydicom.valuerep import DSfloat\n>>> DSfloat(\"NaN\")\nnan    # Accepted silently \u2014 should be rejected\n>>> DSfloat(\"inf\")\ninf    # Accepted silently \u2014 should be rejected\n```\n\n\n[Cut short; the full advisory: https://github.com/advisories/GHSA-6hp3-vr39-rqw8]",
+  "epss": null,
+  "ghsa_id": "GHSA-6hp3-vr39-rqw8",
+  "html_url": "https://github.com/advisories/GHSA-6hp3-vr39-rqw8",
+  "identifiers": [
+   {
+    "type": "GHSA",
+    "value": "GHSA-6hp3-vr39-rqw8"
+   },
+   {
+    "type": "CVE",
+    "value": "CVE-2026-48705"
+   }
+  ],
+  "published_at": "2026-10-27T13:30:10Z",
+  "severity": "critical",
+  "summary": "MONAILabel Server Crash and Silent Inference Corruption via Crafted DICOM (pydicom DS/IS Validation Bypass)",
+  "vulnerabilities": [
+   {
+    "first_patched_version": "1.6.1",
+    "package": {
+     "ecosystem": "pip",
+     "name": "monai"
+    },
+    "vulnerable_functions": [],
+    "vulnerable_version_range": "< 1.6.1"
+   }
+  ]
+ },
+ {
+  "cve_id": null,
+  "cvss_severities": {
+   "cvss_v3": {
+    "score": 0.0,
+    "vector_string": null
+   },
+   "cvss_v4": {
+    "score": 9.5,
+    "vector_string": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:H/VI:H/VA:H/SC:H/SI:H/SA:N"
+   }
+  },
+  "cwes": [
+   {
+    "cwe_id": "CWE-502",
+    "name": "Deserialization of Untrusted Data"
+   }
+  ],
+  "description": "## Impact\n\nA vulnerability in applications using App router with Cache Component can lead to remote code execution. The application needs to have a `use cache` function that returns multiple typed arrays.\n\n## Workaround\n\nThere is no known workaround for affected applications with such `use cache` functions. You should upgrade immediately even if your application does not have similar functions.",
+  "epss": null,
+  "ghsa_id": "GHSA-673q-mjm6-r5xr",
+  "html_url": "https://github.com/advisories/GHSA-673q-mjm6-r5xr",
+  "identifiers": [
+   {
+    "type": "GHSA",
+    "value": "GHSA-673q-mjm6-r5xr"
+   }
+  ],
+  "published_at": "2026-10-22T16:42:31Z",
+  "severity": "critical",
+  "summary": "Next.js: Unauthenticated Remote Code Execution in `use cache` functions returning typed arrays",
+  "vulnerabilities": [
+   {
+    "first_patched_version": "16.4.1",
+    "package": {
+     "ecosystem": "npm",
+     "name": "next"
+    },
+    "vulnerable_functions": [],
+    "vulnerable_version_range": ">= 16.0.0, <= 16.4.0"
+   }
+  ]
+ }
+]

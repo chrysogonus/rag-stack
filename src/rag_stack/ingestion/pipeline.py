@@ -23,7 +23,7 @@ MODULES = {
     "owasp-agentic-2026": "owasp_agentic",
     "eu-ai-act": "eu_law",
     "ki-mig": "gesetze_im_internet",
-    "ai-vulns": "ai_vulns",
+    "vulns": "vulns",
     "attack": "attack",
     "capec": "capec",
     "cwe": "cwe",
@@ -49,13 +49,23 @@ def parser_sha(module: ModuleType) -> str:
 
 def make_fetcher(settings: Settings) -> Fetcher:
     nvd_key = settings.nvd_api_key.get_secret_value()
+    github_token = settings.github_token.get_secret_value()
+    headers = {}
+    if nvd_key:
+        headers["services.nvd.nist.gov"] = {"apiKey": nvd_key}
+    if github_token:
+        headers["api.github.com"] = {"Authorization": f"Bearer {github_token}"}
     return Fetcher(
         settings.fetch_user_agent,
         Path(settings.data_dir) / "cache",
         settings.fetch_cache_ttl_hours,
-        # NVD allows 5 requests per 30 s without a key and 50 with one.
-        host_intervals={"services.nvd.nist.gov": 0.7 if nvd_key else 6.5},
-        headers={"services.nvd.nist.gov": {"apiKey": nvd_key}} if nvd_key else {},
+        # NVD allows 5 requests per 30 s without a key and 50 with one; GitHub's API 60 an hour
+        # without a token and 5,000 with one.
+        host_intervals={
+            "services.nvd.nist.gov": 0.7 if nvd_key else 6.5,
+            "api.github.com": 1.0 if github_token else 61.0,
+        },
+        headers=headers,
     )
 
 

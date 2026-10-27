@@ -11,7 +11,6 @@ import pytest
 from rag_stack.ingestion.models import Snapshot
 from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS, SOURCES
 from rag_stack.ingestion.sources import (
-    ai_vulns,
     atlas,
     attack,
     capec,
@@ -21,6 +20,7 @@ from rag_stack.ingestion.sources import (
     gesetze_im_internet,
     owasp_agentic,
     owasp_llm,
+    vulns,
 )
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
@@ -512,26 +512,148 @@ def test_legal_parsers_take_ids_and_licenses_from_the_registry(monkeypatch):
     assert law[1].url == "https://g/bsig_2025/__2.html"
 
 
-def test_ai_vulns_merges_aliases_into_one_advisory_per_cve(tmp_path):
-    names = ["osv.json", "nvd.json", "kev.json"]
-    snap = snapshot("ai-vulns", "2026-10-24", "ai_vulns", names)
+def test_vulns_one_chunk_per_cve_from_ai_packages_github_advisories_and_kev():
+    names = ["osv.json", "github.json", "nvd.json", "kev.json", "epss.json"]
+    snap = snapshot("vulns", "2026-10-24", "vulns", names)
     kev = json.loads(snap.files["kev.json"])
     kev["vulnerabilities"].append({"cveID": "CVE-2026-26013", "dateAdded": "2026-03-01"})
     snap.files["kev.json"] = json.dumps(kev).encode()
+    github = json.loads(snap.files["github.json"])
+    agno = github[0]
+    # A second advisory for one CVE; GitHub's copy of an AI-package advisory from OSV, and an
+    # advisory of another package for that CVE; one for a KEV CVE, without CVSS.
+    github.append(
+        {
+            **agno,
+            "ghsa_id": "GHSA-0000-0000-0000",
+            "identifiers": [],
+            "vulnerabilities": [
+                {**agno["vulnerabilities"][0], "package": {"ecosystem": "npm", "name": "agno-js"}}
+            ],
+        }
+    )
+    github.append({**agno, "ghsa_id": "GHSA-2g6r-c272-w58r", "cve_id": "CVE-2026-26013"})
+    github.append({**agno, "ghsa_id": "GHSA-1111-1111-1111", "cve_id": "CVE-2026-26013"})
+    github.append(
+        {**agno, "ghsa_id": "GHSA-2222-2222-2222", "cve_id": "CVE-2026-110447", "cwes": []}
+        | {"cvss_severities": {}}
+    )
+    snap.files["github.json"] = json.dumps(github).encode()
 
-    chunks, edges = ai_vulns.parse(snap)
+    chunks, edges = vulns.parse(snap)
 
-    assert len(chunks) == 1
-    advisory = chunks[0]
-    assert advisory.native_id == "CVE-2026-26013"
-    assert set(advisory.aliases) == {"GHSA-2g6r-c272-w58r", "PYSEC-2026-2562"}
-    assert advisory.url == "https://nvd.nist.gov/vuln/detail/CVE-2026-26013"
-    assert advisory.license == "CC-BY-4.0"
-    assert advisory.meta["cvss"].startswith("3.7 LOW")
-    assert advisory.meta["kev"] is True
-    assert "CWE-918" in advisory.meta["cwe"]
-    assert "langchain-core (PyPI) all versions, fixed in 1.2.11" in advisory.meta["packages"]
-    assert "CISA KEV: yes, added 2026-03-01" in advisory.text
-    assert ("CVE-2026-26013", "has_weakness", "CWE-918") in {
-        (e.src_id, e.rel, e.dst_id) for e in edges
+    found = {c.native_id: c for c in chunks}
+    assert sorted(found) == [
+        "CVE-2026-110447",
+        "CVE-2026-114625",
+        "CVE-2026-26013",
+        "CVE-2026-35002",
+        "CVE-2026-48705",
+        "GHSA-673q-mjm6-r5xr",
+    ]
+    ai = found["CVE-2026-26013"]
+    assert set(ai.aliases) == {"GHSA-1111-1111-1111", "GHSA-2g6r-c272-w58r", "PYSEC-2026-2562"}
+    assert "agno (pip) < 2.3.24, fixed in 2.3.24" in ai.meta["packages"]
+    assert "CWE-95" in ai.meta["cwe"]
+    assert ai.url == "https://nvd.nist.gov/vuln/detail/CVE-2026-26013"
+    assert ai.license == "CC-BY-4.0"
+    assert ai.meta["cvss"].startswith("3.7 LOW")
+    assert ai.meta["kev"] is True
+    assert "CWE-918" in ai.meta["cwe"]
+    assert "langchain-core (PyPI) all versions, fixed in 1.2.11" in ai.meta["packages"]
+    assert "CISA KEV: yes, added 2026-03-01" in ai.text
+    assert "EPSS: 0.43% chance of exploitation in the next 30 days (percentile 0.37)" in ai.text
+
+    advisory = found["CVE-2026-35002"]
+    assert advisory.title.startswith("Agno: Arbitrary code execution via `eval()`")
+    assert advisory.aliases == ["GHSA-0000-0000-0000", "GHSA-m4w4-3r8h-jw98"]
+    assert advisory.meta["packages"] == [
+        "agno (pip) < 2.3.24, fixed in 2.3.24",
+        "agno-js (npm) < 2.3.24, fixed in 2.3.24",
+    ]
+    assert "CVSS: 9.8 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H)" in advisory.text
+    assert "Severity (GitHub): critical\nCWE: CWE-95\nCISA KEV: no\nEPSS: 0.84%" in advisory.text
+    assert "EPSS by FIRST" in advisory.attribution
+    # The snapshot keeps a long advisory's opening; without a score, no EPSS line.
+    monai = found["CVE-2026-48705"]
+    assert monai.text.endswith(
+        "[Cut short; the full advisory: https://github.com/advisories/GHSA-6hp3-vr39-rqw8]"
+    )
+    assert len(monai.text) < 2500
+    assert "EPSS" not in monai.text
+    no_cve = found["GHSA-673q-mjm6-r5xr"]
+    assert no_cve.url == "https://github.com/advisories/GHSA-673q-mjm6-r5xr"
+    assert no_cve.meta["cvss"].startswith("9.5 (CVSS:4.0/")
+
+    in_kev = found["CVE-2026-110447"]
+    assert in_kev.url == "https://nvd.nist.gov/vuln/detail/CVE-2026-110447"
+    assert in_kev.meta["cvss"].startswith("9.2 CRITICAL (CVSS:4.0/")  # from NVD
+    assert in_kev.meta["cwe"] == ["CWE-78"]
+    assert in_kev.meta["kev"] is True
+    assert in_kev.meta["kind"] == "advisory"
+
+    listed = found["CVE-2026-114625"]
+    assert listed.title == "Arista VeloCloud Orchestrator SQL Injection Vulnerability"
+    assert listed.license == "LicenseRef-NVD-Public-Domain"
+    assert listed.text.startswith("Product: Arista VeloCloud Orchestrator\nCVSS: ")
+    assert "CISA KEV: yes, added 2026-10-23; required action: Apply mitigations" in listed.text
+    assert {("CVE-2026-26013", "CWE-918"), ("CVE-2026-114625", "CWE-89")} <= {
+        (e.src_id, e.dst_id) for e in edges if e.rel == "has_weakness"
     }
+
+
+def test_vulns_fetch_pages_through_github_and_nvd_and_scores_the_rest_with_epss():
+    config = {
+        "window_months": 24,
+        "osv_url": "https://osv/query",
+        "nvd_url": "https://nvd/cves",
+        "kev_url": "https://cisa/kev.json",
+        "github_url": "https://gh/advisories",
+        "severities": ["critical"],
+        "epss_url": "https://first/epss",
+        "packages": [],
+    }
+    agno = json.loads((FIXTURES / "vulns/github.json").read_bytes())[0]
+    kev = (FIXTURES / "vulns/kev.json").read_bytes()
+    nvd = {"CVE-2026-114625": {"id": "CVE-2026-114625", "configurations": ["bulk"]}}
+
+    class Fake:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, dict | None]] = []
+
+        def get_pages(self, url, params):
+            assert params["published"] == "2024-11-03..2026-10-24"
+            return [
+                json.dumps([{**agno, "description": "x" * 1000 + "\n" + "y" * 1000}]).encode(),
+                json.dumps([{**agno, "withdrawn_at": "x"}]).encode(),
+            ]
+
+        def get(self, url, params=None):
+            self.calls.append((url, params))
+            params = params or {}
+            if url == config["kev_url"]:
+                return kev
+            if url == config["nvd_url"]:
+                cves = [] if params["startIndex"] else [{"cve": c} for c in nvd.values()]
+                return json.dumps({"totalResults": 1, "vulnerabilities": cves}).encode()
+            data = [
+                {"cve": c, "epss": "0.5", "percentile": "0.9"} for c in params["cve"].split(",")
+            ]
+            return json.dumps({"data": data}).encode()
+
+    fake = Fake()
+    snap = vulns.fetch(fake, config, WHEN)  # type: ignore[arg-type]
+
+    assert [json.loads(snap.files["github.json"])[0]["ghsa_id"]] == ["GHSA-m4w4-3r8h-jw98"]
+    [advisory] = json.loads(snap.files["github.json"])
+    assert "references" not in advisory
+    # A long description keeps its opening lines, cut where a line ends.
+    assert advisory["description"] == "x" * 1000 + (
+        "\n\n[Cut short; the full advisory: https://github.com/advisories/GHSA-m4w4-3r8h-jw98]"
+    )
+    assert json.loads(snap.files["nvd.json"]) == {"CVE-2026-114625": {"id": "CVE-2026-114625"}}
+    assert ("https://nvd/cves", {"hasKev": "", "startIndex": 0}) in fake.calls
+    epss = json.loads(snap.files["epss.json"])
+    assert epss["CVE-2026-35002"] == agno["epss"]
+    assert epss["CVE-2026-114625"] == {"percentage": 0.5, "percentile": 0.9}
+    assert ("https://first/epss", {"cve": "CVE-2026-110447,CVE-2026-114625"}) in fake.calls
