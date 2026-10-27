@@ -1,27 +1,51 @@
 [
  {
   "source_id": "ai-vulns",
-  "version": "2026-10-26",
-  "sha256": "7118b98b0b554c0b661487d746a62ef972919d0958f87a4d6123134bb34abf52",
-  "retrieved_at": "2026-10-26T12:56:35+00:00"
+  "version": "2026-10-27",
+  "sha256": "36a6be9f0caff0f1197c5ff273dc3f9b77a185005fea357627f01caea4c0dd4c",
+  "retrieved_at": "2026-10-27T10:31:15+00:00"
  },
  {
   "source_id": "atlas",
   "version": "2026.09",
   "sha256": "d76528c1355063d29b7de0f1acab6a49319b30be9a3e95c544dfc6e3b000d698",
-  "retrieved_at": "2026-10-24T20:46:05+00:00"
+  "retrieved_at": "2026-10-26T22:59:11+00:00"
+ },
+ {
+  "source_id": "attack",
+  "version": "20.0",
+  "sha256": "a0f994fd8f3e2fbc9a290d416268541c37b5c40dfb10ec8b68c3b9d690d3f448",
+  "retrieved_at": "2026-10-27T09:05:09+00:00"
+ },
+ {
+  "source_id": "capec",
+  "version": "3.9",
+  "sha256": "6d94802633bf803e6d9deb03ebc0d1cc910d8105db35959ab85eba24c19d5308",
+  "retrieved_at": "2026-10-27T13:35:57+00:00"
+ },
+ {
+  "source_id": "cwe",
+  "version": "4.20",
+  "sha256": "3cee81d8d96cad38876d3add389cf7caa30f4b68bfb48b73932ba6a74f6fe7cb",
+  "retrieved_at": "2026-10-27T13:38:34+00:00"
+ },
+ {
+  "source_id": "d3fend",
+  "version": "1.6.0",
+  "sha256": "049855f47420b623e0ffaf2c41c107ffdb53e520ee8d19c839fcfd4a6729900f",
+  "retrieved_at": "2026-10-27T13:47:31+00:00"
  },
  {
   "source_id": "eu-ai-act",
   "version": "02024R1689-20260727",
   "sha256": "234a263859d29b93347202a5b9b08271870752b4c91be2ea73f0e095371b974c",
-  "retrieved_at": "2026-10-24T18:01:33+00:00"
+  "retrieved_at": "2026-10-26T22:59:13+00:00"
  },
  {
   "source_id": "ki-mig",
   "version": "20260729215513",
   "sha256": "136ba3312278ab9ee9274ac7af98191bd52142c48be5a398d0b36345ed33127c",
-  "retrieved_at": "2026-10-24T18:01:50+00:00"
+  "retrieved_at": "2026-10-26T22:59:14+00:00"
  },
  {
   "source_id": "owasp-agentic-2026",
@@ -34,5 +58,11 @@
   "version": "2026@9253e38",
   "sha256": "e9e6fde382e0ce274b70e784d97fe178a1b32bd533237b0a8c8741b27c045bf0",
   "retrieved_at": "2026-10-24T20:46:07+00:00"
+ },
+ {
+  "source_id": "vulns",
+  "version": "2026-10-27",
+  "sha256": "86cc7adc7dd44b66be7fcc7f942382a1516e868547bdd5cd37e2f0472d464d29",
+  "retrieved_at": "2026-10-27T14:58:48+00:00"
  }
 ]
