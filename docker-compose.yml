@@ -64,6 +64,9 @@ services:
       --quantization fp8 --kv-cache-dtype fp8 --max-model-len 2048
       --max-num-batched-tokens 4096 --enforce-eager
       --gpu-memory-utilization ${RERANKER_GPU_SHARE:-0.16}
+    environment:
+      # Scores independent of batch composition: repeatable rankings for users and `make evals`.
+      VLLM_BATCH_INVARIANT: "1"
     ports:
       - "127.0.0.1:8002:8000"
     volumes:
