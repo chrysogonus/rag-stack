@@ -79,6 +79,13 @@ SOURCES: dict[str, SourceInfo] = {
             "CWE™, Copyright © 2006–2026, The MITRE Corporation",
             "https://cwe.mitre.org",
         ),
+        SourceInfo(
+            "d3fend",
+            "MITRE D3FEND",
+            "LicenseRef-MITRE-D3FEND-Terms",
+            "D3FEND™, © 2025 The MITRE Corporation",
+            "https://d3fend.mitre.org",
+        ),
     ]
 }
 

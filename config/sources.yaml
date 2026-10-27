@@ -53,6 +53,11 @@ cwe:
   base_url: https://cwe.mitre.org/data/xml
   version: "4.20"
 
+d3fend:
+  # The ontology and its inferred ATT&CK mappings, per release; versioned files never change.
+  base_url: https://d3fend.mitre.org/ontologies/d3fend
+  version: "1.6.0"
+
 ai-vulns:
   window_months: 24
   osv_url: https://api.osv.dev/v1/query

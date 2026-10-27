@@ -27,6 +27,7 @@ MODULES = {
     "attack": "attack",
     "capec": "capec",
     "cwe": "cwe",
+    "d3fend": "d3fend",
 }
 CONFIG = Path(__file__).parents[3] / "config/sources.yaml"
 

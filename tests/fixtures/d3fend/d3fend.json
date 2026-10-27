@@ -1,0 +1,245 @@
+{
+  "@context": {
+    "d3f": "http://d3fend.mitre.org/ontologies/d3fend.owl#",
+    "dbr": "http://dbpedia.org/resource/",
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "xml": "http://www.w3.org/XML/1998/namespace",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+    {
+      "@id": "d3f:ANN-basedClustering",
+      "@type": [
+        "owl:Class",
+        "owl:NamedIndividual"
+      ],
+      "d3f:d3fend-id": "D3A-ABC",
+      "d3f:definition": "Combines the principles of Artificial Neural Networks (ANN) and clustering methods.",
+      "d3f:kb-article": "## References\nWikipedia. (n.d.). Artificial neural network. [Link](https://en.wikipedia.org/wiki/Artificial_neural_network)",
+      "rdfs:label": "ANN-based Clustering",
+      "rdfs:subClassOf": {
+        "@id": "d3f:ClusterAnalysis"
+      }
+    },
+    {
+      "@id": "d3f:ARMA_Model",
+      "@type": [
+        "d3f:TimeSeriesAnalysis",
+        "owl:Class",
+        "owl:NamedIndividual"
+      ],
+      "d3f:d3fend-id": "D3-ARMA",
+      "d3f:definition": "Autoregressive-moving-average (ARMA) models provide a parsimonious description of a (weakly) stationary stochastic process in terms of two polynomials, one for the autoregression (AR) and the second for the moving average (MA).",
+      "d3f:kb-article": "## References\nWikipedia. (n.d.). Autoregressive-moving-average model. [Link](https://en.wikipedia.org/wiki/Autoregressive%E2%80%93moving-average_model)",
+      "d3f:synonym": "Autoregressive moving average model",
+      "rdfs:label": "ARMA Model",
+      "rdfs:subClassOf": {
+        "@id": "d3f:TimeSeriesAnalysis"
+      }
+    },
+    {
+      "@id": "d3f:AgentAuthentication",
+      "@type": [
+        "d3f:AgentAuthentication",
+        "owl:Class",
+        "owl:NamedIndividual"
+      ],
+      "d3f:authenticates": {
+        "@id": "d3f:Agent"
+      },
+      "d3f:d3fend-id": "D3-AA",
+      "d3f:definition": "Agent authentication is the process of verifying the identities of agents to ensure they are authorized and trustworthy participants within a system.",
+      "d3f:enables": {
+        "@id": "d3f:Harden"
+      },
+      "d3f:kb-reference": {
+        "@id": "d3f:Reference-NIST-Special-Publication-800-53-Revision-5"
+      },
+      "d3f:strengthens": {
+        "@id": "d3f:UserAccount"
+      },
+      "rdfs:label": "Agent Authentication",
+      "rdfs:subClassOf": [
+        {
+          "@id": "_:b0081"
+        },
+        {
+          "@id": "_:b0082"
+        },
+        {
+          "@id": "_:b0083"
+        },
+        {
+          "@id": "d3f:DefensiveTechnique"
+        }
+      ]
+    },
+    {
+      "@id": "d3f:Credential",
+      "@type": [
+        "owl:Class",
+        "owl:NamedIndividual"
+      ],
+      "d3f:authenticates": {
+        "@id": "d3f:UserAccount"
+      },
+      "d3f:definition": "A credential is a physical/tangible object, a piece of knowledge, or a facet of a person's physical being that enables an individual access to a given physical facility or computer-based information system. Typically, credentials can be something a person knows (such as a number or PIN), something they have (such as an access badge), something they are (such as a biometric feature), something they do (measurable behavioral patterns) or some combination of these items. This is known as multi-factor authentication. The typical credential is an access card or key-fob, and newer software can also turn users' smartphones into access devices.",
+      "rdfs:isDefinedBy": {
+        "@id": "http://dbpedia.org/resource/Access_control#Credential"
+      },
+      "rdfs:label": "Credential",
+      "rdfs:seeAlso": {
+        "@id": "dbr:Access_control"
+      },
+      "rdfs:subClassOf": [
+        {
+          "@id": "_:b0266"
+        },
+        {
+          "@id": "d3f:DigitalInformationBearer"
+        }
+      ]
+    },
+    {
+      "@id": "d3f:CredentialHardening",
+      "@type": [
+        "d3f:CredentialHardening",
+        "owl:Class",
+        "owl:NamedIndividual"
+      ],
+      "d3f:d3fend-id": "D3-CH",
+      "d3f:definition": "Credential Hardening techniques modify system or network properties in order to protect system or network/domain credentials.",
+      "d3f:enables": {
+        "@id": "d3f:Harden"
+      },
+      "d3f:hardens": {
+        "@id": "d3f:Credential"
+      },
+      "rdfs:label": "Credential Hardening",
+      "rdfs:subClassOf": [
+        {
+          "@id": "_:b0273"
+        },
+        {
+          "@id": "_:b0274"
+        },
+        {
+          "@id": "d3f:DefensiveTechnique"
+        }
+      ]
+    },
+    {
+      "@id": "d3f:Detect",
+      "@type": [
+        "d3f:DefensiveTactic",
+        "owl:Class",
+        "owl:NamedIndividual"
+      ],
+      "d3f:definition": "The detect tactic is used to identify adversary access to or unauthorized activity on computer networks.",
+      "d3f:display-order": 1,
+      "d3f:display-priority": 0,
+      "rdfs:label": "Detect",
+      "rdfs:subClassOf": {
+        "@id": "d3f:DefensiveTactic"
+      }
+    },
+    {
+      "@id": "d3f:Harden",
+      "@type": [
+        "d3f:DefensiveTactic",
+        "owl:Class",
+        "owl:NamedIndividual"
+      ],
+      "d3f:definition": "The harden tactic is used to increase the opportunity cost of computer network exploitation. Hardening differs from Detection in that it generally is conducted before a system is online and operational.",
+      "d3f:display-order": 0,
+      "d3f:display-priority": 0,
+      "rdfs:label": "Harden",
+      "rdfs:subClassOf": {
+        "@id": "d3f:DefensiveTactic"
+      }
+    },
+    {
+      "@id": "d3f:Multi-factorAuthentication",
+      "@type": [
+        "d3f:Multi-factorAuthentication",
+        "owl:Class",
+        "owl:NamedIndividual"
+      ],
+      "d3f:d3fend-id": "D3-MFA",
+      "d3f:definition": "Requiring proof of two or more pieces of evidence in order to authenticate a user.",
+      "d3f:kb-article": "## How it works\nWhen logging into an account users present two or more credentials that fall into different categories: something you know (password or PIN), something you have (smart card or phone), or something you are (fingerprint).\n\n## Considerations\nMFA configuration steps may vary across accounts and in some cases left up to users to activate and implement.",
+      "d3f:kb-reference": {
+        "@id": "d3f:Reference-MethodAndApparatusForUtilizingATokenForResourceAccess_RsaSecurityInc."
+      },
+      "d3f:uses": {
+        "@id": "d3f:Credential"
+      },
+      "rdfs:label": "Multi-factor Authentication",
+      "rdfs:subClassOf": [
+        {
+          "@id": "_:b0679"
+        },
+        {
+          "@id": "d3f:AgentAuthentication"
+        }
+      ]
+    },
+    {
+      "@id": "d3f:NetworkTrafficAnalysis",
+      "@type": [
+        "d3f:NetworkTrafficAnalysis",
+        "owl:Class",
+        "owl:NamedIndividual"
+      ],
+      "d3f:d3fend-id": "D3-NTA",
+      "d3f:definition": "Analyzing intercepted or summarized computer network traffic to detect unauthorized activity.",
+      "d3f:enables": {
+        "@id": "d3f:Detect"
+      },
+      "rdfs:label": "Network Traffic Analysis",
+      "rdfs:subClassOf": [
+        {
+          "@id": "_:b0709"
+        },
+        {
+          "@id": "d3f:DefensiveTechnique"
+        }
+      ]
+    },
+    {
+      "@id": "d3f:TimeSeriesAnalysis",
+      "@type": [
+        "owl:Class",
+        "owl:NamedIndividual"
+      ],
+      "d3f:d3fend-id": "D3A-TSA",
+      "d3f:definition": "Time series analysis comprises methods for analyzing time series data in order to extract meaningful statistics and other characteristics of the data.",
+      "d3f:kb-article": "## References\nWikipedia. (n.d.). Time series. [Link](https://en.wikipedia.org/wiki/Time_series)",
+      "rdfs:label": "Time Series Analysis",
+      "rdfs:subClassOf": {
+        "@id": "d3f:StatisticalMethod"
+      }
+    },
+    {
+      "@id": "http://d3fend.mitre.org/ontologies/d3fend.owl",
+      "@type": "owl:Ontology",
+      "d3f:release-date": {
+        "@type": "xsd:dateTime",
+        "@value": "2026-08-31T00:12:00+00:00"
+      },
+      "dcterms:description": "D3FEND is a framework which encodes a countermeasure knowledge base as a knowledge graph. The graph contains the types and relations that define key concepts in the cybersecurity countermeasure domain and the relations necessary to link those concepts to each other. Each of these concepts and relations are linked to references in the cybersecurity literature.",
+      "dcterms:license": "MIT",
+      "dcterms:title": "D3FEND™ - A knowledge graph of cybersecurity countermeasures",
+      "owl:versionIRI": {
+        "@id": "http://d3fend.mitre.org/ontologies/d3fend/1.6.0/d3fend.owl"
+      },
+      "owl:versionInfo": "1.6.0",
+      "rdfs:comment": "Use of the D3FEND Knowledge Graph, and the associated references from this ontology are subject to the Terms of Use. D3FEND is funded by the National Security Agency (NSA) Cybersecurity Directorate and managed by the National Security Engineering Center (NSEC) which is operated by The MITRE Corporation. D3FEND™ and the D3FEND logo are trademarks of The MITRE Corporation. This software was produced for the U.S. Government under Basic Contract No. W56KGU-18-D0004, and is subject to the Rights in Noncommercial Computer Software and Noncommercial Computer Software Documentation Clause 252.227-7014 (FEB 2012) Copyright 2022 The MITRE Corporation."
+    }
+  ]
+}

@@ -16,6 +16,7 @@ from rag_stack.ingestion.sources import (
     attack,
     capec,
     cwe,
+    d3fend,
     eu_law,
     gesetze_im_internet,
     owasp_agentic,
@@ -311,6 +312,73 @@ def test_cwe_fetch_unzips_the_pinned_catalog_and_checks_its_version():
     assert fetcher.urls == ["https://h/data/xml/cwec_v4.20.xml.zip"]
     assert snap.version == "4.20" and list(snap.files) == ["cwec_v4.20.xml"]
     assert snap.files["cwec_v4.20.xml"] == (FIXTURES / "cwe/cwec_v4.20.xml").read_bytes()
+
+
+def test_d3fend_one_chunk_per_defensive_technique_with_attack_mappings_as_edges():
+    names = ["d3fend.json", "d3fend-full-mappings.json"]
+    chunks, edges = d3fend.parse(snapshot("d3fend", "1.6.0", "d3fend", names))
+
+    *chunks, overview = chunks
+
+    found = by_id(chunks)
+    # D3A-ABC is an analytic technique, not a defensive one.
+    assert {i for i, _ in found} == {"D3-AA", "D3-MFA", "D3-CH", "D3-NTA", "D3-ARMA"}
+    mfa = found[("D3-MFA", "en")]
+    assert mfa.url == "https://d3fend.mitre.org/technique/d3f:Multi-factorAuthentication/"
+    assert mfa.license == "LicenseRef-MITRE-D3FEND-Terms"
+    assert "The MITRE Corporation" in mfa.attribution
+    # The tactic comes from the parent technique.
+    assert mfa.text.startswith(
+        "Multi-factor Authentication (defensive technique, Harden)\n\nRequiring proof of two"
+    )
+    assert "Part of: Agent Authentication (D3-AA)\nUses: Credential\n\n## How it works" in mfa.text
+    assert mfa.meta == {"kind": "defensive technique", "tactic": "Harden"}
+    assert "Hardens: Credential" in found[("D3-CH", "en")].text
+    assert "Enables" not in found[("D3-NTA", "en")].text
+    arma = found[("D3-ARMA", "en")].text
+    assert arma.startswith("ARMA Model (defensive technique)\n\n")
+    assert "Also known as: Autoregressive moving average model" in arma
+    assert overview.native_id == "D3FEND Tactics"
+    assert overview.text.splitlines()[:2] == [
+        "MITRE D3FEND 1.6.0 groups its defensive techniques under 2 tactics: Harden, Detect. "
+        "Its top-level techniques, listed by ID, with their tactic:",
+        "D3-AA Agent Authentication (Harden): Agent authentication is the process of verifying "
+        "the identities of agents to ensure they are authorized and trustworthy participants "
+        "within a system.",
+    ]
+    assert "D3-MFA" not in overview.text  # not top-level
+    # Enterprise and ICS mappings; SPARTA's (PER-0005) stay out.
+    assert {(e.src_id, e.rel, e.dst_id) for e in edges} == {
+        ("D3-MFA", "child_of", "D3-AA"),
+        ("D3-MFA", "counters", "T1110.001"),
+        ("D3-MFA", "counters", "T0812"),
+        ("D3-CH", "counters", "T1110.001"),
+        ("D3-CH", "counters", "T0812"),
+    }
+
+
+def test_d3fend_fetch_gets_both_files_of_the_pinned_release_and_checks_its_version():
+    files = {n: (FIXTURES / "d3fend" / n).read_bytes() for n in d3fend.FILES}
+
+    class Fetcher:
+        def __init__(self):
+            self.urls = []
+
+        def get(self, url):
+            self.urls.append(url)
+            return files[url.rsplit("/", 1)[1]]
+
+    fetcher = Fetcher()
+    config = {"base_url": "https://h/ontologies/d3fend", "version": "1.6.0"}
+    snap = d3fend.fetch(fetcher, config, WHEN)  # type: ignore[arg-type]
+
+    assert fetcher.urls == [
+        "https://h/ontologies/d3fend/1.6.0/d3fend.json",
+        "https://h/ontologies/d3fend/1.6.0/d3fend-full-mappings.json",
+    ]
+    assert snap.version == "1.6.0" and snap.files == files
+    with pytest.raises(ValueError, match="not the D3FEND 1.7.0 ontology"):
+        d3fend.fetch(fetcher, {**config, "version": "1.7.0"}, WHEN)  # type: ignore[arg-type]
 
 
 def test_owasp_llm_one_chunk_per_section_and_mappings_as_edges():
