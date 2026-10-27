@@ -2,8 +2,10 @@ import hashlib
 import importlib
 import json
 import logging
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import yaml
@@ -24,12 +26,24 @@ MODULES = {
     "ai-vulns": "ai_vulns",
     "attack": "attack",
     "capec": "capec",
+    "cwe": "cwe",
 }
 CONFIG = Path(__file__).parents[3] / "config/sources.yaml"
 
 
 def source_module(source_id: str):
     return importlib.import_module(f"rag_stack.ingestion.sources.{MODULES[source_id]}")
+
+
+def parser_sha(module: ModuleType) -> str:
+    """sha256 of a parser's code: its module and the other sources' modules it borrows from."""
+    names = {module.__name__} | {
+        f.__module__
+        for f in vars(module).values()
+        if callable(f) and getattr(f, "__module__", "").startswith(f"{__package__}.sources.")
+    }
+    code = b"".join(Path(str(sys.modules[n].__file__)).read_bytes() for n in sorted(names))
+    return hashlib.sha256(code).hexdigest()
 
 
 def make_fetcher(settings: Settings) -> Fetcher:
@@ -61,7 +75,7 @@ def ingest(source_id: str, settings: Settings, fetcher: Fetcher) -> str:
     processed = data / "processed" / source_id / safe(snapshot.version)
     sha = digest(snapshot.files)
     # Unchanged input and unchanged parser code: nothing to do. A parser fix re-parses.
-    parser = hashlib.sha256(Path(str(module.__file__)).read_bytes()).hexdigest()
+    parser = parser_sha(module)
     manifest = raw / "manifest.json"
     if manifest.exists() and json.loads(manifest.read_text())["sha256"] == sha:
         done = processed / "parser.sha256"

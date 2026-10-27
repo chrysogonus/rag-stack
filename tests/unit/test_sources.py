@@ -1,6 +1,8 @@
 """Parsers against small excerpts of the real sources (tests/fixtures, see NOTICE.md)."""
 
+import io
 import json
+import zipfile
 from dataclasses import replace
 from pathlib import Path
 
@@ -13,6 +15,7 @@ from rag_stack.ingestion.sources import (
     atlas,
     attack,
     capec,
+    cwe,
     eu_law,
     gesetze_im_internet,
     owasp_agentic,
@@ -237,6 +240,77 @@ def test_capec_fetch_gets_the_pinned_catalog_and_checks_its_version():
     assert snap.version == "3.9" and list(snap.files) == ["capec_v3.9.xml"]
     with pytest.raises(ValueError, match="not the CAPEC 3.10 catalog"):
         capec.fetch(fetcher, {**config, "version": "3.10"}, WHEN)  # type: ignore[arg-type]
+
+
+def test_cwe_one_chunk_per_live_weakness_with_its_links_as_edges():
+    chunks, edges = cwe.parse(snapshot("cwe", "4.20", "cwe", ["cwec_v4.20.xml"]))
+
+    found = by_id(chunks)
+    # CWE-1187 is deprecated.
+    assert {i for i, _ in found} == {"CWE-74", "CWE-79", "CWE-122", "CWE-1427"}
+    xss = found[("CWE-79", "en")]
+    assert (
+        xss.title
+        == "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+    )
+    assert xss.url == "https://cwe.mitre.org/data/definitions/79.html"
+    assert xss.license == "LicenseRef-MITRE-CWE-Terms"
+    assert "The MITRE Corporation" in xss.attribution
+    assert xss.text.startswith(
+        "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') "
+        "(weakness, base)\n\nThe product does not neutralize"
+    )
+    assert "Also known as:\n- XSS: A common abbreviation for Cross-Site Scripting." in xss.text
+    assert "Likelihood of exploit: High" in xss.text
+    assert "- Black Box (effectiveness: Moderate): Use the XSS Cheat Sheet" in xss.text
+    assert "- Architecture and Design (Libraries or Frameworks): Use a vetted library" in xss.text
+    assert "- CVE-2006-3568: Stored XSS in a guestbook application." in xss.text
+    assert xss.text.endswith(
+        "Mapping CVEs to it: Allowed. This CWE entry is at the Base level of abstraction, which is "
+        "a preferred level of abstraction for mapping to the root causes of vulnerabilities."
+    )
+    assert xss.meta == {"kind": "weakness", "abstraction": "Base", "status": "Stable"}
+    # A mitigation without a phase and a term without a description get no empty label.
+    heap = found[("CWE-122", "en")].text
+    assert "- Pre-design: Use a language or compiler" in heap
+    assert "Also known as:\n- Heap Overflow\n- Heap Buffer Overflow\n\n" in heap
+    # The XML's line wrapping is gone; code examples stay out.
+    prompting = found[("CWE-1427", "en")].text
+    assert "it is often possible to cause an LLM to ignore the original guidance" in prompting
+    assert "invokeChatbot" not in prompting
+    triples = {(e.src_id, e.rel, e.dst_id) for e in edges}
+    assert {
+        ("CWE-79", "child_of", "CWE-74"),
+        ("CWE-79", "peer_of", "CWE-352"),
+        ("CWE-79", "can_precede", "CWE-494"),
+        ("CWE-1427", "child_of", "CWE-77"),
+        ("CWE-1427", "observed_example", "CVE-2024-5565"),
+    } <= triples
+    # CWE-79 is a child of CWE-74 in two views: one edge.
+    assert len(triples) == len(edges)
+    assert not {t for t in triples if t[0] == "CWE-1187"}
+
+
+def test_cwe_fetch_unzips_the_pinned_catalog_and_checks_its_version():
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.write(FIXTURES / "cwe/cwec_v4.20.xml", "cwec_v4.20.xml")
+
+    class Fetcher:
+        def __init__(self):
+            self.urls = []
+
+        def get(self, url):
+            self.urls.append(url)
+            return buffer.getvalue()
+
+    fetcher = Fetcher()
+    config = {"base_url": "https://h/data/xml", "version": "4.20"}
+    snap = cwe.fetch(fetcher, config, WHEN)  # type: ignore[arg-type]
+
+    assert fetcher.urls == ["https://h/data/xml/cwec_v4.20.xml.zip"]
+    assert snap.version == "4.20" and list(snap.files) == ["cwec_v4.20.xml"]
+    assert snap.files["cwec_v4.20.xml"] == (FIXTURES / "cwe/cwec_v4.20.xml").read_bytes()
 
 
 def test_owasp_llm_one_chunk_per_section_and_mappings_as_edges():

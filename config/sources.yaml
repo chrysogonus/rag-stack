@@ -48,6 +48,11 @@ capec:
   base_url: https://capec.mitre.org/data/xml
   version: "3.9"
 
+cwe:
+  # One zipped XML catalog per release; versioned files never change.
+  base_url: https://cwe.mitre.org/data/xml
+  version: "4.20"
+
 ai-vulns:
   window_months: 24
   osv_url: https://api.osv.dev/v1/query

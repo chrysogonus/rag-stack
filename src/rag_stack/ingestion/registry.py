@@ -72,6 +72,13 @@ SOURCES: dict[str, SourceInfo] = {
             "CAPEC™, Copyright © 2007–2026, The MITRE Corporation",
             "https://capec.mitre.org",
         ),
+        SourceInfo(
+            "cwe",
+            "MITRE CWE",
+            "LicenseRef-MITRE-CWE-Terms",
+            "CWE™, Copyright © 2006–2026, The MITRE Corporation",
+            "https://cwe.mitre.org",
+        ),
     ]
 }
 

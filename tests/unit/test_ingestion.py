@@ -140,6 +140,20 @@ def test_ingest_snapshots_with_sha256_and_skips_unchanged_input(tmp_path, monkey
     assert len(chunks) == 6 and len(edges) == 6 and len(sha) == 64
 
 
+def test_a_parser_is_fingerprinted_with_the_source_modules_it_borrows_from():
+    import hashlib
+
+    from rag_stack.ingestion.sources import atlas, capec, cwe
+
+    def sha(*modules):
+        code = b"".join(Path(str(m.__file__)).read_bytes() for m in modules)
+        return hashlib.sha256(code).hexdigest()
+
+    assert pipeline.parser_sha(atlas) == sha(atlas)
+    # CWE uses CAPEC's text helpers: a fix there re-parses CWE too.
+    assert pipeline.parser_sha(cwe) == sha(capec, cwe)
+
+
 def test_split_text_breaks_at_paragraphs_and_never_exceeds_the_limit():
     text = "\n\n".join(["a" * 40, "b" * 40, "c" * 40])
 
