@@ -22,6 +22,7 @@ MODULES = {
     "eu-ai-act": "eu_law",
     "ki-mig": "gesetze_im_internet",
     "ai-vulns": "ai_vulns",
+    "attack": "attack",
 }
 CONFIG = Path(__file__).parents[3] / "config/sources.yaml"
 

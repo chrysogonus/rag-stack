@@ -57,6 +57,14 @@ SOURCES: dict[str, SourceInfo] = {
             "GitHub Advisory Database (CC BY 4.0) via OSV; NVD (public domain); CISA KEV (CC0)",
             "https://osv.dev",
         ),
+        SourceInfo(
+            "attack",
+            "MITRE ATT&CK",
+            "LicenseRef-MITRE-ATTACK-Terms",
+            "© 2026 The MITRE Corporation. This work is reproduced and distributed with the "
+            "permission of The MITRE Corporation.",
+            "https://attack.mitre.org",
+        ),
     ]
 }
 

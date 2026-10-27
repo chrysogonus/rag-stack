@@ -9,6 +9,7 @@ from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS, SOURCES
 from rag_stack.ingestion.sources import (
     ai_vulns,
     atlas,
+    attack,
     eu_law,
     gesetze_im_internet,
     owasp_agentic,
@@ -83,6 +84,95 @@ def test_atlas_fetch_follows_the_latest_symlink():
 
     assert fetcher.urls[-1] == "https://h/dist/v6/ATLAS-2026.09.yaml"
     assert snap.version == "2026.09"
+
+
+def test_attack_one_chunk_per_live_object_across_domains():
+    names = ["enterprise-attack-20.0.json", "ics-attack-20.0.json"]
+    chunks, edges = attack.parse(snapshot("attack", "20.0", "attack", names))
+
+    found = by_id(chunks)
+    # T1086 is revoked, T0807 deprecated; APT38 is in both bundles but one object; no Mobile
+    # bundle, no Mobile overview.
+    assert {i for i, _ in found} == {
+        "TA0002",
+        "T1059",
+        "T1059.001",
+        "M1038",
+        "G0016",
+        "G0082",
+        "S0154",
+        "S0039",
+        "C0024",
+        "DET0455",
+        "TA0104",
+        "T0871",
+        "M0938",
+        "ATT&CK Enterprise Tactics",
+        "ATT&CK ICS Tactics",
+    }
+    powershell = found[("T1059.001", "en")]
+    assert powershell.title == "PowerShell"
+    assert powershell.url == "https://attack.mitre.org/techniques/T1059/001"
+    assert powershell.parent_ids == ["T1059"]
+    assert powershell.license == "LicenseRef-MITRE-ATTACK-Terms"
+    assert "The MITRE Corporation" in powershell.attribution
+    assert powershell.text.startswith("PowerShell (technique)\n\nAdversaries may abuse PowerShell")
+    assert "(Citation:" not in powershell.text
+    assert "Tactics: Execution (TA0002)\nPlatforms: Windows, Linux, macOS" in powershell.text
+    # Both domains have an "execution" tactic: each technique gets its own domain's.
+    assert "Tactics: Execution (TA0104)" in found[("T0871", "en")].text
+    assert found[("G0082", "en")].meta["domains"] == ["enterprise-attack", "ics-attack"]
+    # The first alias is the group's own name.
+    assert "Also known as: IRON RITUAL, " in found[("G0016", "en")].text
+    assert "Cozy Bear" in found[("G0016", "en")].text
+    assert "First seen: 2019-08-01, last seen: 2021-01-01" in found[("C0024", "en")].text
+    assert found[("S0039", "en")].heading_path == ["software: tool"]
+    detection = found[("DET0455", "en")].text
+    assert "Analytics:\n- AN1252 (Windows): Detects behavioral chains" in detection
+    triples = {(e.src_id, e.rel, e.dst_id) for e in edges}
+    assert {
+        ("T1059.001", "subtechnique-of", "T1059"),
+        ("M1038", "mitigates", "T1059.001"),
+        ("G0016", "uses", "T1059.001"),
+        ("DET0455", "detects", "T1059.001"),
+        ("C0024", "attributed-to", "G0016"),
+        ("T1059.001", "achieves", "TA0002"),
+        ("T0871", "achieves", "TA0104"),
+    } <= triples
+    # Edges to objects outside the snapshot (M1042) or to revoked ones are dropped.
+    assert not {t for t in triples if {"M1042", "T1086", "T0807"} & set(t)}
+    assert len(edges) == len(triples)
+    overview = found[("ATT&CK ICS Tactics", "en")]
+    assert overview.text.splitlines()[0] == (
+        "MITRE ATT&CK 20.0 for ICS defines these tactics, listed by ID (not in matrix order):"
+    )
+    assert overview.text.splitlines()[1].startswith("TA0104 Execution: The adversary is trying")
+
+
+def test_attack_fetch_gets_each_domain_of_the_pinned_release():
+    class Fetcher:
+        def __init__(self):
+            self.urls = []
+
+        def get(self, url):
+            self.urls.append(url)
+            return b"{}"
+
+    fetcher = Fetcher()
+    config = {"base_url": "https://h/attack-stix-data/master", "version": "20.0"}
+    snap = attack.fetch(fetcher, config, WHEN)  # type: ignore[arg-type]
+
+    assert fetcher.urls == [
+        "https://h/attack-stix-data/master/enterprise-attack/enterprise-attack-20.0.json",
+        "https://h/attack-stix-data/master/mobile-attack/mobile-attack-20.0.json",
+        "https://h/attack-stix-data/master/ics-attack/ics-attack-20.0.json",
+    ]
+    assert snap.version == "20.0"
+    assert list(snap.files) == [
+        "enterprise-attack-20.0.json",
+        "mobile-attack-20.0.json",
+        "ics-attack-20.0.json",
+    ]
 
 
 def test_owasp_llm_one_chunk_per_section_and_mappings_as_edges():

@@ -1,0 +1,297 @@
+{
+ "type": "bundle",
+ "id": "bundle--fixture-ics",
+ "objects": [
+  {
+   "type": "attack-pattern",
+   "spec_version": "2.1",
+   "id": "attack-pattern--24a9253e-8948-4c98-b751-8e2aee53127c",
+   "created": "2020-05-21T17:43:26.506Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/techniques/T0807",
+     "external_id": "T0807"
+    },
+    {
+     "source_name": "Enterprise ATT&CK January 2018",
+     "description": "Enterprise ATT&CK 2018, January 11 Command-Line Interface Retrieved. 2018/05/17 ",
+     "url": "https://attack.mitre.org/wiki/Technique/T1059"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-10-07T16:50:33.026Z",
+   "name": "Command-Line Interface",
+   "description": "Adversaries may utilize command-line interfaces (CLIs) to interact with systems and execute commands. CLIs provide a means of interacting with computer systems and are a common feature across many types of platforms and devices within control systems environments. (Citation: Enterprise ATT&CK January 2018) Adversaries may also use CLIs to install and run new software, including malicious tools that may be installed over the course of an operation.\n\nCLIs are typically accessed locally, but can also be exposed via services, such as SSH, Telnet, and RDP.  Commands that are executed in the CLI execute with the current permissions level of the process running the terminal emulator, unless the command specifies a change in permissions context. Many controllers have CLI interfaces for management purposes.",
+   "kill_chain_phases": [
+    {
+     "kill_chain_name": "mitre-ics-attack",
+     "phase_name": "execution"
+    }
+   ],
+   "x_mitre_attack_spec_version": "3.3.0",
+   "x_mitre_deprecated": true,
+   "x_mitre_domains": [
+    "ics-attack"
+   ],
+   "x_mitre_is_subtechnique": false,
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_platforms": [
+    "None"
+   ],
+   "x_mitre_version": "1.1"
+  },
+  {
+   "type": "attack-pattern",
+   "spec_version": "2.1",
+   "id": "attack-pattern--5a2610f6-9fff-41e1-bc27-575ca20383d4",
+   "created": "2020-05-21T17:43:26.506Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/techniques/T0871",
+     "external_id": "T0871"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-10-13T17:48:38.469Z",
+   "name": "Execution through API",
+   "description": "Adversaries may attempt to leverage Application Program Interfaces (APIs) used for communication between control software and the hardware. Specific functionality is often coded into APIs which can be called by software to engage specific functions on a device or other software.",
+   "kill_chain_phases": [
+    {
+     "kill_chain_name": "mitre-ics-attack",
+     "phase_name": "execution"
+    }
+   ],
+   "x_mitre_attack_spec_version": "3.3.0",
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "ics-attack"
+   ],
+   "x_mitre_is_subtechnique": false,
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_platforms": [
+    "Embedded",
+    "Windows",
+    "Linux",
+    "Network Devices"
+   ],
+   "x_mitre_version": "1.1"
+  },
+  {
+   "type": "course-of-action",
+   "spec_version": "2.1",
+   "id": "course-of-action--4fa717d9-cabe-47c8-8cdd-86e9e2e37f30",
+   "created": "2019-06-11T16:35:25.488Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/mitigations/M0938",
+     "external_id": "M0938"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-10-07T17:52:00.813Z",
+   "name": "Execution Prevention",
+   "description": "Block execution of code on a system through application control, and/or script blocking.",
+   "labels": [
+    "IEC 62443-3-3:2013 - SR 3.2",
+    "IEC 62443-4-2:2019 - CR 3.2",
+    "NIST SP 800-53 Rev. 5 - SI-3"
+   ],
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "ics-attack"
+   ],
+   "x_mitre_version": "1.1",
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "intrusion-set",
+   "spec_version": "2.1",
+   "id": "intrusion-set--00f67a77-86a4-4adf-be26-1a54fc713340",
+   "created": "2019-01-29T21:27:24.793Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/groups/G0082",
+     "external_id": "G0082"
+    },
+    {
+     "source_name": "BeagleBoyz",
+     "description": "(Citation: CISA AA20-239A BeagleBoyz August 2020)"
+    },
+    {
+     "source_name": "Stardust Chollima",
+     "description": "(Citation: CrowdStrike Stardust Chollima Profile April 2018)(Citation: CrowdStrike GTR 2021 June 2021)"
+    },
+    {
+     "source_name": "APT38",
+     "description": "(Citation: FireEye APT38 Oct 2018)"
+    },
+    {
+     "source_name": "Bluenoroff",
+     "description": "(Citation: Kaspersky Lazarus Under The Hood Blog 2017)"
+    },
+    {
+     "source_name": "Sapphire Sleet",
+     "description": "(Citation: Microsoft Threat Actor Naming July 2023)"
+    },
+    {
+     "source_name": "COPERNICIUM",
+     "description": "(Citation: Microsoft Threat Actor Naming July 2023)"
+    },
+    {
+     "source_name": "NICKEL GLADSTONE",
+     "description": "(Citation: SecureWorks NICKEL GLADSTONE profile Sept 2021)"
+    },
+    {
+     "source_name": "CrowdStrike GTR 2021 June 2021",
+     "description": "CrowdStrike. (2021, June 7). CrowdStrike 2021 Global Threat Report. Retrieved September 29, 2021.",
+     "url": "https://go.crowdstrike.com/rs/281-OBQ-266/images/Report2021GTR.pdf"
+    },
+    {
+     "source_name": "DOJ North Korea Indictment Feb 2021",
+     "description": "Department of Justice. (2021, February 17). Three North Korean Military Hackers Indicted in Wide-Ranging Scheme to Commit Cyberattacks and Financial Crimes Across the Globe. Retrieved June 9, 2021.",
+     "url": "https://www.justice.gov/opa/pr/three-north-korean-military-hackers-indicted-wide-ranging-scheme-commit-cyberattacks-and"
+    },
+    {
+     "source_name": "CISA AA20-239A BeagleBoyz August 2020",
+     "description": "DHS/CISA. (2020, August 26). FASTCash 2.0: North Korea's BeagleBoyz Robbing Banks. Retrieved September 29, 2021.",
+     "url": "https://us-cert.cisa.gov/ncas/alerts/aa20-239a"
+    },
+    {
+     "source_name": "FireEye APT38 Oct 2018",
+     "description": "FireEye. (2018, October 03). APT38: Un-usual Suspects. Retrieved November 17, 2024.",
+     "url": "https://services.google.com/fh/files/misc/apt38-un-usual-suspects.pdf"
+    },
+    {
+     "source_name": "Kaspersky Lazarus Under The Hood Blog 2017",
+     "description": "GReAT. (2017, April 3). Lazarus Under the Hood. Retrieved April 17, 2019.",
+     "url": "https://securelist.com/lazarus-under-the-hood/77908/"
+    },
+    {
+     "source_name": "CrowdStrike Stardust Chollima Profile April 2018",
+     "description": "Meyers, Adam. (2018, April 6). Meet CrowdStrike’s Adversary of the Month for April: STARDUST CHOLLIMA. Retrieved September 29, 2021.",
+     "url": "https://www.crowdstrike.com/blog/meet-crowdstrikes-adversary-of-the-month-for-april-stardust-chollima/"
+    },
+    {
+     "source_name": "Microsoft Threat Actor Naming July 2023",
+     "description": "Microsoft . (2023, July 12). How Microsoft names threat actors. Retrieved November 17, 2023.",
+     "url": "https://learn.microsoft.com/en-us/microsoft-365/security/intelligence/microsoft-threat-actor-naming?view=o365-worldwide"
+    },
+    {
+     "source_name": "Microsoft Axios Compromise APR 2026",
+     "description": "Microsoft Threat Intelligence. (2026, April 1). Mitigating the Axios npm supply chain compromise. Retrieved September 30, 2026.",
+     "url": "https://www.microsoft.com/en-us/security/blog/2026/04/01/mitigating-the-axios-npm-supply-chain-compromise/"
+    },
+    {
+     "source_name": "Microsoft Sapphire Sleet APR 2026",
+     "description": "Microsoft Threat Intelligence. (2026, April 16). Dissecting Sapphire Sleet’s macOS intrusion from lure to compromise. Retrieved September 30, 2026.",
+     "url": "https://www.microsoft.com/en-us/security/blog/2026/04/16/dissecting-sapphire-sleets-macos-intrusion-from-lure-to-compromise/"
+    },
+    {
+     "source_name": "MIcrosoft Mastra npm Compromise JUN 2026",
+     "description": "Microsoft Threat Intelligence. (2026, June 17). From package to postinstall payload: Inside the Mastra npm supply chain compromise by Sapphire Sleet. Retrieved September 30, 2026.",
+     "url": "https://www.microsoft.com/en-us/security/blog/2026/06/17/postinstall-payload-inside-mastra-npm-supply-chain-compromise/"
+    },
+    {
+     "source_name": "SecureWorks NICKEL GLADSTONE profile Sept 2021",
+     "description": "SecureWorks. (2021, September 29). NICKEL GLADSTONE Threat Profile. Retrieved September 29, 2021.",
+     "url": "https://www.secureworks.com/research/threat-profiles/nickel-gladstone"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-10-09T03:56:03.463Z",
+   "name": "APT38",
+   "description": "[APT38](https://attack.mitre.org/groups/G0082) is a North Korean state-sponsored threat group that specializes in financial cyber operations; it has been attributed to the Reconnaissance General Bureau.(Citation: CISA AA20-239A BeagleBoyz August 2020) Active since at least 2014, [APT38](https://attack.mitre.org/groups/G0082) has targeted banks, financial institutions, casinos, cryptocurrency exchanges, SWIFT system endpoints, and ATMs in at least 38 countries worldwide. Significant operations include the 2016 Bank of Bangladesh heist, Bancomext (Citation: FireEye APT38 Oct 2018) and Banco de Chile (Citation: FireEye APT38 Oct 2018), along with software supply chain compromises and destructive malware attacks.(Citation: CISA AA20-239A BeagleBoyz August 2020)(Citation: FireEye APT38 Oct 2018)(Citation: DOJ North Korea Indictment Feb 2021)(Citation: Kaspersky Lazarus Under The Hood Blog 2017)(Citation: Microsoft Axios Compromise APR 2026)(Citation: Microsoft Sapphire Sleet APR 2026)(Citation: MIcrosoft Mastra npm Compromise JUN 2026)\n\nNorth Korean group definitions are known to have significant overlap, and some security researchers report all North Korean state-sponsored cyber activity under the name [Lazarus Group](https://attack.mitre.org/groups/G0032) instead of tracking clusters or subgroups.",
+   "aliases": [
+    "APT38",
+    "NICKEL GLADSTONE",
+    "BeagleBoyz",
+    "Bluenoroff",
+    "Stardust Chollima",
+    "Sapphire Sleet",
+    "COPERNICIUM"
+   ],
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "enterprise-attack",
+    "ics-attack"
+   ],
+   "x_mitre_version": "4.0",
+   "x_mitre_attack_spec_version": "3.3.0",
+   "x_mitre_contributors": [
+    "Hiroki Nagahama, NEC Corporation",
+    "Manikantan Srinivasan, NEC Corporation India",
+    "Pooja Natarajan, NEC Corporation India"
+   ]
+  },
+  {
+   "type": "x-mitre-tactic",
+   "spec_version": "2.1",
+   "id": "x-mitre-tactic--93bf9a8e-b14c-4587-b6d5-9efc7c12eb45",
+   "created": "2018-10-17T00:14:20.652Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/tactics/TA0104",
+     "external_id": "TA0104"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2025-04-16T21:26:22.274Z",
+   "name": "Execution",
+   "description": "The adversary is trying to run code or manipulate system functions, parameters, and data in an unauthorized way.\n\nExecution consists of techniques that result in adversary-controlled code running on a local or remote system, device, or other asset. This execution may also rely on unknowing end users or the manipulation of device operating modes to run. Adversaries may infect remote targets with programmed executables or malicious project files that operate according to specified behavior and may alter expected device behavior in subtle ways. Commands for execution may also be issued from command-line interfaces, APIs, GUIs, or other available interfaces. Techniques that run malicious code may also be paired with techniques from other tactics, particularly to aid network [Discovery](https://attack.mitre.org/tactics/TA0102) and [Collection](https://attack.mitre.org/tactics/TA0100), impact operations, and inhibit response functions.",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "ics-attack"
+   ],
+   "x_mitre_version": "1.0",
+   "x_mitre_attack_spec_version": "3.2.0",
+   "x_mitre_shortname": "execution"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--3d676c1b-2650-4599-8a57-790c55f9977d",
+   "created": "2020-09-21T17:59:24.739Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-04-29T14:23:06.009Z",
+   "description": "Minimize the exposure of API calls that allow the execution of code.\n",
+   "relationship_type": "mitigates",
+   "source_ref": "course-of-action--4fa717d9-cabe-47c8-8cdd-86e9e2e37f30",
+   "target_ref": "attack-pattern--5a2610f6-9fff-41e1-bc27-575ca20383d4",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  }
+ ]
+}

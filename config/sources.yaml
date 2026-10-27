@@ -38,6 +38,11 @@ ki-mig:
   xml_url: https://www.gesetze-im-internet.de/ki-mig/xml.zip
   page_url: https://www.gesetze-im-internet.de/ki-mig/
 
+attack:
+  # Enterprise, Mobile and ICS bundles of one release; versioned files never change.
+  base_url: https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master
+  version: "20.0"
+
 ai-vulns:
   window_months: 24
   osv_url: https://api.osv.dev/v1/query
