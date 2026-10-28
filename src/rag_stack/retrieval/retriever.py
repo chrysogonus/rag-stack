@@ -25,10 +25,17 @@ DEFENSE = (
 # Questions about related items get the 1-hop neighbors of the units they are about.
 RELATED = re.compile(
     DEFENSE + r"|map|relat|correspond|link|connect|technique|tactic|weakness|cwe|"
-    r"zuordn|verwandt|bezug|zusammenh|entsprech|verknüpf",
+    r"zuordn|verwandt|bezug|zusammenh|entsprech|verknüpf|\brefer|verweis",
     re.I,
 )
 MITIGATIONS = re.compile(DEFENSE, re.I)
+
+
+def relations(query: str) -> set[str] | None:
+    """The relations a question about related items follows: defenses only, or all."""
+    return {"mitigates", "counters"} if MITIGATIONS.search(query) else None
+
+
 # A source a question asks for by kind ("Which CAPEC patterns ..."). Neither an ID ("CWE-89") nor
 # a singular ("what kind of weakness is it") asks for a list of them.
 ASKED_FOR = {
@@ -199,6 +206,32 @@ class KnowledgeBase:
             # neighbors follow. Without a relevant hit there is nothing to relate to, so the answer
             # is an abstention.
             found = [*relevant, *neighbors] if relevant else []
+            # A link from one of the best hits to a hit of another source is what a cross-source
+            # question asks for (a D3FEND technique countering a found ATT&CK one), as is a unit
+            # a best hit cites (the AI Act article a KI-MIG section refers to): the best end past
+            # the limit gets a place.
+            source = {r.chunk.native_id: r.chunk.source_id for r in relevant}
+            ends: set[str] = set()
+            # Only for questions about related items, as the graph expansion above.
+            for seed in [s for s in seeds if s in source] if related else []:
+                for edge in self.graph.edges(seed, relations(query)):
+                    other = edge.dst_id if edge.src_id == seed else edge.src_id
+                    # A cited unit counts even if search missed it; else another source's hit.
+                    if edge.rel == "refers_to" or source.get(other, source[seed]) != source[seed]:
+                        ends |= {seed, other}
+            kept = {r.chunk.native_id for r in found[: self.limit]}
+            # A unit the question names by its title ("Application Protocol Command Analysis")
+            # comes first, then the best scored.
+            missed = sorted(
+                (r for r in [*relevant, *neighbors] if r.chunk.native_id in ends - kept),
+                key=lambda r: (r.chunk.title.lower() not in query.lower(), -r.score),
+            )[:1]
+            if missed:
+                # The place comes from the last kept passage that isn't a link end, never from
+                # the partner of the one it brings in.
+                window = found[: self.limit]
+                drop = next((r for r in reversed(window) if r.chunk.native_id not in ends), None)
+                found = [*(r for r in window if r is not drop), *found[self.limit :]]
         else:
             # Named units, then units related to them, then parts of named articles and annexes,
             # then search hits (not more sections of the named units: they are capped above).
@@ -209,15 +242,19 @@ class KnowledgeBase:
                 *self._cap(ranked(parts, "id"), parent_of, MAX_PER_ID),
                 *[r for r in relevant if r.chunk.native_id not in names],
             ]
+            missed = []
         if found:
             # The best hits within each named act keep a place (when relevant at all).
             best = [r for r in ranked(within, "hybrid") if r.score >= self.min_score]
-            kept = {r.chunk.point_id for r in found[: self.limit]}
+            kept = {r.chunk.point_id for r in [*found[: self.limit], *missed]}
             reserved = [
-                r
-                for act in acts
-                for r in [r for r in best if r.chunk.source_id == act][:PER_NAMED_ACT]
-                if r.chunk.point_id not in kept
+                *missed,
+                *(
+                    r
+                    for act in acts
+                    for r in [r for r in best if r.chunk.source_id == act][:PER_NAMED_ACT]
+                    if r.chunk.point_id not in kept
+                ),
             ]
             found = [*found[: self.limit - len(reserved)], *reserved, *found]
         with observability.stage("language"):
@@ -284,7 +321,7 @@ class KnowledgeBase:
     def _neighbors(self, query: str, seeds: list[str]) -> list[Chunk]:
         """The first chunk of each unit one hop from the seeds, labeled with the relation
         (the edge is not in either unit's text, so the model needs it spelled out)."""
-        rels = {"mitigates", "counters"} if MITIGATIONS.search(query) else None
+        rels = relations(query)
         relation: dict[str, str] = {}
         for seed in seeds[:3]:
             by_rel: dict[str, list[Edge]] = {}

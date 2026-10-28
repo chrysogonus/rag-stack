@@ -73,6 +73,7 @@ export class SkyRenderer {
   private lift = new Map<string, number>()
   private frame = 0
   private lastFrame = 0
+  private ignitions = 0
 
   private readonly canvas: HTMLCanvasElement
   private readonly overlay: HTMLCanvasElement
@@ -133,6 +134,7 @@ export class SkyRenderer {
   /** Lights the retrieved passages: the ones answered from glow, the others flicker and fade. */
   ignite(sources: LitSource[]) {
     this.searchingFrom = null
+    this.ignitions++
     const now = performance.now()
     const keys = new Set(sources.map((s) => key(s.source, s.id)))
     for (const [k, lit] of this.lit) if (!keys.has(k) && lit.cooling === undefined) lit.cooling = now
@@ -180,6 +182,11 @@ export class SkyRenderer {
       }
     }
     this.kick()
+  }
+
+  /** What the sky is doing, for the deep field beneath it to follow. `ignitions` counts answers lit so far. */
+  activity() {
+    return { searching: this.searchingFrom !== null, flowing: this.particles.length > 0, ignitions: this.ignitions }
   }
 
   /** Brightens one constellation, or none. */

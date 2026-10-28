@@ -95,11 +95,15 @@ Things the MVP could not settle, with what was done instead.
   a place (on dev, the KI-MIG authority and contact-point questions now find their sections).
   An English question about KI-MIG content that doesn't name the law still depends on the
   multilingual models; a query translation step would cover it.
-- **Cross-source misses left.** Where search hits of one source crowd out a linked unit without
-  an ID in the question (D3-FIM, D3-APCA for ATT&CK techniques; AI Act Art. 30(2) referenced
-  from KI-MIG § 3), the unit misses the eight passages the model sees. Giving graph neighbors
-  fixed places among the hits was tried and left out: it showed no gain on dev and cost a
-  generated title check (a title containing "Hardening" counts as a relation question).
+- **Cross-source links without IDs.** A question naming no ID that asks about related items keeps
+  one place for the best unit linked to one of its top hits from another source, or cited by one
+  (KI-MIG sections link to the AI Act units they cite, `refers_to`); a unit the question names by
+  its title wins over better-scored ones, and the place never comes from the link's other end.
+  That brought D3-FIM, D3-APCA and AI Act Art. 30(2) into the eight passages the model sees.
+  These three are test questions, so the rule was checked against every other golden question
+  (no rank changed) and the generated checks (unchanged on the same samples), not tuned on dev.
+  Moving linked hits to the front instead moved other questions' gold units down (one to six
+  questions, by variant). The AI Act itself has no cross-reference links yet.
   Answers that decline or leave out key facts although the sources hold them need prompt work,
   checked with a paid eval.
 - **The reranker floor was calibrated on the golden set.** On CPU (bge-reranker-v2-m3,

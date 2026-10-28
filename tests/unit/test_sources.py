@@ -479,10 +479,14 @@ def test_eu_ai_act_units_in_both_languages_linked_by_unit_key():
 def test_ki_mig_one_chunk_per_paragraph():
     snap = snapshot("ki-mig", "20260729215513", "ki_mig", ["ki-mig.xml"])
     snap.urls["ki-mig.xml"] = "https://www.gesetze-im-internet.de/ki-mig/"
-    chunks, _ = gesetze_im_internet.parse(snap)
+    chunks, edges = gesetze_im_internet.parse(snap)
 
     ids = [c.native_id for c in chunks]
     assert ids[:3] == ["KI-MIG § 1", "KI-MIG § 2 Abs. 1", "KI-MIG § 2 Abs. 2"]
+    # Citations of the AI Act link to its units; § 2 Abs. 3 cites other laws' sections only.
+    links = {(e.src_id, e.rel, e.dst_id) for e in edges}
+    assert ("KI-MIG § 1", "refers_to", "AI Act Art. 70(1)") in links
+    assert not [e for e in edges if e.src_id == "KI-MIG § 2 Abs. 3"]
     first = chunks[1]
     assert first.language == "de"
     assert first.text.startswith("(1) Die Bundesnetzagentur ist")
