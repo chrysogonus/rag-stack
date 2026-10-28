@@ -52,11 +52,14 @@ Things the MVP could not settle, with what was done instead.
   another model family than the RAG model (`gpt-6-luna`), so it has no reason to favor RAG
   answers, and fast and cheap enough to run often. A small model is likelier to miss whether an
   answer states a key fact or only touches its topic, so `make eval-agreement` should confirm it
-  against `claude-code/claude-opus-5-5`, which judged the runs before it. It has not been run
-  yet, and the 40 labels in `judge_labels.jsonl` are not human: Claude (Opus 5.5) set them
-  against the primary sources (`judge_labels.md`); a person should go over them. It runs through
-  Claude Code (`claude --print`, no tools), not the raw Anthropic API, and subscription use is
-  personal only. Runs judged by another model are not directly comparable.
+  against `claude-code/claude-opus-5-5`, which judged the runs before it. On 2026-10-28 it
+  agreed with the 40 labels in `judge_labels.jsonl` exactly on 0.88 and within one point on 0.97,
+  0.10 points stricter on average; the one larger miss (`german-legal-ai-act-art-79-4:baseline`,
+  3 vs. 5) is a correct verbatim quote it marked down without sources to check it against. The
+  labels are not human, though: Claude (Opus 5.5) set them against the primary sources
+  (`judge_labels.md`), so this measures Haiku against Opus; a person should go over them. It
+  runs through Claude Code (`claude --print`, no tools), not the raw Anthropic API, and
+  subscription use is personal only. Runs judged by another model are not directly comparable.
 - **Recall counts what the model sees.** Since 2026-10-28 the retriever returns
   `RETRIEVAL_TOP_K` (8) passages and recall is scored on them; runs before scored the first 10,
   of which the model saw 8, so their recall in `history.jsonl` is not directly comparable.
