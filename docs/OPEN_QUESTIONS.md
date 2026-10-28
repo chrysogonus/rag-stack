@@ -52,11 +52,17 @@ Things the MVP could not settle, with what was done instead.
   another model family than the RAG model (`gpt-6-luna`), so it has no reason to favor RAG
   answers, and fast and cheap enough to run often. A small model is likelier to miss whether an
   answer states a key fact or only touches its topic, so `make eval-agreement` should confirm it
-  against `claude-code/claude-opus-5-5`, which judged the runs before it. It has not been run
-  yet, and the 40 labels in `judge_labels.jsonl` are not human: Claude (Opus 5.5) set them
-  against the primary sources (`judge_labels.md`); a person should go over them. It runs through
-  Claude Code (`claude --print`, no tools), not the raw Anthropic API, and subscription use is
-  personal only. Runs judged by another model are not directly comparable.
+  against `claude-code/claude-opus-5-5`, which judged the runs before it. On 2026-10-28 it
+  agreed with the 40 labels in `judge_labels.jsonl` exactly on 0.88 and within one point on 0.97,
+  0.10 points stricter on average; the one larger miss (`german-legal-ai-act-art-79-4:baseline`,
+  3 vs. 5) is a correct verbatim quote it marked down without sources to check it against. The
+  labels are not human, though: Claude (Opus 5.5) set them against the primary sources
+  (`judge_labels.md`), so this measures Haiku against Opus; a person should go over them. It
+  runs through Claude Code (`claude --print`, no tools), not the raw Anthropic API, and
+  subscription use is personal only. Runs judged by another model are not directly comparable.
+- **Recall counts what the model sees.** Since 2026-10-28 the retriever returns
+  `RETRIEVAL_TOP_K` (8) passages and recall is scored on them; runs before scored the first 10,
+  of which the model saw 8, so their recall in `history.jsonl` is not directly comparable.
 - **Terse answers cost correctness.** Several RAG answers give only the ID and title
   ("[AML.T0131] Crafted AI Assistant Links.") while the sources hold the details the key facts
   expect. The system prompt says "be concise"; asking for the relevant details from the source is
@@ -74,19 +80,28 @@ Things the MVP could not settle, with what was done instead.
 
 ## Product
 
-- **Golden set review.** 154 questions carry `needs_review: true`. On 2026-10-27 a model review
-  checked the 135 drafts against the indexed text: 66 stood, 66 were fixed (key facts the question
-  doesn't ask for, titles giving away the answer, incomplete gold IDs, "exact wording" templates
-  in German), 3 only changed category, and 18 injection, robustness and false-premise cases were
-  added. A domain expert
-  should still review them before thresholds are raised.
+- **Golden set review.** On 2026-10-28 Claude (Opus 5.5), acting as a domain expert, reviewed all
+  212 questions against the indexed text and edges: 122 stood, 90 were fixed, none dropped
+  (`evals/datasets/ai_security/review_2026-10-28.md` has each verdict and the source checked).
+  Most fixes split compound key facts, which the judge scores all-or-nothing, or dropped facts
+  the question doesn't ask for; a few corrected legal and CVE claims. All questions now carry
+  `needs_review: false`, but no person has reviewed them: spot-check the log before thresholds
+  are raised. (An earlier model review on 2026-10-27 covered the 135 drafts of then.)
 - **Follow-up questions** reuse the IDs of the previous question when they name none; there is no
   LLM query rewrite yet.
-- **English questions about German-only text.** KI-MIG exists only in German, and English
-  questions about it ("which authority is the market surveillance authority under the KI-MIG?")
-  often miss it: the AI Act's English articles on market surveillance outrank it. Questions that
-  cite a section (`§ 2 KI-MIG`) are found by ID. A query translation step or a source filter
-  when a question names the KI-MIG would fix it.
+- **English questions about German-only text.** KI-MIG exists only in German, and the AI Act's
+  English articles outrank it for English questions. A question that names an act without a
+  section ("under the KI-MIG") is now also searched within that act, and its two best hits keep
+  a place (on dev, the KI-MIG authority and contact-point questions now find their sections).
+  An English question about KI-MIG content that doesn't name the law still depends on the
+  multilingual models; a query translation step would cover it.
+- **Cross-source misses left.** Where search hits of one source crowd out a linked unit without
+  an ID in the question (D3-FIM, D3-APCA for ATT&CK techniques; AI Act Art. 30(2) referenced
+  from KI-MIG § 3), the unit misses the eight passages the model sees. Giving graph neighbors
+  fixed places among the hits was tried and left out: it showed no gain on dev and cost a
+  generated title check (a title containing "Hardening" counts as a relation question).
+  Answers that decline or leave out key facts although the sources hold them need prompt work,
+  checked with a paid eval.
 - **The reranker floor was calibrated on the golden set.** On CPU (bge-reranker-v2-m3,
   `RERANK_MIN_SCORE=0`) off-topic questions top out near -1 and answerable ones start above 1;
   on GPU (Qwen3-Reranker-0.6B, scores in [0, 1]) the floor is 0.005, set with the switch and

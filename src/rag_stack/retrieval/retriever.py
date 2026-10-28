@@ -11,7 +11,7 @@ from rag_stack import observability
 from rag_stack.config import Settings
 from rag_stack.db.edges import EdgeGraph
 from rag_stack.ingestion.models import Chunk, Edge
-from rag_stack.ingestion.registry import SOURCES
+from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS, SOURCES
 from rag_stack.llm.embeddings import Embedder, Reranker, SparseEmbedder
 from rag_stack.retrieval.fusion import rrf
 from rag_stack.retrieval.ids import detect_ids
@@ -50,8 +50,22 @@ def asked_sources(query: str) -> set[str]:
     return {source for source, pattern in ASKED_FOR.items() if pattern.search(query)}
 
 
+# An act a question names ("under the KI-MIG"), by source. Its text can lose to another source's
+# in the search (the KI-MIG is German only, the AI Act's English articles outrank it), so a
+# question naming one is also searched within it.
+NAMED_ACTS = {
+    source: re.compile(rf"\b(?:{names})", re.I)
+    for source, (_, names) in {**EU_ACTS, **GERMAN_LAWS}.items()
+}
+
+
+def named_acts(query: str) -> set[str]:
+    return {source for source, pattern in NAMED_ACTS.items() if pattern.search(query)}
+
+
 MAX_PER_ID = 6  # parts of a named article or annex
 MAX_PER_UNIT = 3  # sections of one named unit (an OWASP entry has eight or more)
+PER_NAMED_ACT = 2  # best search hits within a named act, kept in the results
 MAX_NEIGHBORS = 12  # related units kept, the reranker's best
 # shortcut: past this many neighbors (an ATT&CK technique has hundreds of users) the reranker sees
 # the first ones, relations taking turns; rank within a relation if joins miss the right ones.
@@ -134,13 +148,17 @@ class KnowledgeBase:
         seeds = list(dict.fromkeys(c.native_id for c in exact if c.native_id in ids))
         with observability.stage("hybrid search"):
             hybrid = self._hybrid(search)
+            # One search per act: together, the AI Act's English text outranks the KI-MIG again.
+            # An act whose units the question names needs none: those units are its text.
+            acts = sorted(named_acts(query) - {c.source_id for c in exact if c.native_id in seeds})
+            within = [c for act in acts for c in self._hybrid(search, [act])]
         if not seeds:
             # No IDs named: relate the best search hits, not only the first (often a near miss).
             seeds = list(dict.fromkeys(c.native_id for c in hybrid))[:3]
         with observability.stage("graph expansion"):
             related = self._neighbors(query, seeds) if RELATED.search(query) else []
 
-        pool = unique([*exact, *related, *hybrid])
+        pool = unique([*exact, *related, *hybrid, *within])
         with observability.stage("rerank"):
             scores = dict(
                 zip(
@@ -182,13 +200,26 @@ class KnowledgeBase:
             # is an abstention.
             found = [*relevant, *neighbors] if relevant else []
         else:
-            # Named units, then units related to them, then parts of named articles and annexes.
+            # Named units, then units related to them, then parts of named articles and annexes,
+            # then search hits (not more sections of the named units: they are capped above).
+            names = {c.native_id for c in named}
             found = [
                 *self._cap(ranked(named, "id"), lambda c: c.native_id, per_unit),
                 *neighbors,
                 *self._cap(ranked(parts, "id"), parent_of, MAX_PER_ID),
-                *relevant,
+                *[r for r in relevant if r.chunk.native_id not in names],
             ]
+        if found:
+            # The best hits within each named act keep a place (when relevant at all).
+            best = [r for r in ranked(within, "hybrid") if r.score >= self.min_score]
+            kept = {r.chunk.point_id for r in found[: self.limit]}
+            reserved = [
+                r
+                for act in acts
+                for r in [r for r in best if r.chunk.source_id == act][:PER_NAMED_ACT]
+                if r.chunk.point_id not in kept
+            ]
+            found = [*found[: self.limit - len(reserved)], *reserved, *found]
         with observability.stage("language"):
             return self._in_language(found, language)[: self.limit]
 
@@ -223,20 +254,24 @@ class KnowledgeBase:
                 kept.append(r)
         return kept
 
-    def _hybrid(self, query: str) -> list[Chunk]:
+    def _hybrid(self, query: str, sources: list[str] | None = None) -> list[Chunk]:
+        """Dense and BM25 hits fused with RRF, from every source or only from `sources`."""
         sparse = self.sparse.embed_query(query)
+        flt = models.Filter(must=[any_of("source_id", sources)]) if sources else None
         dense, lexical = self.client.query_batch_points(
             self.collection,
             [
                 models.QueryRequest(
                     query=self.embedder.embed_query(query),
                     using="dense",
+                    filter=flt,
                     limit=self.candidates,
                     with_payload=True,
                 ),
                 models.QueryRequest(
                     query=models.SparseVector(indices=sparse.indices, values=sparse.values),
                     using="bm25",
+                    filter=flt,
                     limit=self.candidates,
                     with_payload=True,
                 ),
@@ -323,6 +358,8 @@ def knowledge_base(
         reranker,
         graph,
         candidates=settings.retrieval_candidates,
+        # Only what the answer sees, so the evals score that.
+        limit=settings.retrieval_top_k,
         min_score=settings.rerank_min_score,
         rerank_chars=settings.rerank_max_chars,
     )

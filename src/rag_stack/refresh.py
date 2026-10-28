@@ -30,7 +30,7 @@ from rag_stack.retrieval.retriever import knowledge_base
 logger = logging.getLogger(__name__)
 
 MAX_DROP = 0.10  # a source losing more of its chunks or IDs than this blocks the refresh
-MAX_REGRESSION = 0.02  # how far recall@10 or MRR may fall below the served generation
+MAX_REGRESSION = 0.02  # how far recall@k or MRR may fall below the served generation
 METRICS = ("recall_at_10", "mrr")
 
 Models = Callable[[], tuple[Embedder, SparseEmbedder, Reranker]]

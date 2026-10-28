@@ -21,7 +21,8 @@ from rag_stack.retrieval.retriever import Retriever
 class State(TypedDict):
     messages: Annotated[list[Message], operator.add]
     # The ranked chunks retrieved for the latest question (replaced every turn), as plain dicts.
-    # The answer uses the first settings.retrieval_top_k; evals score the whole ranking.
+    # At most settings.retrieval_top_k (the retriever's limit): what the answer sees and the
+    # evals score.
     sources: list[dict[str, Any]]
 
 

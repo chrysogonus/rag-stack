@@ -400,7 +400,7 @@ async def test_retrieval_only_scores_the_golden_set_without_an_llm(capsys):
     assert ("How do I defend against it?", "What is AML.T0051?") in kb.asked
     out = capsys.readouterr().out
     assert out.startswith("split: dev")
-    assert "all            recall@10 1.000  mrr 1.000" in out
+    assert "all            recall@k 1.000  mrr 1.000" in out
 
     # Only the asked split is retrieved: dev and test questions don't mix.
     dev = set(kb.asked)
