@@ -3,6 +3,7 @@ import Markdown, { type Components, type Options } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CITE, groupEntries, linkCitations, splitFooter, splitNotes } from './answer'
 import { STOPPED, type SourceRef } from './api'
+import { rehypeWords } from './condense'
 import { hash } from './sky/layout'
 import type { SkyRenderer } from './sky/renderer'
 
@@ -29,6 +30,7 @@ const external = ({ node: _node, children, ...props }: { node?: unknown } & Comp
 
 // Tables (comparisons) and other GitHub Markdown. Single tildes stay text: "~7 s" is not strikethrough.
 const remarkPlugins: Options['remarkPlugins'] = [[remarkGfm, { singleTilde: false }]]
+const writing: Options['rehypePlugins'] = [rehypeWords]
 
 interface Citing {
   anchor: (id: string) => string | undefined
@@ -166,7 +168,7 @@ export function Answer({ content, sources, index, live, sky, onFeedback }: Props
     <article className={live ? 'answer live' : 'answer'} aria-label="Answer">
       <div className="answer-body">
         <CitingContext value={citing}>
-          <Markdown remarkPlugins={remarkPlugins} components={components}>
+          <Markdown remarkPlugins={remarkPlugins} rehypePlugins={live ? writing : undefined} components={components}>
             {linkCitations(body, ids)}
           </Markdown>
         </CitingContext>

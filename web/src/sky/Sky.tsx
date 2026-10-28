@@ -37,6 +37,9 @@ export function Sky({ rendererRef }: { rendererRef: RefObject<SkyRenderer | null
     const onScheme = () => sky.refreshColors()
     // Citation tethers follow the page; hidden tabs pause the loop and resume on return.
     const onRedraw = () => sky.kick()
+    // Stardust follows a mouse; a finger on a touch screen leaves none.
+    const onPointer = (e: PointerEvent) => e.pointerType === 'mouse' && sky.trail(e.clientX, e.clientY)
+    window.addEventListener('pointermove', onPointer, { passive: true })
     window.addEventListener('resize', onResize)
     window.addEventListener('scroll', onRedraw, { passive: true })
     document.addEventListener('visibilitychange', onRedraw)
@@ -46,6 +49,7 @@ export function Sky({ rendererRef }: { rendererRef: RefObject<SkyRenderer | null
     void document.fonts.load(LABEL_FONT).then(onRedraw)
     return () => {
       window.removeEventListener('resize', onResize)
+      window.removeEventListener('pointermove', onPointer)
       window.removeEventListener('scroll', onRedraw)
       document.removeEventListener('visibilitychange', onRedraw)
       still.removeEventListener('change', onMotion)

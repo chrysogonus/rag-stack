@@ -245,6 +245,39 @@ button:disabled {
   color: var(--ember-ink);
 }
 
+/* A glint sweeps across the buttons that start something, once per hover. */
+.primary,
+.starters button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.primary::after {
+  --sheen: rgb(255 255 255 / 0.5);
+}
+
+.starters button::after {
+  --sheen: color-mix(in srgb, var(--ember) 28%, transparent);
+}
+
+.primary::after,
+.starters button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 30%, var(--sheen) 50%, transparent 70%);
+  translate: -110% 0;
+  pointer-events: none;
+}
+
+.primary:hover:not(:disabled)::after,
+.starters button:hover::after {
+  translate: 110% 0;
+  transition: translate 750ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
 /* Conversation */
 
 .thread {
@@ -717,6 +750,58 @@ button:disabled {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--ember) 14%, transparent);
 }
 
+/* While an answer is written, two points of starlight orbit the composer's edge, trailing a glow. */
+@property --orbit {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0turn;
+}
+
+.busy .field {
+  position: relative;
+}
+
+.busy .field::before,
+.busy .field::after {
+  /* The hot point of each light: pale gold on the night sky and on the paper chart alike. */
+  --orbit-core: color-mix(in srgb, var(--ember) 45%, white);
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--orbit),
+    transparent 0 32%,
+    var(--ember) 46%,
+    var(--orbit-core) 49%,
+    transparent 50% 82%,
+    var(--ember) 96%,
+    var(--orbit-core) 99%,
+    transparent 100%
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  animation: orbit 2.6s linear infinite;
+  pointer-events: none;
+}
+
+/* The glow: the same light, unmasked and blurred, behind the field so it spills out past the edge. */
+.busy .field::after {
+  inset: -2px;
+  z-index: -1;
+  mask: none;
+  filter: blur(9px);
+  opacity: 0.9;
+}
+
+@keyframes orbit {
+  to {
+    --orbit: 1turn;
+  }
+}
+
 .field textarea {
   flex: 1;
   min-height: 2.25rem;
@@ -810,6 +895,28 @@ button:disabled {
   }
 }
 
+/* Words of an answer being written condense out of starlight: a blur and a glow that settle into ink. */
+.answer.live .w {
+  animation: condense 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes condense {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    text-shadow: 0 0 14px var(--ember);
+  }
+
+  40% {
+    opacity: 1;
+  }
+
+  to {
+    filter: none;
+    text-shadow: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .caret::before,
   .caret::after,
@@ -817,6 +924,9 @@ button:disabled {
   .forming circle,
   .spark,
   .deep,
+  .busy .field::before,
+  .busy .field::after,
+  .answer.live .w,
   .intro .welcome h1,
   .intro .welcome p,
   .intro .starters,
@@ -824,7 +934,9 @@ button:disabled {
     animation: none;
   }
 
-  .catalogue li {
+  .catalogue li,
+  .primary:hover:not(:disabled)::after,
+  .starters button:hover::after {
     transition: none;
   }
 }

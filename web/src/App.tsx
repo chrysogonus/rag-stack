@@ -252,6 +252,7 @@ export default function App() {
         controller.signal,
       )
       updateAnswer(() => ({ content: reply.content }))
+      if (!controller.signal.aborted) sky?.finish()
       setAnnouncement('Answer ready.')
     } catch (e) {
       if (controller.signal.aborted) {
@@ -398,7 +399,7 @@ export default function App() {
         </div>
       </main>
 
-      <form className="composer" ref={composerRef} onSubmit={onSubmit}>
+      <form className={streaming ? 'composer busy' : 'composer'} ref={composerRef} onSubmit={onSubmit}>
         {error && (
           <p className="error" role="alert">
             {error}
