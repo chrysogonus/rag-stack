@@ -25,6 +25,24 @@ interface Particle {
   start: number
 }
 
+/** The supernova as an answer completes: a shockwave and sparks thrown from one passage. */
+interface Burst {
+  at: Point
+  start: number
+  sparks: { angle: number; reach: number; size: number; warm: boolean }[]
+}
+
+/** A mote of stardust left behind by the pointer. */
+interface Mote {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  size: number
+  tint: 'star' | 'ember' | 'glint'
+  start: number
+}
+
 const INTRO = 2400
 const PULSE = 2400
 const IGNITE = 700
@@ -32,6 +50,11 @@ const CONSIDERED = 1600
 const COOL = 600
 const FLIGHT = 950
 const EMIT_EVERY = 33
+const BURST = 1700
+const BURST_STAGGER = 80
+const MOTE = 1300
+const MOTE_EVERY = 16
+const MOTES = 160
 export const LABEL_FONT = "italic 400 15px 'Source Serif 4 Variable', Georgia, serif"
 
 const clamp = (t: number) => Math.min(1, Math.max(0, t))
@@ -74,6 +97,10 @@ export class SkyRenderer {
   private frame = 0
   private lastFrame = 0
   private ignitions = 0
+  private finishes = 0
+  private bursts: Burst[] = []
+  private motes: Mote[] = []
+  private lastMote = 0
 
   private readonly canvas: HTMLCanvasElement
   private readonly overlay: HTMLCanvasElement
@@ -169,13 +196,15 @@ export class SkyRenderer {
     this.kick()
   }
 
-  /** Follows a change to the reduced-motion preference: anything in motion jumps to its end state. */
+  /** Follows a change to the motion setting (see motion.ts): anything in motion jumps to its end state. */
   setStill(still: boolean) {
     this.still = still
     if (still) {
       this.introStart = -Infinity
       this.pulses = []
       this.particles = []
+      this.bursts = []
+      this.motes = []
       for (const [k, lit] of this.lit) {
         if (!lit.used || lit.cooling !== undefined) this.lit.delete(k)
         else lit.start = -Infinity
@@ -184,9 +213,66 @@ export class SkyRenderer {
     this.kick()
   }
 
-  /** What the sky is doing, for the deep field beneath it to follow. `ignitions` counts answers lit so far. */
+  /** The answer is complete: every passage it was answered from goes supernova. */
+  finish() {
+    this.finishes++
+    if (this.still) return
+    const now = performance.now()
+    let i = 0
+    for (const lit of this.lit.values()) {
+      if (!lit.used || lit.cooling !== undefined) continue
+      const sparks = Array.from({ length: 14 }, () => ({
+        angle: Math.random() * Math.PI * 2,
+        reach: 40 + Math.random() * 110,
+        size: 1.6 + Math.random() * 2.6,
+        warm: Math.random() < 0.7,
+      }))
+      this.bursts.push({ at: lit.at, start: now + i++ * BURST_STAGGER, sparks })
+    }
+    this.kick()
+  }
+
+  /** Leaves stardust where the pointer passes, at most one puff per 16ms. */
+  trail(x: number, y: number) {
+    if (this.still) return
+    const now = performance.now()
+    if (now - this.lastMote < MOTE_EVERY) return
+    this.lastMote = now
+    for (let i = 0; i < 3; i++) {
+      const angle = Math.random() * Math.PI * 2
+      const speed = 0.008 + Math.random() * 0.025
+      const pick = Math.random()
+      this.motes.push({
+        x: x + (Math.random() - 0.5) * 8,
+        y: y + (Math.random() - 0.5) * 8,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 0.015,
+        size: 0.8 + Math.random() ** 2 * 3,
+        tint: pick < 0.5 ? 'star' : pick < 0.8 ? 'ember' : 'glint',
+        start: now,
+      })
+    }
+    if (this.motes.length > MOTES) this.motes.splice(0, this.motes.length - MOTES)
+    this.kick()
+  }
+
+  /**
+   * What the sky is doing, for the deep field beneath it to follow. `ignitions` and `finishes` count answers
+   * lit and completed so far; `focus` is the constellation or passage in view, from -1 to 1 across the screen.
+   */
   activity() {
-    return { searching: this.searchingFrom !== null, flowing: this.particles.length > 0, ignitions: this.ignitions }
+    const target = this.tetherTo
+      ? passagePoint(this.sky, this.width, this.height, this.tetherTo.source, this.tetherTo.id)
+      : this.highlighted
+        ? this.sky.regions.get(this.highlighted)?.centre
+        : undefined
+    return {
+      searching: this.searchingFrom !== null,
+      flowing: this.particles.length > 0,
+      ignitions: this.ignitions,
+      finishes: this.finishes,
+      focus: target ? { x: (target.x / this.width) * 2 - 1, y: (target.y / this.height) * 2 - 1 } : null,
+    }
   }
 
   /** Brightens one constellation, or none. */
@@ -200,6 +286,7 @@ export class SkyRenderer {
     const now = performance.now()
     this.searchingFrom = null
     this.particles = []
+    this.bursts = []
     for (const lit of this.lit.values()) lit.cooling ??= now
     this.kick()
   }
@@ -396,6 +483,60 @@ export class SkyRenderer {
         ctx.beginPath()
         ctx.arc(lit.at.x, lit.at.y, 1.8, 0, Math.PI * 2)
         ctx.fill()
+      }
+    }
+
+    // Supernovae: a shockwave rolls out from each passage, a flash at its heart, sparks thrown clear.
+    this.bursts = this.bursts.filter((b) => now - b.start < BURST)
+    for (const burst of this.bursts) {
+      moving = true
+      const age = now - burst.start
+      if (age < 0) continue
+      const t = age / BURST
+      const { x, y } = burst.at
+      const flash = clamp(1 - t * 3.5)
+      if (flash > 0) {
+        const core = ctx.createRadialGradient(x, y, 0, x, y, 70)
+        core.addColorStop(0, rgba(star, 0.9 * flash))
+        core.addColorStop(0.25, rgba(ember, 0.55 * flash))
+        core.addColorStop(1, rgba(ember, 0))
+        ctx.fillStyle = core
+        ctx.fillRect(x - 70, y - 70, 140, 140)
+      }
+      for (const [delay, reach, weight] of [
+        [0, 190, 2.4],
+        [0.12, 120, 1.2],
+      ]) {
+        const s = clamp((t - delay) / (1 - delay))
+        if (s <= 0 || s >= 1) continue
+        ctx.strokeStyle = rgba(ember, 0.75 * (1 - s) ** 1.5)
+        ctx.lineWidth = weight * (1 - s) + 0.4
+        ctx.beginPath()
+        ctx.arc(x, y, easeOut(s) * reach, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+      for (const spark of burst.sparks) {
+        const travel = easeOut(t) * spark.reach
+        ctx.fillStyle = rgba(spark.warm ? ember : star, (1 - t) ** 1.2)
+        sparkle(ctx, { x: x + Math.cos(spark.angle) * travel, y: y + Math.sin(spark.angle) * travel }, spark.size * (1 - t * 0.6))
+      }
+    }
+
+    // Stardust behind the pointer, drifting and fading. Above the reading panel, so it follows the pointer there too.
+    this.motes = this.motes.filter((m) => now - m.start < MOTE)
+    for (const mote of this.motes) {
+      moving = true
+      const t = (now - mote.start) / MOTE
+      mote.x += mote.vx * dt
+      mote.y += mote.vy * dt
+      const size = mote.size * (1 - t * 0.5)
+      fx.fillStyle = rgba(this.colors[mote.tint], 0.9 * (1 - t) ** 1.5)
+      if (size > 2) {
+        sparkle(fx, mote, size * 1.6)
+      } else {
+        fx.beginPath()
+        fx.arc(mote.x, mote.y, size, 0, Math.PI * 2)
+        fx.fill()
       }
     }
 

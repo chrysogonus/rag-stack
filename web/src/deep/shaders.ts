@@ -1,6 +1,6 @@
 /*
- * GLSL for the deep field. Colours arrive as uniforms read from the CSS palette and are written out as
- * they are, so the canvas matches the page's sRGB tokens exactly.
+ * GLSL for the deep field. Colours arrive as linear uniforms from the CSS palette, light adds up in linear
+ * space, and the glow pass converts the result to sRGB, so the canvas matches the page's tokens exactly.
  */
 
 /** Point size in pixels for a star of world size `size` at view depth `depth`. */
@@ -123,6 +123,26 @@ void main() {
 }
 `
 
+/** A shooting star: a line whose head is bright enough to bloom, fading to nothing at its tail. */
+export const meteorVertex = /* glsl */ `
+attribute float aAlpha;
+varying float vAlpha;
+void main() {
+  vAlpha = aAlpha;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`
+
+export const meteorFragment = /* glsl */ `
+uniform vec3 uStar;
+uniform vec3 uGlint;
+varying float vAlpha;
+void main() {
+  if (vAlpha < 0.004) discard;
+  gl_FragColor = vec4(mix(uGlint, uStar, vAlpha) * (1.0 + 2.0 * vAlpha), vAlpha);
+}
+`
+
 const NOISE = /* glsl */ `
 float hash(vec3 p) {
   p = fract(p * 0.3183099 + 0.1);
@@ -163,6 +183,7 @@ export const nebulaFragment = /* glsl */ `
 uniform float uTime;
 uniform float uGlow;
 uniform float uOpacity;
+uniform float uCurve;
 uniform vec3 uBand;
 uniform vec3 uStar;
 uniform vec3 uGlint;
@@ -178,6 +199,7 @@ void main() {
   float density = smoothstep(0.4, 0.88, n) * (0.15 + 0.85 * band);
   vec3 colour = mix(uGlint, uEmber, smoothstep(0.5, 0.8, q.x));
   colour = mix(colour, uStar, smoothstep(0.75, 0.95, n) * 0.5);
-  gl_FragColor = vec4(colour, clamp(density * uOpacity * uGlow, 0.0, 1.0));
+  // Blending in linear light makes thin cloud look far denser than the same alpha in sRGB; the curve undoes that.
+  gl_FragColor = vec4(colour, pow(clamp(density * uOpacity * uGlow, 0.0, 1.0), uCurve));
 }
 `

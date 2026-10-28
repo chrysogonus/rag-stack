@@ -1,9 +1,10 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useSyncExternalStore, type RefObject } from 'react'
+import type { PerspectiveCamera } from 'three'
+import { useStill } from '../motion'
 import type { SkyRenderer } from '../sky/renderer'
-import { DeepField } from './scene'
+import { DeepField, Glow } from './scene'
 
-const stillQuery = '(prefers-reduced-motion: reduce)'
 const darkQuery = '(prefers-color-scheme: dark)'
 
 /** The galaxy's distance; it sits off to the upper left, clear of the reading column on wide screens. */
@@ -21,29 +22,40 @@ function useMedia(query: string) {
 }
 
 function Space({ rendererRef, still, dark }: { rendererRef: RefObject<SkyRenderer | null>; still: boolean; dark: boolean }) {
-  const { gl, size, invalidate } = useThree()
+  const { gl, scene, camera, size, viewport, invalidate } = useThree()
+  const perspective = camera as PerspectiveCamera
   const field = useMemo(() => new DeepField(still), [still])
   useEffect(() => () => field.dispose(), [field])
+  const glow = useMemo(() => new Glow(gl, scene, perspective), [gl, scene, perspective])
+  useEffect(() => () => glow.dispose(), [glow])
+  useEffect(() => glow.setSize(size.width, size.height, viewport.dpr), [glow, size, viewport.dpr])
 
   // The palette lives in CSS: read it again whenever the colour scheme flips.
   useEffect(() => {
     const style = getComputedStyle(document.documentElement)
     const read = (name: string) => style.getPropertyValue(name).trim()
-    gl.setClearColor(read('--sky'))
+    glow.setSky(read('--sky'))
     field.setPalette({ star: read('--star'), glint: read('--glint'), ember: read('--ember') }, dark)
     invalidate()
-  }, [dark, field, gl, invalidate])
+  }, [dark, field, glow, invalidate])
 
   useEffect(() => {
     if (still) return
     const onMove = (e: PointerEvent) => field.point((e.clientX / innerWidth) * 2 - 1, (e.clientY / innerHeight) * 2 - 1)
+    const onScroll = () => field.scroll(scrollY)
     window.addEventListener('pointermove', onMove, { passive: true })
-    return () => window.removeEventListener('pointermove', onMove)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('scroll', onScroll)
+    }
   }, [field, still])
 
-  useFrame(({ camera, viewport }, delta) => {
-    field.step(delta, rendererRef.current?.activity(), camera, size.height * viewport.dpr)
+  useFrame((_, delta) => {
+    field.step(delta, rendererRef.current?.activity(), perspective, size.height * viewport.dpr)
   })
+  // Priority 1: the glow pass draws the frame instead of the default render.
+  useFrame((_, delta) => glow.render(field.bloom, delta), 1)
 
   const halfHeight = GALAXY_DISTANCE * Math.tan(Math.PI / 6)
   const halfWidth = halfHeight * (size.width / size.height)
@@ -59,6 +71,7 @@ function Space({ rendererRef, still, dark }: { rendererRef: RefObject<SkyRendere
       {/* The shaders move the stars, so their bounds on the CPU mean nothing: never cull them. */}
       <lineSegments geometry={field.streaks} material={field.streakMaterial} frustumCulled={false} renderOrder={2} />
       <points geometry={field.stars} material={field.starMaterial} frustumCulled={false} renderOrder={3} />
+      <lineSegments geometry={field.meteors} material={field.meteorMaterial} frustumCulled={false} renderOrder={4} />
     </>
   )
 }
@@ -68,7 +81,7 @@ function Space({ rendererRef, still, dark }: { rendererRef: RefObject<SkyRendere
  * It follows the atlas above it, warping while a question is searched and flaring when the answer's sources light.
  */
 export default function DeepSpace({ rendererRef }: { rendererRef: RefObject<SkyRenderer | null> }) {
-  const still = useMedia(stillQuery)
+  const still = useStill()
   const dark = useMedia(darkQuery)
   return (
     <div className="deep" aria-hidden="true">

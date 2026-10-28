@@ -26,6 +26,17 @@ describe('Answer', () => {
     expect(render('An answer.')).not.toContain('Rate this answer')
   })
 
+  it('gives each word of a live answer its own span, but leaves links and code whole', () => {
+    const live = renderToStaticMarkup(
+      <Answer content={'Use `rate limits` and [MFA](https://example.org) now.'} index={0} live sky={{ current: null }} />,
+    )
+
+    expect(live).toContain('<span class="w">Use</span> <code>rate limits</code>')
+    expect(live).toContain('<a href="https://example.org" target="_blank" rel="noreferrer">MFA')
+    expect(live).toContain('<span class="w">now.</span>')
+    expect(render('Use it now.')).not.toContain('class="w"')
+  })
+
   it('keeps single tildes as text', () => {
     expect(render('It takes ~7 s instead of ~45 s.')).not.toContain('<del>')
   })
