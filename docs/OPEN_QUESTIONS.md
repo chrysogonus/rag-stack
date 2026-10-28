@@ -95,9 +95,10 @@ Things the MVP could not settle, with what was done instead.
 - **Cross-source misses left.** Where search hits of one source crowd out a linked unit without
   an ID in the question (D3-FIM, D3-APCA for ATT&CK techniques; AI Act Art. 30(2) referenced
   from KI-MIG § 3), the unit misses the eight passages the model sees. Giving graph neighbors
-  fixed places among the hits fixed those but cost generated title checks (a title containing
-  "Hardening" counts as a relation question), so it was left out. Answers that decline or leave
-  out key facts although the sources hold them need prompt work, checked with a paid eval.
+  fixed places among the hits was tried and left out: it showed no gain on dev and cost a
+  generated title check (a title containing "Hardening" counts as a relation question).
+  Answers that decline or leave out key facts although the sources hold them need prompt work,
+  checked with a paid eval.
 - **The reranker floor was calibrated on the golden set.** On CPU (bge-reranker-v2-m3,
   `RERANK_MIN_SCORE=0`) off-topic questions top out near -1 and answerable ones start above 1;
   on GPU (Qwen3-Reranker-0.6B, scores in [0, 1]) the floor is 0.005, set with the switch and
