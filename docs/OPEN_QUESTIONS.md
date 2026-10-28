@@ -74,12 +74,13 @@ Things the MVP could not settle, with what was done instead.
 
 ## Product
 
-- **Golden set review.** 154 questions carry `needs_review: true`. On 2026-10-27 a model review
-  checked the 135 drafts against the indexed text: 66 stood, 66 were fixed (key facts the question
-  doesn't ask for, titles giving away the answer, incomplete gold IDs, "exact wording" templates
-  in German), 3 only changed category, and 18 injection, robustness and false-premise cases were
-  added. A domain expert
-  should still review them before thresholds are raised.
+- **Golden set review.** On 2026-10-28 Claude (Opus 5.5), acting as a domain expert, reviewed all
+  212 questions against the indexed text and edges: 122 stood, 90 were fixed, none dropped
+  (`evals/datasets/ai_security/review_2026-10-28.md` has each verdict and the source checked).
+  Most fixes split compound key facts, which the judge scores all-or-nothing, or dropped facts
+  the question doesn't ask for; a few corrected legal and CVE claims. All questions now carry
+  `needs_review: false`, but no person has reviewed them: spot-check the log before thresholds
+  are raised. (An earlier model review on 2026-10-27 covered the 135 drafts of then.)
 - **Follow-up questions** reuse the IDs of the previous question when they name none; there is no
   LLM query rewrite yet.
 - **English questions about German-only text.** KI-MIG exists only in German, and English
