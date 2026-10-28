@@ -308,7 +308,18 @@ async def test_without_named_ids_an_edge_between_lower_search_hits_reaches_the_p
     assert "D3-FIM counters T1566.002" in relations.values()
 
 
-async def test_a_named_unit_keeps_only_its_best_sections_so_related_units_fit():
+@pytest.mark.parametrize(
+    ("question", "kept"),
+    [
+        ("Which risks map to LLM01:2026?", 3),
+        # Asking for another source's units is asking for that list: the named unit gets one
+        # section ahead of it (its others may follow as search hits).
+        ("Which ASI risks map to LLM01:2026?", 1),
+        # Its own source isn't another one.
+        ("Which LLM Top 10 entries map to LLM01:2026?", 3),
+    ],
+)
+async def test_a_named_unit_keeps_only_its_best_sections_so_related_units_fit(question, kept):
     sections = [
         chunk(
             "LLM01:2026",
@@ -329,9 +340,9 @@ async def test_a_named_unit_keeps_only_its_best_sections_so_related_units_fit():
     graph = EdgeGraph([Edge(src_id="LLM01:2026", rel="maps_to", dst_id="ASI01", origin="owasp")])
     kb = KnowledgeBase(client, "kb", embedder, sparse, FakeReranker(), graph, limit=4)
 
-    found = await kb.retrieve("Which ASI risks map to LLM01:2026?")
+    found = await kb.retrieve(question)
 
-    assert [r.chunk.native_id for r in found] == ["LLM01:2026"] * 3 + ["ASI01"]
+    assert [r.chunk.native_id for r in found][: kept + 1] == ["LLM01:2026"] * kept + ["ASI01"]
 
 
 def small_kb(chunks, edges, **options) -> KnowledgeBase:

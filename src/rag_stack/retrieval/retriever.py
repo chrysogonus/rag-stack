@@ -44,6 +44,12 @@ ASKED_FOR = {
         "owasp-llm-2026": r"LLM (Top 10|Applications)",
     }.items()
 }
+
+
+def asked_sources(query: str) -> set[str]:
+    return {source for source, pattern in ASKED_FOR.items() if pattern.search(query)}
+
+
 MAX_PER_ID = 6  # parts of a named article or annex
 MAX_PER_UNIT = 3  # sections of one named unit (an OWASP entry has eight or more)
 MAX_NEIGHBORS = 12  # related units kept, the reranker's best
@@ -164,6 +170,10 @@ class KnowledgeBase:
         def parent_of(chunk: Chunk) -> str:
             return next((i for i in ids if i in chunk.parent_ids), chunk.native_id)
 
+        # Asking for units of another source than the named unit's (a CWE's CAPEC patterns) asks
+        # for that list: one section per named unit leaves the answer's sources to the list.
+        listed = asked_sources(query) - {c.source_id for c in named}
+        per_unit = 1 if any(r.chunk.source_id in listed for r in neighbors) else MAX_PER_UNIT
         parts = [c for c in exact if c not in named]
         relevant = [r for r in ranked(hybrid, "hybrid") if r.score >= self.min_score]
         if not exact:
@@ -174,7 +184,7 @@ class KnowledgeBase:
         else:
             # Named units, then units related to them, then parts of named articles and annexes.
             found = [
-                *self._cap(ranked(named, "id"), lambda c: c.native_id, MAX_PER_UNIT),
+                *self._cap(ranked(named, "id"), lambda c: c.native_id, per_unit),
                 *neighbors,
                 *self._cap(ranked(parts, "id"), parent_of, MAX_PER_ID),
                 *relevant,
@@ -257,7 +267,7 @@ class KnowledgeBase:
         chunks = [c for c in self._scroll(flt) if c.chunk_index == 0]
         # The reranker ranks by topic (a CWE's SQL injection CVEs outrank its CAPEC patterns), so a
         # question asking for one kind of unit keeps only those, if it has any, and the named units.
-        asked = {source for source, pattern in ASKED_FOR.items() if pattern.search(query)}
+        asked = asked_sources(query)
         if any(c.source_id in asked and c.native_id not in seeds for c in chunks):
             chunks = [c for c in chunks if c.source_id in asked or c.native_id in seeds]
         order = list(relation)
