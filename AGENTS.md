@@ -29,8 +29,11 @@ writes an answer grounded in them.
   not LangChain chat models.
 - API: FastAPI with SSE streaming. Conversations are stored in Postgres (with the LangGraph
   checkpointer).
-- Web UI: Vite + React + TypeScript in `web/`
-- Tracing: Langfuse. Deploy: Kubernetes (Helm chart in `deploy/`).
+- Web UI: Vite + React + TypeScript in `web/`: the chat over a star-atlas sky (2D canvas, one
+  constellation per source) and a lazily loaded three.js deep field; a Motion switch overrides
+  `prefers-reduced-motion`.
+- Tracing: Langfuse, self-hosted (`make tracing`). Deploy: Kubernetes with a Helm chart, planned
+  (not built yet).
 - Users are public and anonymous: rate limits, token budgets and input caps are required,
   not optional.
 
@@ -39,26 +42,32 @@ writes an answer grounded in them.
 ```
 src/rag_stack/
   ingestion/   # fetch (polite HTTP), sha256 snapshots, one parser per source or legal system in sources/
-  retrieval/   # Qdrant index, ID detection, hybrid search + RRF + rerank + graph expansion
+  retrieval/   # Qdrant index, ID detection, hybrid search + RRF, graph expansion, rerank, generations
   agent/       # knowledge base agent: LangGraph graph, prompts, answer footer, `ask`
   llm/         # chat, embedding and reranker interfaces and adapters
   api/         # FastAPI app: chat (SSE), threads, ratings, rate limits
   db/          # Postgres: checkpointer, edge table, Alembic migrations
-  evals/       # golden-set harness: metrics, LLM judge, RAG vs. baseline report
-  cli.py       # ingest | index | refresh | rollback | ask | eval | eval-draft (wrapped by make)
+  evals/       # golden-set harness (metrics, LLM judge, RAG vs. baseline report), judge calibration,
+               # question drafting, retrieval checks generated from the corpus (units.py)
+  cli.py       # ingest | index | refresh | rollback | ask | eval | eval-draft | eval-units |
+               # eval-labels | eval-agreement (wrapped by make)
   refresh.py   # scheduled refresh: diff, checks, candidate index generation, promote or block
   observability.py  # Langfuse tracing and ratings; the only module that imports its SDK
 config/sources.yaml     # the source allowlist and pinned upstream refs
 data/                   # raw snapshots, processed chunks, HTTP cache (not committed)
 web/           # chat UI
-deploy/        # systemd timer for `make refresh` (`make schedule`); Helm chart (planned)
+deploy/        # systemd/: timer for `make refresh` (`make schedule`); vllm/: Qwen3 reranker template
+docker-compose.yml  # Postgres, Qdrant; profiles `gpu` (vLLM) and `tracing` (Langfuse)
+Makefile       # every command; `make` lists them
+.github/workflows/ci.yml  # CI: lint, secrets, types, unit tests, audit, build, web
 tests/
   fakes/       # fake LLM / embedder / reranker / retriever shared by unit tests
   fixtures/    # small verbatim excerpts of each source (see NOTICE.md)
   unit/        # tight: no network, LLM/embeddings faked, Qdrant in-memory
   ai/          # evals against a real LLM, marked @pytest.mark.ai
   e2e/         # question -> chatbot answer, real Qdrant
-evals/datasets/<name>/  # golden.jsonl, thresholds.yaml, report.md, results.json, history.jsonl, corpus/manifest.json
+evals/datasets/<name>/  # golden.jsonl, thresholds.yaml, report.md, results.json, history.jsonl,
+                        # corpus/manifest.json, judge_labels.{jsonl,md}, review_<date>.md, drafts.jsonl
 evals/rubrics/          # versioned LLM-judge rubrics
 ```
 

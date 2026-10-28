@@ -1,5 +1,5 @@
-"""Golden-set eval: the RAG chatbot against the same LLM without retrieval (a stand-in for a
-general chatbot). Writes report.md and results.json next to the dataset."""
+"""Golden-set eval: the RAG chatbot against a baseline chatbot (`EVAL_BASELINE_*`; unset, the
+same LLM without retrieval). Writes report.md and results.json next to the dataset."""
 
 import asyncio
 import hashlib

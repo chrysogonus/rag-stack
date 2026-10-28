@@ -1,15 +1,19 @@
 # Plan: AI-security knowledge base
 
-A self-hosted RAG chatbot on attacks against AI systems and EU AI regulation. It should beat a
-general chatbot on three things: freshness (content newer than model training data), exact
+A self-hosted RAG chatbot on cybersecurity research, specializing in attacks against AI systems
+and EU and German AI regulation. It should beat a general chatbot on three things: freshness (content newer than model training data), exact
 citable IDs with verbatim legal text, and joins across sources (technique → mitigation → OWASP
-risk → AI Act article → CVE).
+risk → AI Act article → CVE, and since wave 1: ATT&CK ↔ ATLAS ↔ CAPEC ↔ CWE ↔ CVE, ATT&CK ↔ D3FEND).
 
 ## Sources (allowlist: `config/sources.yaml`)
 
 | id | Source | Fetched from | Units (native IDs) |
 |---|---|---|---|
 | `atlas` | MITRE ATLAS | `atlas-data` `dist/v6/ATLAS-latest.yaml` (a symlink to the dated release) | tactics `AML.TA####`, techniques `AML.T####[.###]`, mitigations `AML.M####`, case studies `AML.CS####` |
+| `attack` | MITRE ATT&CK Enterprise, Mobile, ICS | STIX 2.1 bundles from `mitre-attack/attack-stix-data`, pinned release (20.0) | `TA0002`, `T1059.001`, `M1038`, `G0016`, `S0154`, `C0024`, `DET0001` |
+| `capec` | MITRE CAPEC | XML catalog from capec.mitre.org, pinned release (3.9) | `CAPEC-66` |
+| `cwe` | MITRE CWE | zipped XML catalog from cwe.mitre.org, pinned release (4.20) | `CWE-79` |
+| `d3fend` | MITRE D3FEND and its inferred ATT&CK mappings | d3fend.mitre.org ontology JSON, pinned release (1.6.0) | `D3-MFA` |
 | `owasp-llm-2026` | OWASP Top 10 for LLM Applications 2026 | `GenAI-LLM-Top10` `2026/final/*.md`, pinned commit | `LLM01:2026` … one chunk per `###` section |
 | `owasp-agentic-2026` | OWASP Top 10 for Agentic Applications 2026 | PDF from genai.owasp.org | `ASI01` … one chunk per section |
 | `eu-ai-act` | Regulation (EU) 2024/1689, EN + DE | CELLAR REST API (EUR-Lex HTML is behind a bot challenge) | `AI Act Art. 50(1)`, `Recital 133`, `Annex III 1(a)` |
@@ -20,20 +24,26 @@ risk → AI Act article → CVE).
 
 | Path | What it does |
 |---|---|
-| `ingestion/fetch.py` | Polite HTTP client: User-Agent, robots.txt incl. crawl-delay, per-host rate limit, retries, on-disk cache, NVD key from env |
-| `ingestion/pipeline.py` | `ingest(source)`: raw snapshot + `SHA256SUMS` + `manifest.json` under `data/raw/<source>/<version>/`, chunks and edges under `data/processed/`. Unchanged input and parser code means skip |
-| `ingestion/sources/*.py` | One module per source: `fetch()` and `parse()` |
+| `ingestion/fetch.py` | Polite HTTP client: User-Agent, robots.txt incl. crawl-delay, per-host rate limit, retries, on-disk cache, NVD key and GitHub token from env |
+| `ingestion/pipeline.py` | `ingest(source)`: raw snapshot + `SHA256SUMS` + `manifest.json` under `data/raw/<source>/<version>/`, chunks and edges under `data/processed/`. Unchanged input and parser code means skip. `MODULES` maps each source id to its parser |
+| `ingestion/sources/*.py` | `fetch()` and `parse()` per source, or per legal system: `eu_law.py` (AI Act), `gesetze_im_internet.py` (KI-MIG) |
+| `ingestion/registry.py` | Source names and licenses (`SOURCES`), the EU acts and German laws with the names questions use for them (`EU_ACTS`, `GERMAN_LAWS`) |
 | `ingestion/models.py` | `Chunk` (all citation and license metadata), `Edge`, splitting of oversized units (parts keep the native ID) |
-| `db/migrations`, `db/edges.py` | Alembic migration for `kb_edges`; edge writes and the in-memory 1-hop graph |
+| `db/migrations`, `db/edges.py`, `db/checkpointer.py` | Alembic migrations for `kb_edges` (0001) and its generations (0002); edge writes and the in-memory 1-hop graph; the LangGraph Postgres checkpointer for conversations |
+| `llm/base.py`, `llm/factory.py`, `llm/openai_responses.py`, `llm/anthropic_messages.py`, `llm/openai_compatible.py` | The chat interface and its three adapters, picked by `LLM_PROVIDER` (`openai`, `anthropic`, `openai-compatible`) |
 | `llm/embeddings.py`, `llm/fastembed_local.py`, `llm/vllm_models.py` | Embedding, sparse and reranker interfaces; local fastembed adapters (CPU) and vLLM adapters (GPU) |
-| `retrieval/index.py` | Qdrant collection (named `dense` vector + `bm25` sparse vector with IDF), per-source replace |
-| `retrieval/ids.py` | Regex detection of IDs and EN/DE legal references in questions |
-| `retrieval/retriever.py` | Exact IDs → dense + BM25 → RRF (k=60) → cross-encoder rerank of the top 50 → 1-hop graph expansion → same-language legal text; keeps the top 8 for the answer |
-| `agent/graph.py`, `agent/prompts.py`, `agent/answer.py` | LangGraph `retrieve → generate`; delimited sources and injection rules; deterministic footer with attribution, versions and the Art. 50 AI label; abstention |
-| `evals/` (`src/rag_stack/evals/`) | Metrics, LLM judge with a versioned rubric, RAG vs. no-retrieval baseline, report |
-| `cli.py` | `ingest`, `index`, `refresh`, `rollback`, `ask`, `eval`, `eval-draft` (wrapped by `make`) |
-| `refresh.py`, `retrieval/generations.py` | Scheduled refresh: diff against the served index, checks, a candidate generation behind the `kb_chunks` alias, retrieval scores, promote or block, rollback |
+| `retrieval/index.py` | Qdrant collection (named `dense` vector + `bm25` sparse vector with IDF), per-source replace, vector reuse per unchanged chunk |
+| `retrieval/ids.py` | Regex detection of IDs (ATLAS, ATT&CK, CAPEC, CWE, D3FEND, OWASP, CVE, and families of planned sources) and EN/DE legal references, each assigned to the act named nearest it |
+| `retrieval/fusion.py`, `retrieval/language.py` | RRF fusion (k=60); the EN/DE word-list language detection |
+| `retrieval/retriever.py` | Exact IDs → dense + BM25 (20 each, fused with RRF, 20 kept), plus one search per act the question names → 1-hop graph expansion for questions about related items (up to 100 neighbors) → cross-encoder rerank of the whole pool → `RERANK_MIN_SCORE` floor, the best 12 neighbors, a place for a cross-source link of the top hits, 2 places per named act → same-language legal text; keeps the top 8 (`RETRIEVAL_TOP_K`) for the answer |
+| `retrieval/generations.py` | Index generations behind the `kb_chunks` alias: candidate, promote, rollback |
+| `agent/graph.py`, `agent/prompts.py`, `agent/answer.py`, `agent/ask.py` | LangGraph `retrieve → generate`; delimited sources and injection rules; deterministic footer with attribution, versions and the Art. 50 AI label; abstention without an LLM call when nothing relevant is found; `ask` for the CLI |
+| `api/app.py`, `api/limits.py` | FastAPI: `GET`/`POST /api/threads/{id}/messages` (SSE: `sources`, `delta`, `done`, `error`), `POST /api/threads/{id}/feedback`; input cap (422), turns per thread (409), per-client requests per minute and daily token budget (429) |
+| `evals/` (`src/rag_stack/evals/`) | `harness.py`: golden-set run, per-question keys, baseline cache, history, report. `metrics.py`: recall@k, MRR, citation precision, bootstrap intervals. `units.py`: retrieval checks generated from the corpus. `draft.py`: question drafts. `calibration.py`: judge labels and agreement |
+| `cli.py` | `ingest`, `index`, `refresh`, `rollback`, `ask`, `eval`, `eval-draft`, `eval-units`, `eval-labels`, `eval-agreement` (wrapped by `make`) |
+| `refresh.py` | Scheduled refresh: diff against the served index, checks, a candidate generation, retrieval scores, promote or block, rollback |
 | `observability.py` | Langfuse tracing (`make tracing`, self-hosted): one trace per chat turn with `retrieve` (and its id lookup, hybrid search, graph expansion, rerank and language stages) and `generate` (model, tokens); a reader's rating (`POST /api/threads/{id}/feedback`) is a `helpful` score on it. Does nothing without `LANGFUSE_*` |
+| `web/` | Vite + React chat UI: streamed answers with citation links to a source catalogue, ratings, saved chats; a star-atlas sky with one constellation per source, where the retrieved passages light up, over a three.js deep field |
 
 ## Deviations from the brief's defaults
 
@@ -85,7 +95,8 @@ risk → AI Act article → CVE).
   `evals/rubrics/judge_v1.md`. `make eval` writes the report; `make evals` runs `tests/ai`, which
   asserts the thresholds with the same harness.
 - **Eval baseline: a live general chatbot, not the same model without retrieval.** RAG runs on
-  the OpenAI API (`gpt-6-luna`); the baseline is the sub2api gateway (`codex/gpt-6-luna`), which
+  the OpenAI API (`gpt-6-luna`); the baseline is the subscription gateway (formerly sub2api;
+  `codex/gpt-6-luna`), which
   can search the web, as the reference a user would otherwise ask. `EVAL_BASELINE_*` configures
   it; unset, the baseline is the RAG model without retrieval as the brief describes.
 - **Answer UI.** The existing web UI renders Markdown, so citation links work there unchanged;
@@ -153,7 +164,8 @@ and judged again.
 3. **Run history** (`evals/datasets/ai_security/history.jsonl`): date, commit, source versions,
    per-question scores and the summary for every run. A regression is a paired, per-question
    change: correctness down 2 points or more, or a correct refusal that turns into an answer.
-   Means alone hide it: the test split's correctness interval is 0.80-0.90 (95%, n=76).
+   Means alone hide it: the test split's correctness interval was 0.80-0.90 (95%, n=76; at
+   n=152 on 2026-10-28 it is 0.86-0.91).
    **Built:** `make eval` searches the generation the alias names at its start (a promotion
    mid-run doesn't switch it), records it and the source versions read from it, appends one line
    per run and lists the regressions since the previous
@@ -171,7 +183,7 @@ category can be missed. Item 4, the key-fact review flag, is not built.
 | Every commit | Unit tests and CI, as now | free |
 | Every ingest, every retrieval change | `make eval-retrieval` on all questions, gold-ID presence (`missing_gold_ids`), ingest gates below | free, minutes |
 | Prompt, agent or LLM change; an ingest that changed retrieved passages | Stale questions only, RAG side | about 2 calls per question |
-| Milestone, model or rubric change, monthly | Full run of all 135 questions with the baseline (today's `make eval`) | about 270 calls with the cached baseline |
+| Milestone, model or rubric change, monthly | Full run of all 212 questions (`make eval FULL=1`) | about 425 calls with the cached baseline |
 
 ### Scheduled ingestion
 
@@ -225,7 +237,7 @@ its questions then fall under the per-question fingerprints like the rest.
 2. Baseline caching: halves a full run. Built.
 3. Per-question fingerprints and the run history. Built.
 
-## Next: general cybersecurity research (not built)
+## General cybersecurity research (wave 1 built)
 
 The chatbot is to cover cybersecurity research in general, with AI security as a specialty:
 about 10x the corpus (35-40k chunks), only citable sources whose licenses allow storing and
@@ -242,7 +254,7 @@ SP 800-53 ↔ CSF 2.0, NIS2 → BSIG and CRA. The edges stored today to ATT&CK a
 | 1 | `capec` | CAPEC XML | `CAPEC-66` | CAPEC terms of use |
 | 1 | `cwe` | CWE XML | `CWE-79` | CWE terms of use |
 | 1 | `d3fend` | D3FEND ontology and ATT&CK mappings | `D3-MFA` | D3FEND terms of use |
-| 1 | `vulns` (replaces `ai-vulns`) | One chunk per CVE: AI packages (OSV, as now), the whole CISA KEV catalog, GitHub-reviewed critical and high advisories of the last 24 months; NVD 2.0 details, FIRST EPSS scores | `CVE-…`, GHSA aliases | as now; EPSS terms to verify |
+| 1 | `vulns` (replaces `ai-vulns`) | One chunk per CVE: AI packages (OSV, as now), the whole CISA KEV catalog, GitHub-reviewed critical and high advisories of the last 24 months; NVD 2.0 details, FIRST EPSS scores | `CVE-…`, GHSA aliases | as now; EPSS free use with attribution (NOTICE.md) |
 | 2 | `nist-csf` | CSF 2.0, CPRT JSON | `PR.AA-01` | US government work |
 | 2 | `nist-800-53` | SP 800-53 Rev. 5, OSCAL JSON | `AC-2(1)` | US government work |
 | 2 | `nist-pubs` | SP 800-218 SSDF, SP 800-61r3, AI RMF 1.0, AI 600-1, AI 100-2 E2025 (PDF) | `SSDF PO.1.1`, `AI RMF GOVERN 1.1` | US government work |
@@ -253,6 +265,11 @@ SP 800-53 ↔ CSF 2.0, NIS2 → BSIG and CRA. The edges stored today to ATT&CK a
 | 4 | `sigma` | SigmaHQ rules (core, threat hunting, emerging threats), pinned release | rule title, UUID as alias | DRL 1.1: show each rule's author |
 | 4 | `atomic-red-team` | Atomic tests per ATT&CK technique | `T1059.001 atomic 3`, GUID as alias | MIT |
 | 4 | `arxiv-cscr` | arXiv cs.CR, last 24 months, only papers whose comments or journal reference name an accepted top venue (list in `config/sources.yaml`): abstract and link | `arXiv:2601.01234` | metadata CC0 (arXiv API terms); 1 request per 3 s |
+
+**Wave 1 is built** (October 2026): the five sources are ingested, served and covered by 58 new
+golden questions (212 in all; `make eval` met every threshold after it). The index holds about
+18.7k chunks: vulns 9,795, ATT&CK 3,440, AI Act 2,121, CWE 1,646, CAPEC 841, ATLAS 408, D3FEND
+288, KI-MIG 78, OWASP LLM 63, OWASP Agentic 44. Waves 2-4 are not built.
 
 Left out: BSI IT-Grundschutz (licensed commercially, no free reuse terms found) and the GDPR
 (the golden set's Art. 17 question is an abstention). Atomic Red Team holds executable attack
@@ -302,7 +319,8 @@ proof of concept follows), so it stays one chunk; AI-package advisories keep the
    cybersecurity. Every eval question goes stale once; one incremental run.
    **Built for the model:** the system, baseline and question-drafter prompts. What users read
    (README, the refusal hints, the web UI's heading, placeholder and starters) changes with the
-   source that makes it true, so it never names IDs that aren't indexed yet. The judge rubric
+   source that makes it true, so it never names IDs that aren't indexed yet; wave 1's sources
+   are named there now. The judge rubric
    stays `judge_v1.md`: the hand labels were checked against it. The new baseline prompt makes
    every baseline answer stale too, so the wave's paid run re-asks both sides.
 
@@ -320,5 +338,5 @@ the one-time embedding of about 35k chunks on CPU, and a golden set of about 300
 
 ## Not built (out of scope)
 
-UI changes, auth, multi-tenancy, deployment, and any source not on the allowlist. Outbound links
+Auth, multi-tenancy, deployment (the Helm chart), and any source not on the allowlist. Outbound links
 in ATLAS and OWASP (news, papers) are stored as metadata and never fetched.
