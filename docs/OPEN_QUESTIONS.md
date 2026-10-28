@@ -20,9 +20,10 @@ Things the MVP could not settle, with what was done instead.
   from the Official Journal text, because consolidated versions drop them. Only the OJ text is
   legally authentic. Should answers say so when they quote consolidated text?
 - **NVD rate limit.** Without an API key NVD allows 5 requests per 30 s and answers HTTP 429
-  often even at that pace. Retries got through on the 2026-10-24 ingest: 381 of 383 CVEs have an
-  NVD record (NVD returned none for the other two). A CVE whose lookup fails is indexed from its
-  GitHub advisory alone (no NVD CVSS). Setting `NVD_API_KEY` avoids the slowness.
+  often even at that pace. The KEV CVEs come in pages of 2,000; the AI-package CVEs not in KEV
+  are asked one by one. In the 2026-10-27 snapshot all 1,758 KEV CVEs and 380 of the 382
+  AI-package CVEs have an NVD record. A CVE whose lookup fails is indexed from its GitHub
+  advisory alone (no NVD CVSS). Setting `NVD_API_KEY` avoids the slowness.
 - **CVE "Affected" lines come from OSV version ranges.** They name the package the advisory was
   filed under, which is not always the one to upgrade: CVE-2026-26013 is listed against
   langchain-core, but its fix ships in langchain-openai 1.1.9 (requiring langchain-core 1.2.11),
@@ -30,9 +31,6 @@ Things the MVP could not settle, with what was done instead.
 - **OWASP Agentic PDF parsing.** Sections are found by their headings in the extracted PDF text,
   and page breaks inside a paragraph leave extra blank lines. A Markdown source would be more
   robust if OWASP publishes one.
-- **Edges to frameworks outside the allowlist.** OWASP's appendix maps risks to MITRE ATT&CK and
-  CWE; those edges are stored, but ATT&CK and CWE have no chunks (not on the allowlist), so graph
-  expansion skips them.
 
 ## Licensing
 
@@ -43,17 +41,20 @@ Things the MVP could not settle, with what was done instead.
 ## Eval
 
 - **The baseline is a live chatbot, by choice.** The RAG side runs on the OpenAI API
-  (`gpt-6-luna`); the baseline is the sub2api gateway (`codex/gpt-6-luna`), standing in for a
-  general chatbot as people use it. Its Codex backend searches the web: in the first eval runs
+  (`gpt-6-luna`); the baseline is the subscription gateway (formerly sub2api;
+  `codex/gpt-6-luna`), standing in for a general chatbot as people use it. Its Codex backend
+  searches the web: in the first eval runs
   (when the gateway was also the RAG model) its session logs in `~/.codex/sessions/` showed web
   searches in 50 of 101 baseline sessions and none in RAG-answer or judge sessions. So the
   comparison is "RAG vs. a chatbot that may search the web", not the brief's "same model without
   retrieval". Unset `EVAL_BASELINE_*` to get that variant.
-- **The judge is `claude-code/claude-haiku-5-5` on the sub2api gateway** (`EVAL_JUDGE_*`), another
-  model family than the RAG model (`gpt-6-luna`), so it has no reason to favor RAG answers, and
-  fast and cheap enough to run often. A small model is likelier to miss whether an answer states
-  a key fact or only touches its topic, so `make eval-agreement` on human labels should confirm
-  it against `claude-code/claude-opus-5-5`, which judged the runs before it. It runs through
+- **The judge is `claude-code/claude-haiku-5-5` on the subscription gateway** (`EVAL_JUDGE_*`),
+  another model family than the RAG model (`gpt-6-luna`), so it has no reason to favor RAG
+  answers, and fast and cheap enough to run often. A small model is likelier to miss whether an
+  answer states a key fact or only touches its topic, so `make eval-agreement` should confirm it
+  against `claude-code/claude-opus-5-5`, which judged the runs before it. It has not been run
+  yet, and the 40 labels in `judge_labels.jsonl` are not human: Claude (Opus 5.5) set them
+  against the primary sources (`judge_labels.md`); a person should go over them. It runs through
   Claude Code (`claude --print`, no tools), not the raw Anthropic API, and subscription use is
   personal only. Runs judged by another model are not directly comparable.
 - **Terse answers cost correctness.** Several RAG answers give only the ID and title
@@ -73,7 +74,7 @@ Things the MVP could not settle, with what was done instead.
 
 ## Product
 
-- **Golden set review.** 153 questions carry `needs_review: true`. On 2026-10-27 a model review
+- **Golden set review.** 154 questions carry `needs_review: true`. On 2026-10-27 a model review
   checked the 135 drafts against the indexed text: 66 stood, 66 were fixed (key facts the question
   doesn't ask for, titles giving away the answer, incomplete gold IDs, "exact wording" templates
   in German), 3 only changed category, and 18 injection, robustness and false-premise cases were
@@ -86,11 +87,14 @@ Things the MVP could not settle, with what was done instead.
   often miss it: the AI Act's English articles on market surveillance outrank it. Questions that
   cite a section (`§ 2 KI-MIG`) are found by ID. A query translation step or a source filter
   when a question names the KI-MIG would fix it.
-- **The reranker floor (`RERANK_MIN_SCORE=0`) was calibrated on the golden set** (off-topic
-  questions top out near -1, answerable ones start above 1). That is the set it is evaluated on,
-  so the abstention numbers are optimistic until it is checked on held-out questions.
+- **The reranker floor was calibrated on the golden set.** On CPU (bge-reranker-v2-m3,
+  `RERANK_MIN_SCORE=0`) off-topic questions top out near -1 and answerable ones start above 1;
+  on GPU (Qwen3-Reranker-0.6B, scores in [0, 1]) the floor is 0.005, set with the switch and
+  checked by the eval runs since. That is the set it is evaluated on, so the abstention numbers
+  are optimistic until it is checked on held-out questions.
 - **Language detection** is a small EN/DE word-list heuristic; very short or mixed questions can
   be misclassified, which affects only the footer language and which legal-text language is
   preferred.
-- **Local models on CPU.** The reranker dominates latency on CPU. The machine has a GPU;
-  `fastembed-gpu` would cut it, at the cost of a CUDA runtime dependency.
+- **Local models on CPU.** The reranker dominates latency on CPU, the default. With an NVIDIA GPU
+  the `gpu` profile runs embeddings and reranking on vLLM instead (README); the API, refreshes
+  and evals then depend on both services being up.
