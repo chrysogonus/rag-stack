@@ -418,6 +418,54 @@ async def test_a_relation_with_few_edges_is_not_crowded_out_by_one_with_many():
     assert set(graph[:2]) == {"CAPEC-7", "CAPEC-66"}
 
 
+def weakness_with_cves_and_patterns() -> KnowledgeBase:
+    """CWE-89 with CVEs that match SQL injection questions better than its CAPEC patterns do."""
+    weakness = chunk("CWE-89", "sql injection", source_id="cwe")
+    cves = [
+        chunk(f"CVE-2026-{i:04d}", "which sql injection patterns relate", source_id="vulns")
+        for i in range(20)
+    ]
+    patterns = [chunk(f"CAPEC-{i}", "an attack", source_id="capec") for i in (7, 66)]
+    edges = [
+        Edge(src_id=c.native_id, rel="has_weakness", dst_id="CWE-89", origin="vulns") for c in cves
+    ]
+    edges += [
+        Edge(src_id=p.native_id, rel="related_weakness", dst_id="CWE-89", origin="capec")
+        for p in patterns
+    ]
+    return small_kb([weakness, *cves, *patterns], edges, limit=20)
+
+
+async def test_a_question_asking_for_one_source_gets_only_its_neighbors():
+    kb = weakness_with_cves_and_patterns()
+
+    found = await kb.retrieve("Which CAPEC patterns relate to CWE-89 sql injection?")
+
+    assert [r.chunk.native_id for r in found if r.via == "graph"] == ["CAPEC-7", "CAPEC-66"]
+    assert "CWE-89" in [r.chunk.native_id for r in found if r.via == "id"]
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        # An ID of a source doesn't ask for that source: CWE-89 is no request for CWEs.
+        "Which patterns relate to CWE-89 sql injection?",
+        # Nor does a singular: it says what the unit is, not which units to list.
+        "What kind of weakness is CWE-89, and which sql injection patterns relate?",
+        # A source without neighbors here changes nothing.
+        "Which ATLAS techniques relate to CWE-89 sql injection?",
+    ],
+)
+async def test_without_an_asked_for_source_among_them_all_neighbors_compete(question):
+    kb = weakness_with_cves_and_patterns()
+
+    found = await kb.retrieve(question)
+
+    graph = [r.chunk for r in found if r.via == "graph"]
+    assert {c.source_id for c in graph} == {"vulns"}
+    assert len(graph) == retriever.MAX_NEIGHBORS
+
+
 async def test_the_section_cap_counts_language_copies_once():
     # Both copies of a section score alike, and later sections score higher, so the ranking
     # interleaves languages: en3, de3, en2, de2, ...

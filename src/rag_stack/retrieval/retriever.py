@@ -29,6 +29,21 @@ RELATED = re.compile(
     re.I,
 )
 MITIGATIONS = re.compile(DEFENSE, re.I)
+# A source a question asks for by kind ("Which CAPEC patterns ..."). Neither an ID ("CWE-89") nor
+# a singular ("what kind of weakness is it") asks for a list of them.
+ASKED_FOR = {
+    source: re.compile(pattern, re.I)
+    for source, pattern in {
+        "capec": r"\bCAPEC\b(?!-\d)|attack patterns",
+        "atlas": r"\bATLAS\b",
+        "attack": r"ATT&CK",
+        "d3fend": r"\bD3FEND\b",
+        "cwe": r"\bCWEs?\b(?!-\d)|weaknesses",
+        "vulns": r"\bCVEs?\b(?!-\d)|vulnerabilities|advisories",
+        "owasp-agentic-2026": r"\bASI\b(?!\d)|agentic",
+        "owasp-llm-2026": r"LLM (Top 10|Applications)",
+    }.items()
+}
 MAX_PER_ID = 6  # parts of a named article or annex
 MAX_PER_UNIT = 3  # sections of one named unit (an OWASP entry has eight or more)
 MAX_NEIGHBORS = 12  # related units kept, the reranker's best
@@ -240,6 +255,11 @@ class KnowledgeBase:
         flt = models.Filter(must=[any_of("native_id", list(relation))])
         # Edges may point outside the corpus (ATT&CK, CWE): cap only what exists.
         chunks = [c for c in self._scroll(flt) if c.chunk_index == 0]
+        # The reranker ranks by topic (a CWE's SQL injection CVEs outrank its CAPEC patterns), so a
+        # question asking for one kind of unit keeps only those, if it has any, and the named units.
+        asked = {source for source, pattern in ASKED_FOR.items() if pattern.search(query)}
+        if any(c.source_id in asked and c.native_id not in seeds for c in chunks):
+            chunks = [c for c in chunks if c.source_id in asked or c.native_id in seeds]
         order = list(relation)
         chunks.sort(key=lambda c: (c.native_id not in seeds, order.index(c.native_id)))
         return [
