@@ -4,15 +4,18 @@ Without LANGFUSE_* settings nothing is traced and every function here does nothi
 and untraced runs need no server. A chat turn is one trace: its steps (retrieve, generate) are
 observations in it, and a reader's rating is a score on it."""
 
+import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Literal
 
 from langfuse import Langfuse, propagate_attributes  # noqa: TID251
+from langfuse.api import CreateScoreRequest, ScoreDataType  # noqa: TID251
 
 from rag_stack.config import Settings
 
+logger = logging.getLogger(__name__)
 _client: Langfuse | None = None
 # True inside a traced step, so its stages nest in it instead of each starting a trace.
 _traced: ContextVar[bool] = ContextVar("traced", default=False)
@@ -82,19 +85,27 @@ def stage(name: str) -> Iterator[None]:
         yield
 
 
-def rate_turn(trace_id: str, helpful: bool) -> bool:
+async def rate_turn(trace_id: str, helpful: bool) -> bool:
     """Store a reader's rating on a turn's trace; a new rating replaces the old one. False when
-    nothing is traced, so the caller can say the rating went nowhere."""
+    nothing is traced or Langfuse didn't take it, so the caller can say the rating went nowhere."""
     if _client is None:
         return False
-    _client.create_score(
+    score = CreateScoreRequest(
+        id=f"{trace_id}-helpful",
+        trace_id=trace_id,
         name="helpful",
         value=1.0 if helpful else 0.0,
-        data_type="BOOLEAN",
-        trace_id=trace_id,
-        score_id=f"{trace_id}-helpful",
+        data_type=ScoreDataType.BOOLEAN,
     )
-    return True
+    # Sent now, not queued like `create_score`: a queued score that fails is dropped unseen.
+    try:
+        result = await _client.async_api.scores.create(
+            request=[score], request_options={"timeout_in_seconds": 5}
+        )
+    except Exception:
+        logger.warning("Rating for trace %s not stored", trace_id, exc_info=True)
+        return False
+    return not getattr(result, "rejected", 0)
 
 
 def flush() -> None:

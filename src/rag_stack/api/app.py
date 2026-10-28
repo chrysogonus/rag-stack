@@ -145,7 +145,7 @@ def create_app(
         if body.message >= len(messages) or messages[body.message]["role"] != "assistant":
             raise HTTPException(404, "There is no such answer in this conversation.")
         trace_id = observability.turn_trace_id(str(thread_id), body.message)
-        if not observability.rate_turn(trace_id, body.helpful):
+        if not await observability.rate_turn(trace_id, body.helpful):
             raise HTTPException(503, "Ratings aren't collected right now.")
 
     @app.post("/api/threads/{thread_id}/messages", response_class=EventSourceResponse)

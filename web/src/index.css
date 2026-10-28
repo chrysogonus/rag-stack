@@ -61,6 +61,11 @@ body {
   background: var(--sky);
 }
 
+/* Focus and anchor jumps stop clear of the sticky masthead and composer (App.tsx measures them). */
+html {
+  scroll-padding-block: var(--masthead-height, 5rem) var(--composer-height, 9rem);
+}
+
 :focus-visible {
   outline: 2px solid var(--ember);
   outline-offset: 2px;

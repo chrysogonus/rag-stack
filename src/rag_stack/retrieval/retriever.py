@@ -2,6 +2,7 @@ import asyncio
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from itertools import chain, zip_longest
 from typing import Protocol
 
 from qdrant_client import QdrantClient, models
@@ -9,7 +10,7 @@ from qdrant_client import QdrantClient, models
 from rag_stack import observability
 from rag_stack.config import Settings
 from rag_stack.db.edges import EdgeGraph
-from rag_stack.ingestion.models import Chunk
+from rag_stack.ingestion.models import Chunk, Edge
 from rag_stack.ingestion.registry import SOURCES
 from rag_stack.llm.embeddings import Embedder, Reranker, SparseEmbedder
 from rag_stack.retrieval.fusion import rrf
@@ -32,7 +33,7 @@ MAX_PER_ID = 6  # parts of a named article or annex
 MAX_PER_UNIT = 3  # sections of one named unit (an OWASP entry has eight or more)
 MAX_NEIGHBORS = 12  # related units kept, the reranker's best
 # shortcut: past this many neighbors (an ATT&CK technique has hundreds of users) the reranker sees
-# the first ones in edge order; filter edges by relation if joins miss the right ones.
+# the first ones, relations taking turns; rank within a relation if joins miss the right ones.
 NEIGHBOR_CANDIDATES = 100
 
 
@@ -226,7 +227,11 @@ class KnowledgeBase:
         rels = {"mitigates", "counters"} if MITIGATIONS.search(query) else None
         relation: dict[str, str] = {}
         for seed in seeds[:3]:
+            by_rel: dict[str, list[Edge]] = {}
             for edge in self.graph.edges(seed, rels):
+                by_rel.setdefault(edge.rel, []).append(edge)
+            # Relations take turns, so a CWE's hundreds of CVEs can't crowd out its CAPEC patterns.
+            for edge in filter(None, chain.from_iterable(zip_longest(*by_rel.values()))):
                 other = edge.dst_id if edge.src_id == seed else edge.src_id
                 # A seed is kept too: an edge between two named units labels them for the prompt.
                 relation.setdefault(other, f"{edge.src_id} {edge.rel} {edge.dst_id}")

@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 from collections.abc import Iterator
+from types import SimpleNamespace
 
 import pytest
 from fakes.embeddings import FakeRetriever, chunk
@@ -43,7 +44,7 @@ async def test_untraced_steps_and_ratings_do_nothing(monkeypatch):
         s.update(output="ignored")
         with observability.stage("rerank"):
             pass
-    assert observability.rate_turn("0" * 32, True) is False
+    assert await observability.rate_turn("0" * 32, True) is False
 
 
 def test_configure_traces_only_with_keys(monkeypatch):
@@ -101,21 +102,40 @@ async def test_stages_nest_in_their_step_even_in_a_worker_thread(spans):
     assert parent is not None and parent.span_id == found["retrieve"].context.span_id
 
 
-def test_a_rating_is_one_score_per_answer(monkeypatch):
-    class Recorder:
-        def __init__(self) -> None:
-            self.scores: list[dict] = []
+class Scores:
+    """Stands in for the Langfuse scores API: records what is sent, answers with `result`."""
 
-        def create_score(self, **score) -> None:
-            self.scores.append(score)
+    def __init__(self, result: object = None) -> None:
+        self.sent: list = []
+        self.result = result
+        self.scores = self
 
-    recorder = Recorder()
-    monkeypatch.setattr(observability, "_client", recorder)
+    async def create(self, *, request, request_options=None) -> object:
+        self.sent.extend(request)
+        return self.result
 
-    assert observability.rate_turn("a" * 32, True) is True
-    observability.rate_turn("a" * 32, False)
 
-    assert [s["value"] for s in recorder.scores] == [1.0, 0.0]
+async def test_a_rating_is_one_score_per_answer(monkeypatch):
+    api = Scores()
+    monkeypatch.setattr(observability, "_client", SimpleNamespace(async_api=api))
+
+    assert await observability.rate_turn("a" * 32, True) is True
+    await observability.rate_turn("a" * 32, False)
+
+    assert [s.value for s in api.sent] == [1.0, 0.0]
     # The same score id: a new rating replaces the old one.
-    assert {s["score_id"] for s in recorder.scores} == {f"{'a' * 32}-helpful"}
-    assert recorder.scores[0]["data_type"] == "BOOLEAN"
+    assert {s.id for s in api.sent} == {f"{'a' * 32}-helpful"}
+    assert {s.trace_id for s in api.sent} == {"a" * 32}
+    assert api.sent[0].data_type == "BOOLEAN"
+
+
+async def test_a_rating_langfuse_rejects_is_not_stored(monkeypatch):
+    rejected = SimpleNamespace(accepted=0, rejected=1, errors=[])
+    monkeypatch.setattr(observability, "_client", SimpleNamespace(async_api=Scores(rejected)))
+
+    assert await observability.rate_turn("a" * 32, True) is False
+
+
+async def test_a_rating_is_not_stored_while_langfuse_is_unreachable(spans):
+    # The fixture's client points at a closed port: the rating must fail, not vanish in a queue.
+    assert await observability.rate_turn("a" * 32, True) is False

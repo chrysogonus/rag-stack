@@ -118,9 +118,12 @@ def test_rating_an_answer_scores_that_turn_trace(make_client, monkeypatch):
     client = make_client()
     thread = asked(client)
     ratings = []
-    monkeypatch.setattr(
-        observability, "rate_turn", lambda trace, helpful: ratings.append((trace, helpful)) or True
-    )
+
+    async def rate(trace: str, helpful: bool) -> bool:
+        ratings.append((trace, helpful))
+        return True
+
+    monkeypatch.setattr(observability, "rate_turn", rate)
 
     response = client.post(f"/api/threads/{thread}/feedback", json={"message": 1, "helpful": False})
 
@@ -132,7 +135,11 @@ def test_rating_an_answer_scores_that_turn_trace(make_client, monkeypatch):
 def test_a_rating_must_name_an_answer_in_the_thread(make_client, monkeypatch, message, status):
     client = make_client()
     thread = asked(client)
-    monkeypatch.setattr(observability, "rate_turn", lambda trace, helpful: True)
+
+    async def rate(trace: str, helpful: bool) -> bool:
+        return True
+
+    monkeypatch.setattr(observability, "rate_turn", rate)
 
     feedback = {"message": message, "helpful": True}
     assert client.post(f"/api/threads/{thread}/feedback", json=feedback).status_code == status

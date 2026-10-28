@@ -393,6 +393,31 @@ async def test_the_reranker_picks_which_neighbors_are_kept():
     assert set(kept[:8]) == {f"G{i:04d}" for i in range(13, 21)}
 
 
+async def test_a_relation_with_few_edges_is_not_crowded_out_by_one_with_many():
+    # CWE-89 has hundreds of CVEs and a handful of CAPEC patterns; the CVE edges come first.
+    weakness = chunk("CWE-89", "sql injection", source_id="cwe")
+    cves = [
+        chunk(f"CVE-2026-{i:04d}", "a product flaw", source_id="vulns")
+        for i in range(retriever.NEIGHBOR_CANDIDATES + 10)
+    ]
+    patterns = [
+        chunk(f"CAPEC-{i}", "capec sql injection pattern", source_id="capec") for i in (7, 66)
+    ]
+    edges = [
+        Edge(src_id=c.native_id, rel="has_weakness", dst_id="CWE-89", origin="vulns") for c in cves
+    ]
+    edges += [
+        Edge(src_id=p.native_id, rel="related_weakness", dst_id="CWE-89", origin="capec")
+        for p in patterns
+    ]
+    kb = small_kb([weakness, *cves, *patterns], edges, limit=20)
+
+    found = await kb.retrieve("Which CAPEC patterns relate to CWE-89 sql injection?")
+
+    graph = [r.chunk.native_id for r in found if r.via == "graph"]
+    assert set(graph[:2]) == {"CAPEC-7", "CAPEC-66"}
+
+
 async def test_the_section_cap_counts_language_copies_once():
     # Both copies of a section score alike, and later sections score higher, so the ranking
     # interleaves languages: en3, de3, en2, de2, ...

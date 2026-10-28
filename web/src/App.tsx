@@ -85,6 +85,9 @@ export default function App() {
   const stickRef = useRef(true)
   const skyRef = useRef<SkyRenderer | null>(null)
   const chatsRef = useRef<HTMLElement>(null)
+  const mastheadRef = useRef<HTMLElement>(null)
+  const composerRef = useRef<HTMLFormElement>(null)
+  const newThreadRef = useRef<string | null>(null)
   // The entrance plays once per page load, not again for every new chat.
   const [intro, setIntro] = useState(true)
 
@@ -94,6 +97,8 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    // A chat this page just started has no history; loading [] late would erase a first question.
+    if (threadId === newThreadRef.current) return setLoading(false)
     const controller = new AbortController()
     getMessages(threadId, controller.signal)
       .then((loaded) => {
@@ -110,6 +115,18 @@ export default function App() {
       })
     return () => controller.abort()
   }, [threadId, loadAttempt])
+
+  // Focus and anchor jumps stop clear of the sticky bars at their current height (a long draft or
+  // an error makes the composer taller).
+  useEffect(() => {
+    const root = document.documentElement
+    const observer = new ResizeObserver(() => {
+      root.style.setProperty('--masthead-height', `${mastheadRef.current?.offsetHeight ?? 0}px`)
+      root.style.setProperty('--composer-height', `${composerRef.current?.offsetHeight ?? 0}px`)
+    })
+    for (const bar of [mastheadRef.current, composerRef.current]) if (bar) observer.observe(bar)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => saveChats(chats), [chats])
   // Tabs and browser history tell chats apart by their first question.
@@ -163,12 +180,14 @@ export default function App() {
   }
 
   function startNewChat() {
-    showThread(crypto.randomUUID())
+    newThreadRef.current = crypto.randomUUID()
+    showThread(newThreadRef.current)
   }
 
   function switchChat(id: string) {
     chatsRef.current?.hidePopover()
     if (id === threadId) return
+    newThreadRef.current = null // it has history by now, so load it
     setLoading(true)
     showThread(id)
   }
@@ -279,7 +298,7 @@ export default function App() {
         Skip to question
       </a>
       <Sky rendererRef={skyRef} />
-      <header className="masthead">
+      <header className="masthead" ref={mastheadRef}>
         <span className="wordmark">Knowledge base</span>
         <div className="actions">
           {chats.length > 0 && (
@@ -379,7 +398,7 @@ export default function App() {
         </div>
       </main>
 
-      <form className="composer" onSubmit={onSubmit}>
+      <form className="composer" ref={composerRef} onSubmit={onSubmit}>
         {error && (
           <p className="error" role="alert">
             {error}
