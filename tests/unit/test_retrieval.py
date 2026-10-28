@@ -57,6 +57,10 @@ FIXTURES = Path(__file__).parents[1] / "fixtures"
         ("Explain Annex XIII e. Then Annex VII point (d).", ["Annex XIII e", "Annex VII d"]),
         ("Annex III e.g. covers biometrics", ["Annex III"]),
         ("Wer ist nach § 2 Abs. 3 KI-MIG zuständig?", ["KI-MIG § 2 Abs. 3"]),
+        (
+            "im Sinne des Artikels 70 Absatz 2 der KI-VO, nach Maßgabe des Anhangs III",
+            ["AI Act Art. 70(2)", "Annex III"],
+        ),
         ("What does Section 3 of the KI-MIG cover?", ["KI-MIG § 3"]),
         ("Section 2 of Annex I", ["Annex I"]),
         ("How do attackers poison a RAG corpus?", []),
@@ -568,3 +572,99 @@ def test_the_knowledge_base_returns_only_what_the_answer_sees():
     )  # fmt: skip
 
     assert kb.limit == settings.retrieval_top_k
+
+
+def counters_kb() -> KnowledgeBase:
+    # The ATT&CK technique and other ATT&CK units share the question's words; the D3FEND
+    # technique countering it shares one, so search ranks it past the limit.
+    technique = chunk(
+        "T1566.002", "spearphishing link attacks counter file integrity", source_id="attack"
+    )
+    others = [
+        chunk(f"T1566.00{i}", "spearphishing link attacks", source_id="attack") for i in (1, 3, 4)
+    ]
+    countermeasure = chunk("D3-FIM", "monitoring", source_id="d3fend")
+    edge = Edge(src_id="D3-FIM", rel="counters", dst_id="T1566.002", origin="d3fend")
+    return small_kb([technique, *others, countermeasure], [edge], limit=3)
+
+
+async def test_a_link_to_another_sources_hit_keeps_a_place():
+    found = await counters_kb().retrieve(
+        "Can file integrity monitoring counter spearphishing link attacks?"
+    )
+
+    ids = [r.chunk.native_id for r in found]
+    assert len(ids) == 3
+    assert {"T1566.002", "D3-FIM"} <= set(ids)
+
+
+async def test_a_question_not_about_related_items_keeps_the_search_ranking():
+    found = await counters_kb().retrieve("spearphishing attacks file integrity monitoring")
+
+    assert "D3-FIM" not in [r.chunk.native_id for r in found]
+
+
+async def test_a_linked_units_place_never_comes_from_its_partner():
+    # The ATT&CK technique is the last kept passage: the D3FEND technique's place must come
+    # from the unrelated passage above it.
+    noise = [
+        chunk(
+            f"T1000.00{i}",
+            "can file integrity counter spearphishing link attacks",
+            source_id="attack",
+        )
+        for i in (1, 2)
+    ]
+    technique = chunk("T1566.002", "spearphishing link attacks", source_id="attack")
+    countermeasure = chunk("D3-FIM", "monitoring", source_id="d3fend")
+    edge = Edge(src_id="D3-FIM", rel="counters", dst_id="T1566.002", origin="d3fend")
+    kb = small_kb([*noise, technique, countermeasure], [edge], limit=3)
+
+    found = await kb.retrieve("Can file integrity monitoring counter spearphishing link attacks?")
+
+    ids = [r.chunk.native_id for r in found]
+    assert len(ids) == 3
+    assert {"T1566.002", "D3-FIM"} <= set(ids)
+
+
+async def test_a_linked_unit_the_question_names_by_title_beats_a_better_scored_one():
+    question = (
+        "How does Application Protocol Command Analysis relate to attackers who use stolen web "
+        "session cookies to access applications?"
+    )
+    # Scores (shared words): noise > technique > filler > CAPEC pattern > D3FEND technique.
+    noise = chunk("T1000", question.lower(), source_id="attack", title="noise")
+    technique = chunk(
+        "T1550.004",
+        "relate attackers who use stolen web session cookies to access applications",
+        source_id="attack",
+        title="Web Session Cookie",
+    )
+    filler = chunk(
+        "T1001",
+        "how does relate attackers who use stolen web session cookies",
+        source_id="attack",
+        title="filler",
+    )
+    pattern = chunk(
+        "CAPEC-60",
+        "attackers use stolen web session cookies",
+        source_id="capec",
+        title="Reusing Session IDs",
+    )
+    countermeasure = chunk(
+        "D3-APCA",
+        "remote commands",
+        source_id="d3fend",
+        title="Application Protocol Command Analysis",
+    )
+    edges = [
+        Edge(src_id="D3-APCA", rel="counters", dst_id="T1550.004", origin="d3fend"),
+        Edge(src_id="CAPEC-60", rel="related_attack_pattern", dst_id="T1550.004", origin="capec"),
+    ]
+    kb = small_kb([noise, technique, filler, pattern, countermeasure], edges, limit=3)
+
+    found = await kb.retrieve(question)
+
+    ids = [r.chunk.native_id for r in found]
+    assert "D3-APCA" in ids and "CAPEC-60" not in ids

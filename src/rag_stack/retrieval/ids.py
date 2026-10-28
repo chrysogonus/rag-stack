@@ -12,10 +12,10 @@ PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bCVE-\d{4}-\d{4,}\b", re.I), "cve"),
     (re.compile(r"\bGHSA(?:-[23456789cfghjmpqrvwx]{4}){3}\b", re.I), "ghsa"),
     # "Article 50(1)", "Art. 50 Abs. 1", "Artikel 50 Absatz 1", "Art. 4a", "Art. 66(j)",
-    # "Artikel 16 Buchstabe h"
+    # "Artikel 16 Buchstabe h", "des Artikels 70"
     (
         re.compile(
-            r"\bArt(?:icle|ikel|\.)?\s*(\d+[a-z]?)\b(?:\s*\((\d+[a-z]?|[a-z])\)"
+            r"\bArt(?:icle|ikels?|\.)?\s*(\d+[a-z]?)\b(?:\s*\((\d+[a-z]?|[a-z])\)"
             r"|\s+(?:Abs\.|Absatz|Buchstabe)\s*(\d+[a-z]?|[a-z]\b))?",
             re.I,
         ),
@@ -28,7 +28,7 @@ PATTERNS: list[tuple[re.Pattern[str], str]] = [
     # "Annex VII point (d)", "Anhang IV Buchstabe a"
     (
         re.compile(
-            r"\b(?:Annex|Anhang)\s+([IVXL]+)\b(?:\s*(?:point|Nummer|Nr\.)?\s*(\d+)"
+            r"\b(?:Annex|Anhangs?)\s+([IVXL]+)\b(?:\s*(?:point|Nummer|Nr\.)?\s*(\d+)"
             r"(?:\s*(?:\(([a-z])\)|Buchstabe\s+([a-z])\b))?"
             r"|\s+(?:point\s+|Buchstabe\s+)?(?:\(([a-z])\)|([a-z])\b(?!\.\w|\s+[a-z])))?",
         ),

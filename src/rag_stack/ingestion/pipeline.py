@@ -37,11 +37,13 @@ def source_module(source_id: str):
 
 
 def parser_sha(module: ModuleType) -> str:
-    """sha256 of a parser's code: its module and the other sources' modules it borrows from."""
+    """sha256 of a parser's code: its module, the other sources' modules it borrows from and the
+    ID detection that finds its references."""
+    borrowed = (f"{__package__}.sources.", "rag_stack.retrieval.ids")
     names = {module.__name__} | {
         f.__module__
         for f in vars(module).values()
-        if callable(f) and getattr(f, "__module__", "").startswith(f"{__package__}.sources.")
+        if callable(f) and getattr(f, "__module__", "").startswith(borrowed)
     }
     code = b"".join(Path(str(sys.modules[n].__file__)).read_bytes() for n in sorted(names))
     return hashlib.sha256(code).hexdigest()

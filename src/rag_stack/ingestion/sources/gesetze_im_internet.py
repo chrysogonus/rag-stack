@@ -11,6 +11,12 @@ from bs4.element import NavigableString
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean
 from rag_stack.ingestion.registry import GERMAN_LAWS, SOURCES
+from rag_stack.retrieval.ids import detect_ids
+
+# "Artikel 30 Absatz 2 der Verordnung (EU) 2024/1689", "des Anhangs III Nummer 2 der Verordnung ..."
+AI_ACT_CITATION = re.compile(
+    r"\b(?:Artikels?|Art\.|Anhangs?|Anhänge|Anhängen)\s[^;()]{0,80}?Verordnung \(EU\) 2024/1689"
+)
 
 
 def fetch(fetcher: Fetcher, config: dict[str, Any], retrieved_at: str) -> Snapshot:
@@ -88,4 +94,13 @@ def parse(snapshot: Snapshot) -> tuple[list[Chunk], list[Edge]]:
                     unit_key=native_id,
                 )
             )
-    return chunks, []
+    # A section citing a unit of the AI Act links to it. Only spans ending in the regulation's
+    # number: the law also cites other laws' sections, which would resolve to wrong IDs.
+    edges = {
+        (c.native_id, ref): Edge(src_id=c.native_id, rel="refers_to", dst_id=ref, origin=info.id)
+        for c in chunks
+        for span in AI_ACT_CITATION.findall(c.text)
+        for ref in detect_ids(span)
+        if ref not in (c.native_id, *c.parent_ids)
+    }
+    return chunks, list(edges.values())
