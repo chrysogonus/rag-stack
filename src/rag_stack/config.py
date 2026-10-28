@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # openai: OpenAI's API. anthropic: Anthropic's API. openai-compatible: any Chat Completions
-    # server at llm_base_url (Ollama, vLLM, LM Studio, gateways such as sub2api).
+    # server at llm_base_url (Ollama, vLLM, LM Studio, gateways such as the subscription gateway).
     llm_provider: Provider = "openai"
     llm_base_url: str | None = None
     llm_api_key: SecretStr = SecretStr("")
@@ -30,7 +30,8 @@ class Settings(BaseSettings):
     eval_judge_base_url: str | None = None
     eval_judge_api_key: SecretStr = SecretStr("")
     # The chatbot the eval compares RAG answers against. Unset: the RAG model itself without
-    # retrieval. Set it to a live general chatbot (e.g. the sub2api gateway) for that reference.
+    # retrieval. Set it to a live general chatbot (e.g. the subscription gateway) for that
+    # reference.
     eval_baseline_provider: Provider | None = None
     eval_baseline_base_url: str | None = None
     eval_baseline_model: str | None = None

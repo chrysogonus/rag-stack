@@ -28,7 +28,7 @@ help: ## Show this help
 install: ## Install Python and web dependencies; create .env from the example if missing
 	uv sync
 	npm ci --prefix web
-	@[ -f .env ] || { cp .env.example .env && echo "Created .env: it uses the sub2api gateway; see it for other LLM providers"; }
+	@[ -f .env ] || { cp .env.example .env && echo "Created .env: it uses the subscription gateway; see it for other LLM providers"; }
 
 format: ## Fix lint issues and format Python code
 	uv run ruff check --fix
@@ -187,7 +187,7 @@ eval-draft: ## Draft test questions into drafts.jsonl for review: make eval-draf
 ci: lockfile lint secrets typecheck test audit build web-check ## Run the CI pipeline locally
 	@echo "Local CI passed"
 
-lockfile:
+lockfile: ## Check that uv.lock matches pyproject.toml
 	uv lock --check
 
 lint: ## Lint and check formatting
