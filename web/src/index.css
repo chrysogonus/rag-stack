@@ -534,63 +534,96 @@ button:disabled {
   animation: breathe 1.8s ease-in-out infinite;
 }
 
-/* Before the first words: a constellation draws itself into the caret, holds, fades, redraws. */
-.forming {
-  width: 3.6em;
-  height: 1.2em;
-  vertical-align: -0.22em; /* its midline meets the caret star's centre */
-  overflow: visible;
-  animation: form 3.6s ease-in-out infinite;
+/* Before the first words: a small galaxy turns, and the caret star sits at its core. */
+.nascent {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-height: 8rem;
+  animation: settle 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-.forming polyline {
-  fill: none;
-  stroke: color-mix(in srgb, var(--ember) 55%, transparent);
-  stroke-width: 0.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.nucleus {
+  position: relative;
+  flex: none;
+  width: 10rem;
+  height: 10rem;
+  margin: -1rem 0 -1rem -1.5rem;
 }
 
-.forming circle {
-  fill: var(--ember);
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: twinkle 1.2s ease-in-out infinite;
+.galaxy {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.forming circle:nth-of-type(2) {
-  animation-delay: -0.3s;
+.nascent .caret {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: 0;
+  translate: -50% -50%;
 }
 
-.forming circle:nth-of-type(3) {
-  animation-delay: -0.6s;
+.gathering {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
-.forming circle:nth-of-type(4) {
-  animation-delay: -0.9s;
+/* What is happening, with starlight running through the words. */
+.phase {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.0625rem;
+  color: transparent;
+  background: linear-gradient(100deg, var(--muted) 35%, var(--ink) 50%, var(--muted) 65%) 0 0 / 300% 100%;
+  background-clip: text;
+  animation:
+    settle 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both,
+    shimmer 2.8s linear infinite;
 }
 
-@keyframes form {
+@keyframes shimmer {
   from {
-    clip-path: inset(0 100% 0 0);
-  }
-  55% {
-    clip-path: inset(0);
-    opacity: 1;
-  }
-  85% {
-    opacity: 1;
+    background-position: 100% 0;
   }
   to {
-    clip-path: inset(0);
-    opacity: 0;
+    background-position: 0 0;
   }
 }
 
-@keyframes twinkle {
-  50% {
-    opacity: 0.45;
-    scale: 0.6;
+/* A star for each passage the answer will draw on, lighting one after another. */
+.lights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.lights > span {
+  display: flex;
+  animation: light-up 650ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i) * 110ms);
+}
+
+.lights .glyph {
+  margin: 0;
+}
+
+@keyframes light-up {
+  from {
+    opacity: 0;
+    scale: 0.2;
+    rotate: -0.25turn;
+  }
+  60% {
+    opacity: 1;
+    scale: 1.5;
+  }
+  to {
+    scale: 1;
+    rotate: 0turn;
   }
 }
 
@@ -822,9 +855,76 @@ button:disabled {
 }
 
 .hint {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   margin: 0.4rem 1.1rem 0;
   font-size: 0.8125rem;
   color: var(--muted);
+}
+
+.hint p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+/* The motion switch: a four-point star slides across and turns gold when the page may move. */
+.motion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: none;
+  padding: 0.1rem 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.motion:hover {
+  color: var(--ink);
+}
+
+.track {
+  position: relative;
+  width: 2rem;
+  height: 1.1rem;
+  border: 1px solid var(--field-rule);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--field) 80%, transparent);
+  transition:
+    background-color 250ms,
+    border-color 250ms,
+    box-shadow 250ms;
+}
+
+.knob {
+  position: absolute;
+  top: 50%;
+  left: 0.15rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  translate: 0 -50%;
+  background: var(--muted);
+  mask: var(--star-mask) center / contain no-repeat;
+  transition:
+    translate 380ms cubic-bezier(0.3, 1.4, 0.5, 1),
+    rotate 380ms,
+    background-color 250ms;
+}
+
+.motion[aria-checked='true'] .track {
+  border-color: var(--ember);
+  background: color-mix(in srgb, var(--ember) 22%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ember) 35%, transparent);
+}
+
+.motion[aria-checked='true'] .knob {
+  translate: 0.9rem -50%;
+  rotate: 0.25turn;
+  background: var(--ember);
 }
 
 /* While an answer is written, the hint gives way to a quip that decrypts into place. */
@@ -917,28 +1017,28 @@ button:disabled {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .caret::before,
-  .caret::after,
-  .forming,
-  .forming circle,
-  .spark,
-  .deep,
-  .busy .field::before,
-  .busy .field::after,
-  .answer.live .w,
-  .intro .welcome h1,
-  .intro .welcome p,
-  .intro .starters,
-  .intro .composer {
-    animation: none;
-  }
+/* Held still: by the motion switch, or by the system's reduced-motion setting until the switch is used. */
+:root[data-still] .caret::before,
+:root[data-still] .caret::after,
+:root[data-still] .nascent,
+:root[data-still] .phase,
+:root[data-still] .lights > span,
+:root[data-still] .spark,
+:root[data-still] .deep,
+:root[data-still] .busy .field::before,
+:root[data-still] .busy .field::after,
+:root[data-still] .answer.live .w,
+:root[data-still] .intro .welcome h1,
+:root[data-still] .intro .welcome p,
+:root[data-still] .intro .starters,
+:root[data-still] .intro .composer {
+  animation: none;
+}
 
-  .catalogue li,
-  .primary:hover:not(:disabled)::after,
-  .starters button:hover::after {
-    transition: none;
-  }
+:root[data-still] .catalogue li,
+:root[data-still] .primary:hover:not(:disabled)::after,
+:root[data-still] .starters button:hover::after {
+  transition: none;
 }
 
 /* Keyboard users can jump past the conversation to the question box. */
@@ -1027,6 +1127,11 @@ button:disabled {
   /* There is no Shift+Enter on a touch keyboard: Enter adds a line, Send sends. */
   .keys {
     display: none;
+  }
+
+  /* A full-height touch target, without making the hint row taller. */
+  .motion {
+    margin-block: -0.75rem;
   }
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useStill } from './motion'
 import { PHRASES, scramble } from './musing'
 
 const STEPS = 12 // ~0.5s at TICK to decrypt a phrase
@@ -10,7 +11,8 @@ export function Musing() {
   const [index, setIndex] = useState(() => Math.floor(Math.random() * PHRASES.length))
   const [revealed, setRevealed] = useState(0)
   const text = PHRASES[index]
-  const done = revealed >= text.length || matchMedia('(prefers-reduced-motion: reduce)').matches
+  const still = useStill()
+  const done = revealed >= text.length || still
 
   useEffect(() => {
     const timer = setInterval(() => {

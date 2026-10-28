@@ -1,9 +1,11 @@
-import { createContext, Fragment, use, useMemo, useState, type ComponentProps, type RefObject, type FocusEvent, type MouseEvent, type ReactNode } from 'react'
+import { createContext, Fragment, use, useMemo, useState, type ComponentProps, type CSSProperties, type RefObject, type FocusEvent, type MouseEvent, type ReactNode } from 'react'
 import Markdown, { type Components, type Options } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CITE, groupEntries, linkCitations, splitFooter, splitNotes } from './answer'
 import { STOPPED, type SourceRef } from './api'
 import { rehypeWords } from './condense'
+import { Galaxy } from './Galaxy'
+import { gatheringLine } from './gathering'
 import { hash } from './sky/layout'
 import type { SkyRenderer } from './sky/renderer'
 
@@ -76,22 +78,35 @@ const components: Components = {
   },
 }
 
-// The waiting answer: a small constellation that draws itself into the caret star.
-const FORMING = [
-  [4, 14],
-  [17, 6],
-  [30, 11],
-  [44, 4],
-]
-
-function Forming() {
+/**
+ * The waiting answer: a small galaxy turning slowly, quickening once the passages are found; beside it, what is
+ * happening, and a star for each passage the answer will draw on. The caret sits at the galaxy's core, so the
+ * light the sky sends to the caret pours into it.
+ */
+function Nascent({ sources }: { sources?: SourceRef[] }) {
+  const used = sources?.filter((s) => s.used) ?? []
+  const line = gatheringLine(sources)
   return (
-    <svg className="forming" viewBox="0 0 60 20" aria-hidden="true">
-      <polyline points={`${FORMING.join(' ')} 60,10`} />
-      {FORMING.map(([x, y]) => (
-        <circle key={x} cx={x} cy={y} r="1.6" />
-      ))}
-    </svg>
+    <div className="nascent" aria-hidden="true">
+      <span className="nucleus">
+        <Galaxy fed={!!sources} />
+        <span className="caret" />
+      </span>
+      <span className="gathering">
+        <span key={line} className="phase">
+          {line}
+        </span>
+        {used.length > 0 && (
+          <span className="lights">
+            {used.map((s, i) => (
+              <span key={s.id} style={{ '--i': i } as CSSProperties}>
+                <Star lit />
+              </span>
+            ))}
+          </span>
+        )}
+      </span>
+    </div>
   )
 }
 
@@ -172,8 +187,8 @@ export function Answer({ content, sources, index, live, sky, onFeedback }: Props
             {linkCitations(body, ids)}
           </Markdown>
         </CitingContext>
-        {live && !content && <Forming />}
-        {live && <span className="caret" aria-hidden="true" />}
+        {live && !content && <Nascent sources={sources} />}
+        {live && content && <span className="caret" aria-hidden="true" />}
       </div>
       {footer && (
         <section className="catalogue" aria-label={footer.heading}>

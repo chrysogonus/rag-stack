@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Answer } from './Answer'
 import { Musing } from './Musing'
+import { MotionSwitch } from './MotionSwitch'
 import { getMessages, RefusedError, sendFeedback, sendMessage, stopped, type Message, type SourceRef } from './api'
 import { rememberChat, type Chat } from './chats'
 import { SOURCES } from './sky/layout'
@@ -436,20 +437,23 @@ export default function App() {
             </button>
           )}
         </div>
-        <p className="hint">
-          {showCount ? (
-            <span id="count">
-              {draft.length.toLocaleString()} of {MAX_CHARS.toLocaleString()} characters
-            </span>
-          ) : streaming ? (
-            <Musing />
-          ) : (
-            <>
-              <span className="keys">Enter to send, Shift+Enter for a new line. </span>
-              Don’t share personal information.
-            </>
-          )}
-        </p>
+        <div className="hint">
+          <p>
+            {showCount ? (
+              <span id="count">
+                {draft.length.toLocaleString()} of {MAX_CHARS.toLocaleString()} characters
+              </span>
+            ) : streaming ? (
+              <Musing />
+            ) : (
+              <>
+                <span className="keys">Enter to send, Shift+Enter for a new line. </span>
+                Don’t share personal information.
+              </>
+            )}
+          </p>
+          <MotionSwitch />
+        </div>
       </form>
     </div>
   )

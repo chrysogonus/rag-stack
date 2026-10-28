@@ -1,10 +1,10 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useSyncExternalStore, type RefObject } from 'react'
 import type { PerspectiveCamera } from 'three'
+import { useStill } from '../motion'
 import type { SkyRenderer } from '../sky/renderer'
 import { DeepField, Glow } from './scene'
 
-const stillQuery = '(prefers-reduced-motion: reduce)'
 const darkQuery = '(prefers-color-scheme: dark)'
 
 /** The galaxy's distance; it sits off to the upper left, clear of the reading column on wide screens. */
@@ -81,7 +81,7 @@ function Space({ rendererRef, still, dark }: { rendererRef: RefObject<SkyRendere
  * It follows the atlas above it, warping while a question is searched and flaring when the answer's sources light.
  */
 export default function DeepSpace({ rendererRef }: { rendererRef: RefObject<SkyRenderer | null> }) {
-  const still = useMedia(stillQuery)
+  const still = useStill()
   const dark = useMedia(darkQuery)
   return (
     <div className="deep" aria-hidden="true">

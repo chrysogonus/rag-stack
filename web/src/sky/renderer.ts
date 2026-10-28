@@ -196,7 +196,7 @@ export class SkyRenderer {
     this.kick()
   }
 
-  /** Follows a change to the reduced-motion preference: anything in motion jumps to its end state. */
+  /** Follows a change to the motion setting (see motion.ts): anything in motion jumps to its end state. */
   setStill(still: boolean) {
     this.still = still
     if (still) {
