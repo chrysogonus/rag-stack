@@ -6,28 +6,50 @@ import psycopg
 from rag_stack.ingestion.models import Edge
 
 
-def replace_edges(database_url: str, origin: str, edges: Iterable[Edge]) -> None:
-    """Swap one source's edges in a single transaction."""
+def replace_edges(database_url: str, generation: str, origin: str, edges: Iterable[Edge]) -> None:
+    """Swap one source's edges within one index generation, in a single transaction."""
     with psycopg.connect(database_url) as conn, conn.cursor() as cur:
-        cur.execute("DELETE FROM kb_edges WHERE origin = %s", (origin,))
+        cur.execute(
+            "DELETE FROM kb_edges WHERE generation = %s AND origin = %s", (generation, origin)
+        )
         cur.executemany(
-            "INSERT INTO kb_edges (src_id, rel, dst_id, origin) VALUES (%s, %s, %s, %s) "
-            "ON CONFLICT DO NOTHING",
-            [(e.src_id, e.rel, e.dst_id, e.origin) for e in edges],
+            "INSERT INTO kb_edges (generation, src_id, rel, dst_id, origin) "
+            "VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            [(generation, e.src_id, e.rel, e.dst_id, e.origin) for e in edges],
         )
 
 
-def load_edges(database_url: str) -> list[Edge]:
+def copy_edges(database_url: str, source: str, target: str) -> int:
+    """Copy every edge of one generation into another; returns how many were copied."""
     with psycopg.connect(database_url) as conn, conn.cursor() as cur:
-        cur.execute("SELECT src_id, rel, dst_id, origin FROM kb_edges")
+        cur.execute(
+            "INSERT INTO kb_edges (generation, src_id, rel, dst_id, origin) "
+            "SELECT %s, src_id, rel, dst_id, origin FROM kb_edges WHERE generation = %s "
+            "ON CONFLICT DO NOTHING",
+            (target, source),
+        )
+        return cur.rowcount
+
+
+def delete_edge_generations(database_url: str, keep: Collection[str]) -> None:
+    with psycopg.connect(database_url) as conn, conn.cursor() as cur:
+        cur.execute("DELETE FROM kb_edges WHERE generation <> ALL(%s)", (list(keep),))
+
+
+def load_edges(database_url: str, generation: str) -> list[Edge]:
+    with psycopg.connect(database_url) as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT src_id, rel, dst_id, origin FROM kb_edges WHERE generation = %s",
+            (generation,),
+        )
         return [Edge(src_id=s, rel=r, dst_id=d, origin=o) for s, r, d, o in cur.fetchall()]
 
 
 class EdgeGraph:
     """The edge table held in memory (a few thousand rows) for 1-hop lookups.
 
-    shortcut: loaded once at startup, so a re-index needs an API restart; query Postgres
-    per request if the table grows large or changes while serving."""
+    shortcut: loaded once at startup, so a re-index or promotion needs an API restart (`make
+    refresh` does it); query Postgres per request if the table grows large."""
 
     def __init__(self, edges: Iterable[Edge]) -> None:
         self._by_node: dict[str, list[Edge]] = defaultdict(list)

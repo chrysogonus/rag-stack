@@ -88,6 +88,13 @@ def parse(snapshot: Snapshot) -> tuple[list[Chunk], list[Edge]]:
         if typ in EDGE_TYPES
         for rel in rels
     ]
+    # Tactics, techniques and mitigations adapted from ATT&CK name their ATT&CK counterpart.
+    edges += [
+        Edge(src_id=native_id, rel="adapted_from", dst_id=ref["id"], origin="atlas")
+        for key in KINDS
+        for native_id, item in data[key].items()
+        if (ref := item.get("attack-reference"))
+    ]
     return chunks, edges
 
 

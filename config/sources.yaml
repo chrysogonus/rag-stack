@@ -38,11 +38,36 @@ ki-mig:
   xml_url: https://www.gesetze-im-internet.de/ki-mig/xml.zip
   page_url: https://www.gesetze-im-internet.de/ki-mig/
 
-ai-vulns:
+attack:
+  # Enterprise, Mobile and ICS bundles of one release; versioned files never change.
+  base_url: https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master
+  version: "20.0"
+
+capec:
+  # One XML catalog per release; versioned files never change.
+  base_url: https://capec.mitre.org/data/xml
+  version: "3.9"
+
+cwe:
+  # One zipped XML catalog per release; versioned files never change.
+  base_url: https://cwe.mitre.org/data/xml
+  version: "4.20"
+
+d3fend:
+  # The ontology and its inferred ATT&CK mappings, per release; versioned files never change.
+  base_url: https://d3fend.mitre.org/ontologies/d3fend
+  version: "1.6.0"
+
+vulns:
+  # The whole KEV catalog; GitHub-reviewed advisories and AI-package advisories of the window.
   window_months: 24
   osv_url: https://api.osv.dev/v1/query
   nvd_url: https://services.nvd.nist.gov/rest/json/cves/2.0
   kev_url: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+  github_url: https://api.github.com/advisories
+  severities: [critical, high]
+  epss_url: https://api.first.org/data/v1/epss
+  # AI packages: every advisory of the window, whatever its severity, with its full text.
   packages:
     - {name: langchain, ecosystem: PyPI}
     - {name: langchain-core, ecosystem: PyPI}

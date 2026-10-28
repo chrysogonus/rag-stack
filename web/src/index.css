@@ -61,6 +61,11 @@ body {
   background: var(--sky);
 }
 
+/* Focus and anchor jumps stop clear of the sticky masthead and composer (App.tsx measures them). */
+html {
+  scroll-padding-block: var(--masthead-height, 5rem) var(--composer-height, 9rem);
+}
+
 :focus-visible {
   outline: 2px solid var(--ember);
   outline-offset: 2px;
@@ -637,6 +642,34 @@ button:disabled {
 .catalogue .notes summary {
   width: fit-content;
   cursor: pointer;
+}
+
+/* Under a finished answer: was it helpful? */
+.feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.feedback button {
+  padding: 0.2rem 0.85rem;
+  font-size: 0.8125rem;
+  color: var(--ink);
+  background: transparent;
+  border-color: var(--rule);
+}
+
+.feedback button:hover,
+.feedback button[aria-pressed='true'] {
+  border-color: var(--ember);
+}
+
+.feedback button[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--ember) 12%, transparent);
 }
 
 /* Composer */

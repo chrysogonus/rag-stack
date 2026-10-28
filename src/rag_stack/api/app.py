@@ -11,8 +11,9 @@ from fastapi.sse import EventSourceResponse, ServerSentEvent
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, NonNegativeInt, StringConstraints
 
+from rag_stack import observability
 from rag_stack.agent.graph import build_graph
 from rag_stack.api.limits import ClientLimiter
 from rag_stack.config import Settings
@@ -83,6 +84,7 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        observability.configure(settings)
         async with AsyncExitStack() as stack:
             saver = checkpointer or await stack.enter_async_context(
                 open_checkpointer(settings.database_url)
@@ -96,6 +98,7 @@ def create_app(
             knowledge = retriever or await asyncio.to_thread(open_knowledge_base, settings)
             app.state.graph = build_graph(model, saver, settings, knowledge)
             yield
+        observability.flush()
 
     app = FastAPI(title="rag-stack", lifespan=lifespan)
 
@@ -106,6 +109,11 @@ def create_app(
                 strip_whitespace=True, min_length=1, max_length=settings.max_input_chars
             ),
         ]
+
+    class Rating(BaseModel):
+        # The answer's index in the thread, as GET .../messages lists it.
+        message: NonNegativeInt
+        helpful: bool
 
     def thread_config(thread_id: UUID) -> RunnableConfig:
         return {"configurable": {"thread_id": str(thread_id)}}
@@ -125,6 +133,20 @@ def create_app(
     async def get_messages(thread_id: UUID, graph: Graph) -> list[Message]:
         state = await graph.aget_state(thread_config(thread_id))
         return state.values.get("messages", [])
+
+    @app.post("/api/threads/{thread_id}/feedback", status_code=204)
+    async def post_feedback(thread_id: UUID, body: Rating, request: Request, graph: Graph) -> None:
+        """A reader's rating of one answer, stored as a score on that turn's trace."""
+        client = request.client.host if request.client else "unknown"
+        if refusal := limiter.check(client):
+            raise HTTPException(429, refusal)
+        state = await graph.aget_state(thread_config(thread_id))
+        messages: list[Message] = state.values.get("messages", [])
+        if body.message >= len(messages) or messages[body.message]["role"] != "assistant":
+            raise HTTPException(404, "There is no such answer in this conversation.")
+        trace_id = observability.turn_trace_id(str(thread_id), body.message)
+        if not await observability.rate_turn(trace_id, body.helpful):
+            raise HTTPException(503, "Ratings aren't collected right now.")
 
     @app.post("/api/threads/{thread_id}/messages", response_class=EventSourceResponse)
     async def post_message(

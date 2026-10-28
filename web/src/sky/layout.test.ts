@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CONSTELLATIONS, fitSky, passageOffset, passagePoint, SOURCES } from './layout'
+import { CONSTELLATIONS, fitSky, narrowRows, passageOffset, passagePoint, SOURCES } from './layout'
 
 describe('passage positions', () => {
   it('are the same on every visit and differ between passages', () => {
@@ -37,6 +37,25 @@ describe('the sky', () => {
       const gap = Math.abs(region.centre.x - width / 2) - region.radius
       expect(gap).toBeGreaterThan(352) // half the 704px column
     }
+  })
+
+  it.each([
+    [1440, 900],
+    [1100, 700],
+    [390, 844],
+    [360, 640],
+  ])('gives every source its own constellation, apart from the others, at %ix%i', (width, height) => {
+    const regions = [...fitSky(width, height).regions.values()]
+    expect(regions).toHaveLength(SOURCES.length)
+    for (const [i, a] of regions.entries())
+      for (const b of regions.slice(i + 1))
+        expect(Math.hypot(a.centre.x - b.centre.x, a.centre.y - b.centre.y)).toBeGreaterThan(a.radius + b.radius)
+  })
+
+  it('fills narrow rows of at most four, fuller rows first', () => {
+    expect(narrowRows(10)).toEqual([4, 3, 3])
+    expect(narrowRows(6)).toEqual([3, 3])
+    expect(narrowRows(4)).toEqual([4])
   })
 
   it('joins every figure star into one constellation', () => {

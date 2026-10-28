@@ -2,7 +2,7 @@ import { createContext, Fragment, use, useMemo, useState, type ComponentProps, t
 import Markdown, { type Components, type Options } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CITE, groupEntries, linkCitations, splitFooter, splitNotes } from './answer'
-import type { SourceRef } from './api'
+import { STOPPED, type SourceRef } from './api'
 import { hash } from './sky/layout'
 import type { SkyRenderer } from './sky/renderer'
 
@@ -14,6 +14,8 @@ interface Props {
   index: number
   live: boolean
   sky: RefObject<SkyRenderer | null>
+  /** Sends the reader's rating; without it the answer has no rating buttons. */
+  onFeedback?: (helpful: boolean) => Promise<void>
 }
 
 const NewTab = () => <span className="visually-hidden"> (opens in new tab)</span>
@@ -99,7 +101,33 @@ function Star({ lit }: { lit: boolean }) {
   )
 }
 
-export function Answer({ content, sources, index, live, sky }: Props) {
+function Feedback({ send }: { send: (helpful: boolean) => Promise<void> }) {
+  const [rating, setRating] = useState<boolean | null>(null)
+  const [failed, setFailed] = useState(false)
+  async function rate(helpful: boolean) {
+    setFailed(false)
+    try {
+      await send(helpful)
+      setRating(helpful)
+    } catch {
+      setFailed(true)
+    }
+  }
+  return (
+    <div className="feedback" role="group" aria-label="Rate this answer">
+      <span>Was this answer helpful?</span>
+      <button type="button" aria-pressed={rating === true} onClick={() => rate(true)}>
+        Yes
+      </button>
+      <button type="button" aria-pressed={rating === false} onClick={() => rate(false)}>
+        No
+      </button>
+      <span role="status">{failed ? "Couldn't send that. Try again." : rating !== null ? 'Thanks.' : ''}</span>
+    </div>
+  )
+}
+
+export function Answer({ content, sources, index, live, sky, onFeedback }: Props) {
   const [active, setActive] = useState<string | null>(null)
   const { body, footer } = useMemo(() => splitFooter(content), [content])
   const notes = footer?.notes ? splitNotes(footer.notes) : null
@@ -191,6 +219,7 @@ export function Answer({ content, sources, index, live, sky }: Props) {
           )}
         </section>
       )}
+      {onFeedback && !live && !content.endsWith(STOPPED) && <Feedback send={onFeedback} />}
     </article>
   )
 }

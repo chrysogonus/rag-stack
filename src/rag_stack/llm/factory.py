@@ -10,6 +10,8 @@ from rag_stack.llm.openai_compatible import OpenAICompatibleModel
 from rag_stack.llm.openai_responses import OpenAIResponsesModel
 
 Provider = Literal["openai", "openai-compatible", "anthropic"]
+# Where an embedding or reranking model runs: in-process on the CPU, or on a vLLM server.
+ModelHost = Literal["fastembed", "vllm"]
 
 
 def create_chat_model(
@@ -29,7 +31,15 @@ def create_chat_model(
     return AnthropicModel(AsyncAnthropic(api_key=api_key, base_url=base_url), model)
 
 
-def create_embedder(model: str) -> Embedder:
+def create_embedder(
+    model: str, provider: ModelHost = "fastembed", base_url: str | None = None
+) -> Embedder:
+    if provider == "vllm":
+        from openai import OpenAI  # noqa: TID251
+
+        from rag_stack.llm.vllm_models import VllmDense
+
+        return VllmDense(OpenAI(api_key="not-needed", base_url=served_at(base_url)), model)
     from rag_stack.llm.fastembed_local import FastembedDense
 
     return FastembedDense(model)
@@ -41,7 +51,21 @@ def create_sparse_embedder(model: str) -> SparseEmbedder:
     return FastembedSparse(model)
 
 
-def create_reranker(model: str) -> Reranker:
+def create_reranker(
+    model: str, provider: ModelHost = "fastembed", base_url: str | None = None
+) -> Reranker:
+    if provider == "vllm":
+        import httpx
+
+        from rag_stack.llm.vllm_models import VllmReranker
+
+        return VllmReranker(httpx.Client(base_url=served_at(base_url), timeout=60), model)
     from rag_stack.llm.fastembed_local import FastembedReranker
 
     return FastembedReranker(model)
+
+
+def served_at(base_url: str | None) -> str:
+    if not base_url:
+        raise ValueError("a vLLM-served model needs its base URL, e.g. http://127.0.0.1:8001/v1")
+    return base_url.rstrip("/") + "/"

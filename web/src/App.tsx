@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Answer } from './Answer'
 import { Musing } from './Musing'
-import { getMessages, RefusedError, sendMessage, stopped, type Message, type SourceRef } from './api'
+import { getMessages, RefusedError, sendFeedback, sendMessage, stopped, type Message, type SourceRef } from './api'
 import { rememberChat, type Chat } from './chats'
 import { SOURCES } from './sky/layout'
 import type { SkyRenderer } from './sky/renderer'
@@ -12,9 +12,9 @@ const THREAD_KEY = 'rag-stack:thread'
 const CHATS_KEY = 'rag-stack:chats'
 
 const STARTERS = [
+  { question: 'Which D3FEND techniques counter T1110.001?', source: 'd3fend' },
   { question: 'What is AML.T0051?', source: 'atlas' },
   { question: 'What does Article 50 of the EU AI Act require?', source: 'eu-ai-act' },
-  { question: 'Which risks does the OWASP agentic Top 10 list?', source: 'owasp-agentic-2026' },
 ]
 
 type Turn = Message & { sources?: SourceRef[] }
@@ -85,6 +85,9 @@ export default function App() {
   const stickRef = useRef(true)
   const skyRef = useRef<SkyRenderer | null>(null)
   const chatsRef = useRef<HTMLElement>(null)
+  const mastheadRef = useRef<HTMLElement>(null)
+  const composerRef = useRef<HTMLFormElement>(null)
+  const newThreadRef = useRef<string | null>(null)
   // The entrance plays once per page load, not again for every new chat.
   const [intro, setIntro] = useState(true)
 
@@ -94,6 +97,8 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    // A chat this page just started has no history; loading [] late would erase a first question.
+    if (threadId === newThreadRef.current) return setLoading(false)
     const controller = new AbortController()
     getMessages(threadId, controller.signal)
       .then((loaded) => {
@@ -110,6 +115,18 @@ export default function App() {
       })
     return () => controller.abort()
   }, [threadId, loadAttempt])
+
+  // Focus and anchor jumps stop clear of the sticky bars at their current height (a long draft or
+  // an error makes the composer taller).
+  useEffect(() => {
+    const root = document.documentElement
+    const observer = new ResizeObserver(() => {
+      root.style.setProperty('--masthead-height', `${mastheadRef.current?.offsetHeight ?? 0}px`)
+      root.style.setProperty('--composer-height', `${composerRef.current?.offsetHeight ?? 0}px`)
+    })
+    for (const bar of [mastheadRef.current, composerRef.current]) if (bar) observer.observe(bar)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => saveChats(chats), [chats])
   // Tabs and browser history tell chats apart by their first question.
@@ -163,12 +180,14 @@ export default function App() {
   }
 
   function startNewChat() {
-    showThread(crypto.randomUUID())
+    newThreadRef.current = crypto.randomUUID()
+    showThread(newThreadRef.current)
   }
 
   function switchChat(id: string) {
     chatsRef.current?.hidePopover()
     if (id === threadId) return
+    newThreadRef.current = null // it has history by now, so load it
     setLoading(true)
     showThread(id)
   }
@@ -279,7 +298,7 @@ export default function App() {
         Skip to question
       </a>
       <Sky rendererRef={skyRef} />
-      <header className="masthead">
+      <header className="masthead" ref={mastheadRef}>
         <span className="wordmark">Knowledge base</span>
         <div className="actions">
           {chats.length > 0 && (
@@ -328,7 +347,7 @@ export default function App() {
         )}
         {empty && (
           <section className="welcome">
-            <h1>What do you want to know about AI security?</h1>
+            <h1>What do you want to know about cybersecurity?</h1>
             <p>
               Each constellation is one source. When you ask, the passages behind the answer light up. Answers come
               from an AI model and can be wrong, so check anything important.
@@ -370,6 +389,7 @@ export default function App() {
               sources={message.sources}
               live={streaming && i === messages.length - 1}
               sky={skyRef}
+              onFeedback={(helpful) => sendFeedback(threadId, i, helpful)}
             />
           ),
         )}
@@ -378,7 +398,7 @@ export default function App() {
         </div>
       </main>
 
-      <form className="composer" onSubmit={onSubmit}>
+      <form className="composer" ref={composerRef} onSubmit={onSubmit}>
         {error && (
           <p className="error" role="alert">
             {error}
@@ -401,7 +421,7 @@ export default function App() {
             onKeyDown={onKeyDown}
             maxLength={MAX_CHARS}
             rows={1}
-            placeholder="Ask about AI security"
+            placeholder="Ask about cybersecurity"
             aria-describedby={showCount ? 'count' : undefined}
             autoFocus
           />

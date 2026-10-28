@@ -6,10 +6,12 @@ from qdrant_client import QdrantClient
 
 from rag_stack.db.edges import EdgeGraph
 from rag_stack.ingestion.models import Edge, Snapshot
-from rag_stack.ingestion.sources import atlas, eu_ai_act
+from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS, SOURCES
+from rag_stack.ingestion.sources import atlas, eu_law
+from rag_stack.retrieval import retriever
 from rag_stack.retrieval.fusion import rrf
 from rag_stack.retrieval.ids import detect_ids
-from rag_stack.retrieval.index import ensure_collection, index_source
+from rag_stack.retrieval.index import catalog_label, ensure_collection, index_source
 from rag_stack.retrieval.language import detect_language
 from rag_stack.retrieval.retriever import KnowledgeBase
 
@@ -35,13 +37,75 @@ FIXTURES = Path(__file__).parents[1] / "fixtures"
         ("Erwägungsgrund 133 und Recital 27", ["Recital 133", "Recital 27"]),
         ("Annex III point 1(a)", ["Annex III 1(a)"]),
         ("Anhang III Nummer 4 Buchstabe b", ["Annex III 4(b)"]),
+        # Lettered points of articles without paragraphs and of annexes are units of their own.
+        (
+            "What is Art. 66(j) and Artikel 16 Buchstabe h?",
+            ["AI Act Art. 66(j)", "AI Act Art. 16(h)"],
+        ),
+        (
+            "Annex XIII e, Annex VII point (d), Anhang IV Buchstabe a",
+            ["Annex XIII e", "Annex VII d", "Annex IV a"],
+        ),
+        (
+            "Article 5(1)(a) and Annex III and Annex II",
+            ["AI Act Art. 5(1)", "Annex III", "Annex II"],
+        ),
+        # A bare letter followed by a word is prose: "Annex III a list".
+        ("Is Annex III a list of uses, and Annex I a set of laws?", ["Annex III", "Annex I"]),
+        # ... and so is "e.g."; a sentence's full stop is not.
+        ("Explain Annex XIII e. Then Annex VII point (d).", ["Annex XIII e", "Annex VII d"]),
+        ("Annex III e.g. covers biometrics", ["Annex III"]),
         ("Wer ist nach § 2 Abs. 3 KI-MIG zuständig?", ["KI-MIG § 2 Abs. 3"]),
         ("What does Section 3 of the KI-MIG cover?", ["KI-MIG § 3"]),
         ("Section 2 of Annex I", ["Annex I"]),
         ("How do attackers poison a RAG corpus?", []),
+        # ATT&CK, not the technique inside an ATLAS ID
+        (
+            "T1059.001, t1566 and TA0002 vs. AML.T0051",
+            ["AML.T0051", "T1059.001", "T1566", "TA0002"],
+        ),
+        (
+            "Is M1038 used by G0016 (S0154, C0024, DET0001)?",
+            ["M1038", "G0016", "S0154", "C0024", "DET0001"],
+        ),
+        ("Map cwe-79 and CAPEC 66 to D3-MFA", ["CWE-79", "CAPEC-66", "D3-MFA"]),
+        (
+            "PR.AA-01, AC-2 (1), SI-4 and SSDF PO.1.1",
+            ["PR.AA-01", "AC-2(1)", "SI-4", "SSDF PO.1.1"],
+        ),
+        ("What does AI RMF GOVERN 1.1 ask?", ["AI RMF GOVERN 1.1"]),
+        ("A01:2025, A03 and A05:2021", ["A01:2025", "A03:2025"]),
+        ("ASVS 1.2.5 and v5.0.0-2.1.1", ["v5.0.0-1.2.5", "v5.0.0-2.1.1"]),
+        (
+            "Summarize arXiv:2601.01234v2 and arxiv.org/abs/2512.09876",
+            ["arXiv:2601.01234", "arXiv:2512.09876"],
+        ),
     ],
 )
 def test_detect_ids(question, ids):
+    assert detect_ids(question) == ids
+
+
+@pytest.mark.parametrize(
+    ("question", "ids"),
+    [
+        ("Was verlangt Art. 21 Abs. 2 NIS2?", ["NIS2 Art. 21(2)"]),
+        (
+            "Compare NIS2 Article 21 with Article 15 of the AI Act",
+            ["NIS2 Art. 21", "AI Act Art. 15"],
+        ),
+        ("Art. 50 KI-VO", ["AI Act Art. 50"]),
+        # No act named: every indexed act, and the reranker decides.
+        ("What does Article 5 say?", ["AI Act Art. 5", "NIS2 Art. 5"]),
+        ("Recital 12", ["Recital 12", "NIS2 Recital 12"]),
+        ("NIS2 Annex I point 2", ["NIS2 Annex I 2"]),
+        ("§ 30 Abs. 1 BSIG und § 2 KI-MIG", ["BSIG § 30 Abs. 1", "KI-MIG § 2"]),
+        ("Was regelt § 8?", ["KI-MIG § 8", "BSIG § 8"]),
+    ],
+)
+def test_detect_ids_picks_the_act(monkeypatch, question, ids):
+    monkeypatch.setitem(EU_ACTS, "nis2", ("NIS2", r"NIS ?2"))
+    monkeypatch.setitem(GERMAN_LAWS, "bsig", ("BSIG", "BSIG"))
     assert detect_ids(question) == ids
 
 
@@ -91,7 +155,7 @@ def kb() -> KnowledgeBase:
 
     atlas_chunks, atlas_edges = load(atlas, "atlas", "2026.09", "atlas", ["ATLAS.yaml"])
     act_chunks, _ = load(
-        eu_ai_act,
+        eu_law,
         "eu-ai-act",
         "02024R1689-20260727",
         "eu_ai_act",
@@ -118,7 +182,7 @@ async def test_a_whole_article_returns_its_paragraphs(kb):
     found = await kb.retrieve("What does Article 50 say?")
 
     ids = [r.chunk.native_id for r in found if r.via == "id"]
-    assert set(ids) == {"AI Act Art. 50(1)", "AI Act Art. 50(2)", "AI Act Art. 50(3)"}
+    assert set(ids) == {f"AI Act Art. 50({p})" for p in range(1, 5)}
 
 
 async def test_legal_text_comes_in_the_language_of_the_question(kb):
@@ -184,6 +248,13 @@ async def test_catalog_names_each_source_once_without_versions(kb):
     assert await kb.catalog() == ["EU AI Act (Regulation (EU) 2024/1689)", "MITRE ATLAS"]
 
 
+async def test_a_retired_source_still_served_is_named_by_its_id(kb, monkeypatch):
+    monkeypatch.delitem(SOURCES, "atlas")
+
+    assert await kb.catalog() == ["EU AI Act (Regulation (EU) 2024/1689)", "atlas"]
+    assert catalog_label(chunk("AML.T0051")) == "atlas 2026.09"
+
+
 def test_index_source_skips_an_unchanged_snapshot_and_replaces_a_changed_one():
     client = QdrantClient(":memory:")
     embedder, sparse = FakeEmbedder(), FakeSparseEmbedder()
@@ -198,6 +269,21 @@ def test_index_source_skips_an_unchanged_snapshot_and_replaces_a_changed_one():
     assert [p.payload["native_id"] for p in points if p.payload] == ["AML.T0003"]
 
 
+def test_lookups_by_id_return_every_match_not_just_the_first_page():
+    client = QdrantClient(":memory:")
+    embedder, sparse = FakeEmbedder(), FakeSparseEmbedder()
+    ensure_collection(client, "kb", embedder.dim)
+    # 300 parts of one article: more than one page of a Qdrant scroll.
+    parts = [
+        chunk(f"AI Act Art. 3({n})", source_id="eu-ai-act", parent_ids=["AI Act Art. 3"])
+        for n in range(1, 301)
+    ]
+    index_source(client, "kb", "eu-ai-act", "v1", parts, embedder, sparse)
+    kb = KnowledgeBase(client, "kb", embedder, sparse, FakeReranker(), EdgeGraph([]))
+
+    assert len(kb.by_ids(["AI Act Art. 3"])) == 300
+
+
 async def test_without_named_ids_search_hits_come_before_graph_neighbors(kb):
     found = await kb.retrieve("which mitigation controls access to production models and data")
 
@@ -206,7 +292,34 @@ async def test_without_named_ids_search_hits_come_before_graph_neighbors(kb):
     assert vias == sorted(vias, key=lambda v: v != "hybrid")
 
 
-async def test_a_named_unit_keeps_only_its_best_sections_so_related_units_fit():
+async def test_without_named_ids_an_edge_between_lower_search_hits_reaches_the_prompt():
+    # The best search hit is unrelated; the two linked units come second and third.
+    question = "can file integrity monitoring counter spearphishing link attacks"
+    detection = chunk("DET0878", question + " detection", source_id="attack")
+    countermeasure = chunk("D3-FIM", "file integrity monitoring", source_id="d3fend")
+    technique = chunk("T1566.002", "spearphishing link", source_id="attack")
+    edge = Edge(src_id="D3-FIM", rel="counters", dst_id="T1566.002", origin="d3fend")
+    kb = small_kb([detection, countermeasure, technique], [edge])
+
+    found = await kb.retrieve(question)
+
+    assert found[0].chunk.native_id == "DET0878"
+    relations = {r.chunk.native_id: r.chunk.meta.get("relation") for r in found}
+    assert "D3-FIM counters T1566.002" in relations.values()
+
+
+@pytest.mark.parametrize(
+    ("question", "kept"),
+    [
+        ("Which risks map to LLM01:2026?", 3),
+        # Asking for another source's units is asking for that list: the named unit gets one
+        # section ahead of it (its others may follow as search hits).
+        ("Which ASI risks map to LLM01:2026?", 1),
+        # Its own source isn't another one.
+        ("Which LLM Top 10 entries map to LLM01:2026?", 3),
+    ],
+)
+async def test_a_named_unit_keeps_only_its_best_sections_so_related_units_fit(question, kept):
     sections = [
         chunk(
             "LLM01:2026",
@@ -227,9 +340,9 @@ async def test_a_named_unit_keeps_only_its_best_sections_so_related_units_fit():
     graph = EdgeGraph([Edge(src_id="LLM01:2026", rel="maps_to", dst_id="ASI01", origin="owasp")])
     kb = KnowledgeBase(client, "kb", embedder, sparse, FakeReranker(), graph, limit=4)
 
-    found = await kb.retrieve("Which ASI risks map to LLM01:2026?")
+    found = await kb.retrieve(question)
 
-    assert [r.chunk.native_id for r in found] == ["LLM01:2026"] * 3 + ["ASI01"]
+    assert [r.chunk.native_id for r in found][: kept + 1] == ["LLM01:2026"] * kept + ["ASI01"]
 
 
 def small_kb(chunks, edges, **options) -> KnowledgeBase:
@@ -255,6 +368,113 @@ async def test_a_search_hit_that_is_also_a_graph_neighbor_keeps_its_relation():
     relations = {r.chunk.native_id: r.chunk.meta.get("relation") for r in found}
     assert set(relations) == {"AML.T0001", "AML.M0001"}
     assert "AML.M0001 mitigates AML.T0001" in relations.values()
+
+
+@pytest.mark.parametrize(
+    "question",
+    ["Does D3-SCF counter T1505.002?", "How does D3-SCF defend against T1505.002?"],
+)
+async def test_an_edge_between_two_named_units_reaches_the_prompt(question):
+    # The link is only in the edge data: without it on a named unit, the model denies it.
+    countermeasure = chunk("D3-SCF", "system call filtering", source_id="d3fend")
+    technique = chunk("T1505.002", "transport agent", source_id="attack")
+    edge = Edge(src_id="D3-SCF", rel="counters", dst_id="T1505.002", origin="d3fend")
+    kb = small_kb([countermeasure, technique], [edge])
+
+    found = await kb.retrieve(question)
+
+    assert [(r.chunk.native_id, r.via) for r in found] == [("D3-SCF", "id"), ("T1505.002", "id")]
+    assert {r.chunk.meta.get("relation") for r in found} == {"D3-SCF counters T1505.002"}
+
+
+async def test_the_reranker_picks_which_neighbors_are_kept():
+    # 20 groups use the technique; edge order lists the off-topic ones first.
+    technique = chunk("T1059", "command and scripting interpreter", source_id="attack")
+    groups = [
+        chunk(f"G{i:04d}", "powershell" if i > 12 else "unrelated", source_id="attack")
+        for i in range(1, 21)
+    ]
+    edges = [Edge(src_id=g.native_id, rel="uses", dst_id="T1059", origin="attack") for g in groups]
+    kb = small_kb([technique, *groups], edges, limit=20)
+
+    found = await kb.retrieve("Which groups are related to T1059 with powershell?")
+
+    kept = [r.chunk.native_id for r in found if r.via == "graph"]
+    assert len(kept) == retriever.MAX_NEIGHBORS
+    assert set(kept[:8]) == {f"G{i:04d}" for i in range(13, 21)}
+
+
+async def test_a_relation_with_few_edges_is_not_crowded_out_by_one_with_many():
+    # CWE-89 has hundreds of CVEs and a handful of CAPEC patterns; the CVE edges come first.
+    weakness = chunk("CWE-89", "sql injection", source_id="cwe")
+    cves = [
+        chunk(f"CVE-2026-{i:04d}", "a product flaw", source_id="vulns")
+        for i in range(retriever.NEIGHBOR_CANDIDATES + 10)
+    ]
+    patterns = [
+        chunk(f"CAPEC-{i}", "capec sql injection pattern", source_id="capec") for i in (7, 66)
+    ]
+    edges = [
+        Edge(src_id=c.native_id, rel="has_weakness", dst_id="CWE-89", origin="vulns") for c in cves
+    ]
+    edges += [
+        Edge(src_id=p.native_id, rel="related_weakness", dst_id="CWE-89", origin="capec")
+        for p in patterns
+    ]
+    kb = small_kb([weakness, *cves, *patterns], edges, limit=20)
+
+    found = await kb.retrieve("Which CAPEC patterns relate to CWE-89 sql injection?")
+
+    graph = [r.chunk.native_id for r in found if r.via == "graph"]
+    assert set(graph[:2]) == {"CAPEC-7", "CAPEC-66"}
+
+
+def weakness_with_cves_and_patterns() -> KnowledgeBase:
+    """CWE-89 with CVEs that match SQL injection questions better than its CAPEC patterns do."""
+    weakness = chunk("CWE-89", "sql injection", source_id="cwe")
+    cves = [
+        chunk(f"CVE-2026-{i:04d}", "which sql injection patterns relate", source_id="vulns")
+        for i in range(20)
+    ]
+    patterns = [chunk(f"CAPEC-{i}", "an attack", source_id="capec") for i in (7, 66)]
+    edges = [
+        Edge(src_id=c.native_id, rel="has_weakness", dst_id="CWE-89", origin="vulns") for c in cves
+    ]
+    edges += [
+        Edge(src_id=p.native_id, rel="related_weakness", dst_id="CWE-89", origin="capec")
+        for p in patterns
+    ]
+    return small_kb([weakness, *cves, *patterns], edges, limit=20)
+
+
+async def test_a_question_asking_for_one_source_gets_only_its_neighbors():
+    kb = weakness_with_cves_and_patterns()
+
+    found = await kb.retrieve("Which CAPEC patterns relate to CWE-89 sql injection?")
+
+    assert [r.chunk.native_id for r in found if r.via == "graph"] == ["CAPEC-7", "CAPEC-66"]
+    assert "CWE-89" in [r.chunk.native_id for r in found if r.via == "id"]
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        # An ID of a source doesn't ask for that source: CWE-89 is no request for CWEs.
+        "Which patterns relate to CWE-89 sql injection?",
+        # Nor does a singular: it says what the unit is, not which units to list.
+        "What kind of weakness is CWE-89, and which sql injection patterns relate?",
+        # A source without neighbors here changes nothing.
+        "Which ATLAS techniques relate to CWE-89 sql injection?",
+    ],
+)
+async def test_without_an_asked_for_source_among_them_all_neighbors_compete(question):
+    kb = weakness_with_cves_and_patterns()
+
+    found = await kb.retrieve(question)
+
+    graph = [r.chunk for r in found if r.via == "graph"]
+    assert {c.source_id for c in graph} == {"vulns"}
+    assert len(graph) == retriever.MAX_NEIGHBORS
 
 
 async def test_the_section_cap_counts_language_copies_once():

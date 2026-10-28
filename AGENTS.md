@@ -16,9 +16,15 @@ writes an answer grounded in them.
   (Responses API), `anthropic` (Messages API) or `openai-compatible` (Chat Completions at
   `LLM_BASE_URL`: Ollama, vLLM, LM Studio, gateways). Use the official `openai` and `anthropic`
   SDKs; ruff bans importing them outside `llm/`, and bans `langchain-openai` everywhere.
-- The RAG chatbot runs on the OpenAI API (`gpt-6-luna`, key in `.env`). The sub2api gateway
-  (`~/workspace/sub2api`, `codex/gpt-6-luna`, a personal ChatGPT subscription) is the eval's
-  live-chatbot reference (`EVAL_BASELINE_*`) and its judge (`EVAL_JUDGE_*`). Never deploy with the gateway.
+  Embedding and reranker models run in-process on the CPU (`fastembed`) or on the vLLM GPU
+  services (`EMBEDDING_PROVIDER` / `RERANKER_PROVIDER=vllm`, `llm/vllm_models.py`); every
+  vector records its model, and a new model means a full rebuild through `make refresh`.
+- The RAG chatbot runs on the OpenAI API (`gpt-6-luna`, key in `.env`). The subscription gateway
+  (formerly sub2api; `~/workspace/subscription-gateway`, started with `subscription-gateway
+  serve`; personal ChatGPT and Claude subscriptions) runs the eval's live-chatbot
+  reference (`EVAL_BASELINE_*`, `codex/gpt-6-luna`) and its judge and question drafter
+  (`EVAL_JUDGE_*`, `claude-code/claude-haiku-5-5`, another model family than the RAG model).
+  Never deploy with the gateway.
 - Agent orchestration: LangGraph with a custom `StateGraph`. Nodes call our `llm/` interfaces,
   not LangChain chat models.
 - API: FastAPI with SSE streaming. Conversations are stored in Postgres (with the LangGraph
@@ -32,25 +38,27 @@ writes an answer grounded in them.
 
 ```
 src/rag_stack/
-  ingestion/   # fetch (polite HTTP), sha256 snapshots, one parser per source in sources/
+  ingestion/   # fetch (polite HTTP), sha256 snapshots, one parser per source or legal system in sources/
   retrieval/   # Qdrant index, ID detection, hybrid search + RRF + rerank + graph expansion
   agent/       # knowledge base agent: LangGraph graph, prompts, answer footer, `ask`
   llm/         # chat, embedding and reranker interfaces and adapters
-  api/         # FastAPI app: chat (SSE), threads, rate limits
+  api/         # FastAPI app: chat (SSE), threads, ratings, rate limits
   db/          # Postgres: checkpointer, edge table, Alembic migrations
   evals/       # golden-set harness: metrics, LLM judge, RAG vs. baseline report
-  cli.py       # ingest | index | ask | eval (wrapped by make)
+  cli.py       # ingest | index | refresh | rollback | ask | eval | eval-draft (wrapped by make)
+  refresh.py   # scheduled refresh: diff, checks, candidate index generation, promote or block
+  observability.py  # Langfuse tracing and ratings; the only module that imports its SDK
 config/sources.yaml     # the source allowlist and pinned upstream refs
 data/                   # raw snapshots, processed chunks, HTTP cache (not committed)
 web/           # chat UI
-deploy/        # Helm chart (planned)
+deploy/        # systemd timer for `make refresh` (`make schedule`); Helm chart (planned)
 tests/
   fakes/       # fake LLM / embedder / reranker / retriever shared by unit tests
   fixtures/    # small verbatim excerpts of each source (see NOTICE.md)
   unit/        # tight: no network, LLM/embeddings faked, Qdrant in-memory
   ai/          # evals against a real LLM, marked @pytest.mark.ai
   e2e/         # question -> chatbot answer, real Qdrant
-evals/datasets/<name>/  # golden.jsonl, thresholds.yaml, report.md, corpus/manifest.json
+evals/datasets/<name>/  # golden.jsonl, thresholds.yaml, report.md, results.json, history.jsonl, corpus/manifest.json
 evals/rubrics/          # versioned LLM-judge rubrics
 ```
 

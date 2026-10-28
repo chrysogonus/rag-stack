@@ -1,3 +1,6 @@
+"""EU acts from CELLAR, configured by CELEX number (config/sources.yaml) and short name
+(registry.EU_ACTS)."""
+
 import copy
 import json
 import re
@@ -9,9 +12,8 @@ from bs4.element import NavigableString
 
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean
-from rag_stack.ingestion.registry import SOURCES
+from rag_stack.ingestion.registry import EU_ACTS, SOURCES, eu_id
 
-INFO = SOURCES["eu-ai-act"]
 BLOCKS = {"p", "div", "table", "tbody", "li", "ul", "ol", "br", "hr"}
 CONSOLIDATED = """\
 PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
@@ -45,10 +47,13 @@ def fetch(fetcher: Fetcher, config: dict[str, Any], retrieved_at: str) -> Snapsh
             urls[name] = (
                 f"https://eur-lex.europa.eu/legal-content/{lang.upper()}/TXT/HTML/?uri=CELEX:{doc}"
             )
-    return Snapshot(INFO.id, consolidated, retrieved_at, files, urls)
+    return Snapshot(config["id"], consolidated, retrieved_at, files, urls)
 
 
 def parse(snapshot: Snapshot) -> tuple[list[Chunk], list[Edge]]:
+    info, act = SOURCES[snapshot.source_id], EU_ACTS[snapshot.source_id][0]
+    # The version is a CELEX number, of the act ("32024R1689") or a consolidation ("02024R1689-…").
+    oj = f"OJ {snapshot.version[1:5]}/{int(snapshot.version[6:10])}"
     chunks: list[Chunk] = []
     for name, raw in snapshot.files.items():
         kind, lang = name.removesuffix(".xhtml").split("_")
@@ -59,19 +64,19 @@ def parse(snapshot: Snapshot) -> tuple[list[Chunk], list[Edge]]:
         for marker in soup.select("p.modref, p.arrow"):
             marker.decompose()
 
-        units = recitals(soup) if kind == "oj" else [*articles(soup), *annexes(soup)]
+        units = recitals(soup, act) if kind == "oj" else [*articles(soup, act), *annexes(soup, act)]
         for native_id, title, text, anchor, unit_key, parents in units:
             chunks.append(
                 Chunk(
-                    source_id=INFO.id,
+                    source_id=info.id,
                     native_id=native_id,
                     title=clean(title),
                     url=f"{snapshot.urls[name]}#{anchor}",
-                    source_version=snapshot.version if kind == "consolidated" else "OJ 2024/1689",
+                    source_version=snapshot.version if kind == "consolidated" else oj,
                     language=lang,
                     retrieved_at=snapshot.retrieved_at,
-                    license=INFO.license,
-                    attribution=INFO.attribution,
+                    license=info.license,
+                    attribution=info.attribution,
                     text=clean(text),
                     unit_key=unit_key,
                     parent_ids=parents,
@@ -83,6 +88,12 @@ def parse(snapshot: Snapshot) -> tuple[list[Chunk], list[Edge]]:
 def number(label: str) -> str:
     """'1.', '(1)', 'a)', '(a)' -> '1', '1', 'a', 'a'."""
     return label.strip().strip("().").strip()
+
+
+def is_point(label: Tag | None) -> bool:
+    """A paragraph or point label of the act itself: not a dash bullet, and not a label quoted
+    from the act an amending article inserts it into ('5., „(5))."""
+    return label is not None and bool(re.fullmatch(r"\d+[a-z]?|[a-z]+", number(label.get_text())))
 
 
 def classes(el: Tag) -> list[str]:
@@ -125,7 +136,7 @@ def items(el: Tag) -> list[tuple[str, Tag]]:
             continue  # nested inside another item of el
         label = grid.find("div", class_="grid-list-column-1", recursive=False)
         content = grid.find("div", class_="grid-list-column-2", recursive=False)
-        if label and content:
+        if label and content and is_point(label):
             found.append((number(label.get_text()), content))
     return found
 
@@ -133,22 +144,23 @@ def items(el: Tag) -> list[tuple[str, Tag]]:
 def without_lists(el: Tag) -> str:
     stripped = copy.copy(el)
     for grid in stripped.select("div.grid-container"):
-        grid.decompose()
+        if is_point(grid.find("div", class_="grid-list-column-1", recursive=False)):
+            grid.decompose()
     return block_text(stripped)
 
 
-def articles(soup: BeautifulSoup):
+def articles(soup: BeautifulSoup, act: str):
     for art in soup.find_all("div", id=re.compile(r"^art_\d+[a-z]?$")):
         n = element_id(art).removeprefix("art_")
         title = " ".join(
             h.get_text(" ", strip=True)
             for h in art.select("p.title-article-norm, p.stitle-article-norm")
         )
-        base = f"AI Act Art. {n}"
+        base = eu_id(act, f"Art. {n}")
         paragraphs = [
             d
             for d in art.find_all("div", class_="norm", recursive=False)
-            if d.find("span", class_="no-parag", recursive=False)
+            if is_point(d.find("span", class_="no-parag", recursive=False))
         ]
         if paragraphs:
             for para in paragraphs:
@@ -157,10 +169,16 @@ def articles(soup: BeautifulSoup):
                     continue
                 p = number(label.get_text())
                 label.extract()
+                # A paragraph's further subparagraphs follow its div as siblings, up to the next.
+                blocks = [para]
+                for sibling in para.find_next_siblings():
+                    if any(sibling is d for d in paragraphs):
+                        break
+                    blocks.append(sibling)
                 yield (
                     f"{base}({p})",
                     title,
-                    block_text(para),
+                    "\n".join(block_text(b) for b in blocks),
                     element_id(art),
                     f"{element_id(art)}.{p}",
                     [base],
@@ -185,7 +203,7 @@ def articles(soup: BeautifulSoup):
             )
 
 
-def annexes(soup: BeautifulSoup):
+def annexes(soup: BeautifulSoup, act: str):
     for annex in soup.find_all("div", id=re.compile(r"^anx_[IVXL]+$")):
         n = element_id(annex).removeprefix("anx_")
         headings = annex.select("p.title-annex-1, p.title-annex-2")
@@ -193,7 +211,7 @@ def annexes(soup: BeautifulSoup):
         body = copy.copy(annex)
         for heading in body.select("p.title-annex-1, p.title-annex-2"):
             heading.decompose()
-        base = f"Annex {n}"
+        base = eu_id(act, f"Annex {n}")
         yield base, title, without_lists(body), element_id(annex), element_id(annex), []
         for p, content in items(body):
             point = f"{base} {p}"
@@ -217,9 +235,16 @@ def annexes(soup: BeautifulSoup):
                 )
 
 
-def recitals(soup: BeautifulSoup):
+def recitals(soup: BeautifulSoup, act: str):
     for recital in soup.find_all("div", id=re.compile(r"^rct_\d+$")):
         n = element_id(recital).removeprefix("rct_")
         cells = recital.find_all("td")
         text = block_text(cells[-1]) if cells else block_text(recital)
-        yield f"Recital {n}", f"Recital {n}", text, element_id(recital), element_id(recital), []
+        yield (
+            eu_id(act, f"Recital {n}"),
+            f"Recital {n}",
+            text,
+            element_id(recital),
+            element_id(recital),
+            [],
+        )

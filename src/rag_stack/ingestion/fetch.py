@@ -57,10 +57,21 @@ class Fetcher:
         params: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> bytes:
-        return self._request("GET", url, params=params, headers=headers)
+        return self._request("GET", url, params=params, headers=headers).content
+
+    def get_pages(self, url: str, *, params: dict[str, Any] | None = None) -> list[bytes]:
+        """Every page of an API that links to the next one in its Link header (GitHub's)."""
+        pages = []
+        next_url: str | None = url
+        while next_url:
+            response = self._request("GET", next_url, params=params)
+            pages.append(response.content)
+            # The next link carries the query on; params would replace it.
+            next_url, params = response.links.get("next", {}).get("url"), None
+        return pages
 
     def post_json(self, url: str, body: dict[str, Any]) -> bytes:
-        return self._request("POST", url, json_body=body)
+        return self._request("POST", url, json_body=body).content
 
     def _request(
         self,
@@ -70,11 +81,13 @@ class Fetcher:
         params: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
         json_body: dict[str, Any] | None = None,
-    ) -> bytes:
+    ) -> httpx.Response:
         key = json.dumps([method, url, params, headers, json_body], sort_keys=True)
         cached = self.cache_dir / hashlib.sha256(key.encode()).hexdigest()
+        link = cached.with_suffix(".link")
         if cached.exists() and time.time() - cached.stat().st_mtime < self.cache_ttl:
-            return cached.read_bytes()
+            found = {"link": link.read_text()} if link.exists() else None
+            return httpx.Response(200, content=cached.read_bytes(), headers=found)
 
         host = urlsplit(url).netloc
         if not self._allowed(url):
@@ -93,7 +106,11 @@ class Fetcher:
                 raise FetchError(f"{method} {url} -> HTTP {response.status_code}")
             self.cache_dir.mkdir(parents=True, exist_ok=True)
             cached.write_bytes(response.content)
-            return response.content
+            if "link" in response.headers:
+                link.write_text(response.headers["link"])
+            else:
+                link.unlink(missing_ok=True)
+            return response
         raise FetchError(f"{method} {url} kept failing")
 
     def _interval(self, host: str) -> float:

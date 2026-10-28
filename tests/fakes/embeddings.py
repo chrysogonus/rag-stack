@@ -21,6 +21,7 @@ class FakeEmbedder:
     """Hashed bag of words: texts sharing words are close, deterministically."""
 
     dim = 64
+    name = "fake:bag-of-words"
 
     def embed_documents(self, texts: Sequence[str]) -> list[list[float]]:
         return [self.embed_query(t) for t in texts]

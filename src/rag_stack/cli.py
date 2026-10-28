@@ -1,27 +1,74 @@
-"""Command line: ingest, index, ask, eval. Run `uv run python -m rag_stack.cli --help`."""
+"""Command line: ingest, index, refresh, ask, eval. Run `uv run python -m rag_stack.cli --help`."""
 
 import argparse
 import asyncio
 import logging
 import sys
+from typing import cast
 
 from rag_stack.config import Settings
 from rag_stack.ingestion.pipeline import MODULES
 
 
-def ingest(settings: Settings, source: str) -> int:
+def ingest(settings: Settings, source: str) -> list[str]:
+    """Ingest one source or all; returns the sources that failed."""
     from rag_stack.ingestion.pipeline import ingest, make_fetcher
 
     fetcher = make_fetcher(settings)
-    failed = 0
+    failed = []
     for source_id in MODULES if source == "all" else [source]:
         try:
             print(ingest(source_id, settings, fetcher), flush=True)
         except Exception as error:  # one unreachable source must not stop the others
             logging.exception("ingest %s failed", source_id)
             print(f"{source_id}: FAILED ({error})", flush=True)
-            failed += 1
-    return 1 if failed else 0
+            failed.append(source_id)
+    return failed
+
+
+def refresh(settings: Settings, command: str, force: bool) -> int:
+    from qdrant_client import QdrantClient
+
+    from rag_stack import refresh as kb
+    from rag_stack.llm.factory import (
+        ModelHost,
+        create_embedder,
+        create_reranker,
+        create_sparse_embedder,
+    )
+
+    def load_models():
+        return (
+            create_embedder(
+                settings.embedding_model, settings.embedding_provider, settings.embedding_base_url
+            ),
+            create_sparse_embedder(settings.sparse_model),
+            create_reranker(
+                settings.reranker_model, settings.reranker_provider, settings.reranker_base_url
+            ),
+        )
+
+    def load_embedder(name: str):
+        """The served generation's embedding model, to score it after a model switch."""
+        provider, model = name.split(":", 1)
+        url = settings.embedding_base_url if provider == settings.embedding_provider else None
+        return create_embedder(model, cast(ModelHost, provider), url)
+
+    client = QdrantClient(url=settings.qdrant_url)
+    try:
+        with kb.locked(settings):
+            if command == "rollback":
+                code, line = kb.rollback(settings, client)
+            else:
+                failed = ingest(settings, "all")
+                code, line = asyncio.run(
+                    kb.refresh(settings, client, failed, load_models, force, load_embedder)
+                )
+    except BlockingIOError:
+        print("another refresh or index is running", file=sys.stderr)
+        return 1
+    print(line)
+    return code
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -31,6 +78,13 @@ def main(argv: list[str] | None = None) -> int:
     ingest_cmd.add_argument("source", choices=[*MODULES, "all"])
     index_cmd = commands.add_parser("index", help="embed processed chunks into Qdrant")
     index_cmd.add_argument("source", nargs="?", default="all", choices=[*MODULES, "all"])
+    refresh_cmd = commands.add_parser(
+        "refresh", help="ingest all sources, check and score a new index, promote it if it passes"
+    )
+    refresh_cmd.add_argument(
+        "--force", action="store_true", help="build even if a source shrank by more than 10%%"
+    )
+    commands.add_parser("rollback", help="serve the previous index generation again")
     ask_cmd = commands.add_parser("ask", help="answer one question from the knowledge base")
     ask_cmd.add_argument("question")
     run_eval = commands.add_parser(
@@ -41,27 +95,88 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="only score retrieval (recall@10, MRR, time): no LLM calls, nothing written",
     )
+    run_eval.add_argument(
+        "--split",
+        choices=["dev", "test", "all"],
+        default="dev",
+        help="golden-set split for --retrieval-only: tune on dev, confirm on test",
+    )
+    run_eval.add_argument(
+        "--full",
+        action="store_true",
+        help="answer and judge every question again instead of only those whose inputs changed",
+    )
+    run_eval.add_argument(
+        "--fresh-baseline",
+        action="store_true",
+        help="ask the baseline again instead of reusing its saved answers",
+    )
+    draft_cmd = commands.add_parser(
+        "eval-draft", help="draft test questions from unasked units into drafts.jsonl for review"
+    )
+    draft_cmd.add_argument("source", choices=list(MODULES))
+    draft_cmd.add_argument(
+        "category", choices=["id-exact", "paraphrase", "german-legal", "cve", "cross-source"]
+    )
+    draft_cmd.add_argument("-n", type=int, default=5, help="how many drafts (default 5)")
+    draft_cmd.add_argument("--seed", type=int, default=0, help="which units are sampled")
+    units_cmd = commands.add_parser(
+        "eval-units", help="retrieval checks generated from sampled units and edges: no LLM calls"
+    )
+    units_cmd.add_argument("-n", type=int, default=50, help="units and edges per source")
+    commands.add_parser("eval-labels", help="sample answers into judge_labels.jsonl to label")
+    commands.add_parser(
+        "eval-agreement", help="judge the labeled answers again and compare with the labels"
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 
     settings = Settings()
+    from rag_stack import observability
+
+    observability.configure(settings)
     if args.command == "ingest":
-        return ingest(settings, args.source)
+        return 1 if ingest(settings, args.source) else 0
+    if args.command in ("refresh", "rollback"):
+        return refresh(settings, args.command, getattr(args, "force", False))
     if args.command == "index":
+        from rag_stack.refresh import locked
         from rag_stack.retrieval.index import index_all
 
-        for line in index_all(settings, args.source):
-            print(line, flush=True)
+        try:
+            with locked(settings):
+                for line in index_all(settings, args.source):
+                    print(line, flush=True)
+        except BlockingIOError:
+            print("another refresh or index is running", file=sys.stderr)
+            return 1
+        except ValueError as error:
+            print(error, file=sys.stderr)
+            return 1
         return 0
     if args.command == "ask":
         from rag_stack.agent.ask import ask
 
         return asyncio.run(ask(settings, args.question))
+    if args.command in ("eval-labels", "eval-agreement"):
+        from rag_stack.evals import calibration
+
+        if args.command == "eval-labels":
+            return asyncio.run(calibration.write_sheet(settings))
+        return asyncio.run(calibration.agreement(settings))
+    if args.command == "eval-units":
+        from rag_stack.evals import units
+
+        return asyncio.run(units.main(settings, args.n))
+    if args.command == "eval-draft":
+        from rag_stack.evals import draft
+
+        return asyncio.run(draft.main(settings, args.source, args.category, args.n, args.seed))
     from rag_stack.evals import harness
 
     if args.retrieval_only:
-        return asyncio.run(harness.retrieval_only(settings))
-    return asyncio.run(harness.main(settings))
+        return asyncio.run(harness.retrieval_only(settings, split=args.split))
+    return asyncio.run(harness.main(settings, args.full, args.fresh_baseline))
 
 
 if __name__ == "__main__":

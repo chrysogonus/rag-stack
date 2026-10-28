@@ -2,8 +2,10 @@ import hashlib
 import importlib
 import json
 import logging
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import yaml
@@ -19,9 +21,13 @@ MODULES = {
     "atlas": "atlas",
     "owasp-llm-2026": "owasp_llm",
     "owasp-agentic-2026": "owasp_agentic",
-    "eu-ai-act": "eu_ai_act",
-    "ki-mig": "ki_mig",
-    "ai-vulns": "ai_vulns",
+    "eu-ai-act": "eu_law",
+    "ki-mig": "gesetze_im_internet",
+    "vulns": "vulns",
+    "attack": "attack",
+    "capec": "capec",
+    "cwe": "cwe",
+    "d3fend": "d3fend",
 }
 CONFIG = Path(__file__).parents[3] / "config/sources.yaml"
 
@@ -30,15 +36,36 @@ def source_module(source_id: str):
     return importlib.import_module(f"rag_stack.ingestion.sources.{MODULES[source_id]}")
 
 
+def parser_sha(module: ModuleType) -> str:
+    """sha256 of a parser's code: its module and the other sources' modules it borrows from."""
+    names = {module.__name__} | {
+        f.__module__
+        for f in vars(module).values()
+        if callable(f) and getattr(f, "__module__", "").startswith(f"{__package__}.sources.")
+    }
+    code = b"".join(Path(str(sys.modules[n].__file__)).read_bytes() for n in sorted(names))
+    return hashlib.sha256(code).hexdigest()
+
+
 def make_fetcher(settings: Settings) -> Fetcher:
     nvd_key = settings.nvd_api_key.get_secret_value()
+    github_token = settings.github_token.get_secret_value()
+    headers = {}
+    if nvd_key:
+        headers["services.nvd.nist.gov"] = {"apiKey": nvd_key}
+    if github_token:
+        headers["api.github.com"] = {"Authorization": f"Bearer {github_token}"}
     return Fetcher(
         settings.fetch_user_agent,
         Path(settings.data_dir) / "cache",
         settings.fetch_cache_ttl_hours,
-        # NVD allows 5 requests per 30 s without a key and 50 with one.
-        host_intervals={"services.nvd.nist.gov": 0.7 if nvd_key else 6.5},
-        headers={"services.nvd.nist.gov": {"apiKey": nvd_key}} if nvd_key else {},
+        # NVD allows 5 requests per 30 s without a key and 50 with one; GitHub's API 60 an hour
+        # without a token and 5,000 with one.
+        host_intervals={
+            "services.nvd.nist.gov": 0.7 if nvd_key else 6.5,
+            "api.github.com": 1.0 if github_token else 61.0,
+        },
+        headers=headers,
     )
 
 
@@ -50,7 +77,7 @@ def digest(files: dict[str, bytes]) -> str:
 
 def ingest(source_id: str, settings: Settings, fetcher: Fetcher) -> str:
     """Fetch, snapshot and parse one source. Returns a one-line status."""
-    config: dict[str, Any] = yaml.safe_load(CONFIG.read_text())[source_id]
+    config: dict[str, Any] = {"id": source_id, **yaml.safe_load(CONFIG.read_text())[source_id]}
     module = source_module(source_id)
     retrieved_at = datetime.now(UTC).isoformat(timespec="seconds")
     snapshot: Snapshot = module.fetch(fetcher, config, retrieved_at)
@@ -59,7 +86,7 @@ def ingest(source_id: str, settings: Settings, fetcher: Fetcher) -> str:
     processed = data / "processed" / source_id / safe(snapshot.version)
     sha = digest(snapshot.files)
     # Unchanged input and unchanged parser code: nothing to do. A parser fix re-parses.
-    parser = hashlib.sha256(Path(str(module.__file__)).read_bytes()).hexdigest()
+    parser = parser_sha(module)
     manifest = raw / "manifest.json"
     if manifest.exists() and json.loads(manifest.read_text())["sha256"] == sha:
         done = processed / "parser.sha256"

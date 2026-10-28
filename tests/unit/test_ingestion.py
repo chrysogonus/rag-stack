@@ -115,6 +115,30 @@ def test_fetcher_sends_per_host_headers(tmp_path):
     assert keys[-1] == "k"
 
 
+def test_fetcher_follows_the_next_link_through_every_page_and_caches_it(tmp_path):
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        seen.append(str(request.url))
+        if "after" in request.url.params:
+            return httpx.Response(200, content=b"[2]")
+        next_page = '<https://api.example.org/items?q=1&after=c1>; rel="next"'
+        return httpx.Response(200, content=b"[1]", headers={"link": next_page})
+
+    fetcher = make_fetcher(handler, tmp_path)
+    pages = fetcher.get_pages("https://api.example.org/items", params={"q": 1})
+
+    assert pages == [b"[1]", b"[2]"]
+    assert seen == [
+        "https://api.example.org/items?q=1",
+        "https://api.example.org/items?q=1&after=c1",
+    ]
+    assert fetcher.get_pages("https://api.example.org/items", params={"q": 1}) == pages
+    assert len(seen) == 2
+
+
 def test_ingest_snapshots_with_sha256_and_skips_unchanged_input(tmp_path, monkeypatch):
     yaml_bytes = (FIXTURES / "atlas/ATLAS.yaml").read_bytes()
 
@@ -131,13 +155,27 @@ def test_ingest_snapshots_with_sha256_and_skips_unchanged_input(tmp_path, monkey
     first = pipeline.ingest("atlas", settings, fetcher)
     second = pipeline.ingest("atlas", settings, fetcher)
 
-    assert first == "atlas 2026.09: 6 chunks, 5 edges"
+    assert first == "atlas 2026.09: 6 chunks, 6 edges"
     assert second.startswith("atlas 2026.09: unchanged (sha256 ")
     raw = tmp_path / "data/raw/atlas/2026.09"
     assert (raw / "ATLAS.yaml").read_bytes() == yaml_bytes
     assert "ATLAS.yaml" in (raw / "SHA256SUMS").read_text()
     sha, chunks, edges = pipeline.load_processed(settings, "atlas")  # type: ignore[misc]
-    assert len(chunks) == 6 and len(edges) == 5 and len(sha) == 64
+    assert len(chunks) == 6 and len(edges) == 6 and len(sha) == 64
+
+
+def test_a_parser_is_fingerprinted_with_the_source_modules_it_borrows_from():
+    import hashlib
+
+    from rag_stack.ingestion.sources import atlas, capec, cwe
+
+    def sha(*modules):
+        code = b"".join(Path(str(m.__file__)).read_bytes() for m in modules)
+        return hashlib.sha256(code).hexdigest()
+
+    assert pipeline.parser_sha(atlas) == sha(atlas)
+    # CWE uses CAPEC's text helpers: a fix there re-parses CWE too.
+    assert pipeline.parser_sha(cwe) == sha(capec, cwe)
 
 
 def test_split_text_breaks_at_paragraphs_and_never_exceeds_the_limit():

@@ -13,6 +13,19 @@ describe('Answer', () => {
     expect(html).toContain('<td>Least privilege</td>')
   })
 
+  it('offers a rating only for a finished answer when it can be sent', () => {
+    const send = async () => {}
+    const rated = (content: string, live: boolean) =>
+      renderToStaticMarkup(
+        <Answer content={content} index={1} live={live} sky={{ current: null }} onFeedback={send} />,
+      )
+
+    expect(rated('An answer.', false)).toContain('aria-label="Rate this answer"')
+    expect(rated('An answer.', true)).not.toContain('Rate this answer')
+    expect(rated('Part of an answer.\n\n_Stopped._', false)).not.toContain('Rate this answer')
+    expect(render('An answer.')).not.toContain('Rate this answer')
+  })
+
   it('keeps single tildes as text', () => {
     expect(render('It takes ~7 s instead of ~45 s.')).not.toContain('<del>')
   })

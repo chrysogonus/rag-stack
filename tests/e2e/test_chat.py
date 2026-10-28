@@ -8,15 +8,17 @@ import uuid
 from collections.abc import Iterator
 from pathlib import Path
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from qdrant_client import QdrantClient
 
+from rag_stack import observability
 from rag_stack.api.app import create_app
 from rag_stack.config import Settings
 from rag_stack.db.edges import EdgeGraph
 from rag_stack.ingestion.models import Snapshot
-from rag_stack.ingestion.sources import atlas, eu_ai_act
+from rag_stack.ingestion.sources import atlas, eu_law
 from rag_stack.llm.factory import create_embedder, create_reranker, create_sparse_embedder
 from rag_stack.retrieval.index import ensure_collection, index_source
 from rag_stack.retrieval.retriever import KnowledgeBase
@@ -25,9 +27,9 @@ pytestmark = pytest.mark.e2e
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 
 
-def parse(module, source_id: str, folder: str, names: list[str]):
+def parse(module, source_id: str, folder: str, names: list[str], version: str = "fixture"):
     files = {n: (FIXTURES / folder / n).read_bytes() for n in names}
-    snap = Snapshot(source_id, "fixture", "2026-10-24", files, {n: f"https://x/{n}" for n in files})
+    snap = Snapshot(source_id, version, "2026-10-24", files, {n: f"https://x/{n}" for n in files})
     return module.parse(snap)
 
 
@@ -36,15 +38,18 @@ def knowledge_base() -> Iterator[KnowledgeBase]:
     settings = Settings()
     client = QdrantClient(url=settings.qdrant_url)
     collection = f"e2e_{uuid.uuid4().hex[:8]}"
-    embedder = create_embedder(settings.embedding_model)
+    embedder = create_embedder(
+        settings.embedding_model, settings.embedding_provider, settings.embedding_base_url
+    )
     sparse = create_sparse_embedder(settings.sparse_model)
     ensure_collection(client, collection, embedder.dim)
     atlas_chunks, edges = parse(atlas, "atlas", "atlas", ["ATLAS.yaml"])
     act_chunks, _ = parse(
-        eu_ai_act,
+        eu_law,
         "eu-ai-act",
         "eu_ai_act",
         ["consolidated_en.xhtml", "consolidated_de.xhtml", "oj_en.xhtml", "oj_de.xhtml"],
+        "02024R1689-20260727",
     )
     index_source(client, collection, "atlas", "e2e", atlas_chunks, embedder, sparse)
     index_source(client, collection, "eu-ai-act", "e2e", act_chunks, embedder, sparse)
@@ -54,7 +59,9 @@ def knowledge_base() -> Iterator[KnowledgeBase]:
             collection,
             embedder,
             sparse,
-            create_reranker(settings.reranker_model),
+            create_reranker(
+                settings.reranker_model, settings.reranker_provider, settings.reranker_base_url
+            ),
             EdgeGraph(edges),
             candidates=settings.retrieval_candidates,
             min_score=settings.rerank_min_score,
@@ -102,8 +109,12 @@ def test_cited_multi_turn_answers_are_streamed_and_persisted(knowledge_base):
         assert "Die Anbieter stellen sicher" in german or "natürliche" in german
         assert "KI-generierte Antwort" in german
 
-        tactics, _ = ask(client, thread_url, "Which tactics does MITRE ATLAS define?")
-        assert "[ATLAS Tactics]" in tactics and "Execution" in tactics
+        tactics, tactic_sources = ask(client, thread_url, "Which tactics does MITRE ATLAS define?")
+        # The overview is retrieved; the fixture's one tactic is in it and in its own unit, so
+        # the answer may cite either.
+        assert any(s["id"] == "ATLAS Tactics" for s in tactic_sources)
+        assert "Execution" in tactics
+        assert "[ATLAS Tactics]" in tactics or "[AML.TA0005]" in tactics
 
         off_topic, _ = ask(client, thread_url, "What is the capital of France?")
         assert off_topic.startswith("I can't answer that from the indexed sources.")
@@ -132,6 +143,23 @@ def test_a_follow_up_asking_how_to_defend_gets_the_mitigations(knowledge_base):
     assert "AML.M0019" in answer
 
 
+def test_a_question_naming_no_id_gets_the_links_between_its_search_hits(knowledge_base):
+    # MathGPT employs direct prompt injection, which achieves Execution: two hops from the top
+    # hit, so the second link comes from a lower search hit.
+    thread_url = f"/api/threads/{uuid.uuid4()}/messages"
+
+    with TestClient(create_app(retriever=knowledge_base)) as client:
+        answer, sources = ask(
+            client,
+            thread_url,
+            "Which tactic does the direct prompt injection used against MathGPT achieve?",
+        )
+
+    assert not answer.startswith("I can't answer that")
+    assert any(s["id"] == "AML.TA0005" and s["used"] for s in sources)
+    assert "Execution" in answer
+
+
 def test_an_answer_cut_off_by_the_client_is_kept_and_the_chat_goes_on(knowledge_base):
     thread_url = f"/api/threads/{uuid.uuid4()}/messages"
 
@@ -152,3 +180,30 @@ def test_an_answer_cut_off_by_the_client_is_kept_and_the_chat_goes_on(knowledge_
         follow_up, _ = ask(client, thread_url, "Which mitigations address it?")
         assert "AML.M0019" in follow_up
         assert [m["role"] for m in client.get(thread_url).json()] == ["user", "assistant"] * 2
+
+
+def test_a_rated_answer_reaches_langfuse_as_one_trace_with_its_score(knowledge_base):
+    settings = Settings()
+    if not settings.langfuse_public_key:
+        pytest.skip("tracing is not configured: run `make tracing` and set LANGFUSE_* in .env")
+    thread = uuid.uuid4()
+
+    with TestClient(create_app(retriever=knowledge_base)) as client:
+        ask(client, f"/api/threads/{thread}/messages", "What is AML.T0051?")
+        rating = {"message": 1, "helpful": False}
+        assert client.post(f"/api/threads/{thread}/feedback", json=rating).status_code == 204
+
+    trace = observability.turn_trace_id(str(thread), 1)
+    auth = (settings.langfuse_public_key, settings.langfuse_secret_key.get_secret_value())
+    api = f"{settings.langfuse_base_url}/api/public"
+    names: set[str] = set()
+    scores: list[dict] = []
+    for _ in range(60):  # Langfuse ingests asynchronously
+        observations = httpx.get(f"{api}/v2/observations", params={"traceId": trace}, auth=auth)
+        names = {o["name"] for o in observations.json()["data"]}
+        scores = httpx.get(f"{api}/v3/scores", params={"traceId": trace}, auth=auth).json()["data"]
+        if {"retrieve", "rerank", "generate"} <= names and scores:
+            break
+        time.sleep(1)
+    assert {"retrieve", "hybrid search", "rerank", "generate"} <= names
+    assert [(s["name"], s["value"]) for s in scores] == [("helpful", False)]

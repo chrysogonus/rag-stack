@@ -51,11 +51,57 @@ SOURCES: dict[str, SourceInfo] = {
             "https://www.gesetze-im-internet.de/ki-mig/",
         ),
         SourceInfo(
-            "ai-vulns",
-            "AI package vulnerabilities (NVD, GitHub Advisory Database via OSV, CISA KEV)",
+            "vulns",
+            "Vulnerabilities (CISA KEV, GitHub Advisory Database, NVD, EPSS)",
             "CC-BY-4.0",
-            "GitHub Advisory Database (CC BY 4.0) via OSV; NVD (public domain); CISA KEV (CC0)",
-            "https://osv.dev",
+            "GitHub Advisory Database (CC BY 4.0), also via OSV; NVD (public domain); "
+            "CISA KEV (CC0); EPSS by FIRST",
+            "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+        ),
+        SourceInfo(
+            "attack",
+            "MITRE ATT&CK",
+            "LicenseRef-MITRE-ATTACK-Terms",
+            "© 2026 The MITRE Corporation. This work is reproduced and distributed with the "
+            "permission of The MITRE Corporation.",
+            "https://attack.mitre.org",
+        ),
+        SourceInfo(
+            "capec",
+            "MITRE CAPEC",
+            "LicenseRef-MITRE-CAPEC-Terms",
+            "CAPEC™, Copyright © 2007–2026, The MITRE Corporation",
+            "https://capec.mitre.org",
+        ),
+        SourceInfo(
+            "cwe",
+            "MITRE CWE",
+            "LicenseRef-MITRE-CWE-Terms",
+            "CWE™, Copyright © 2006–2026, The MITRE Corporation",
+            "https://cwe.mitre.org",
+        ),
+        SourceInfo(
+            "d3fend",
+            "MITRE D3FEND",
+            "LicenseRef-MITRE-D3FEND-Terms",
+            "D3FEND™, © 2025 The MITRE Corporation",
+            "https://d3fend.mitre.org",
         ),
     ]
 }
+
+# Laws by source, for their parsers and for finding references to them in questions: the short
+# name their unit IDs start with ("AI Act Art. 50(1)", "KI-MIG § 2"), then a regex of the names
+# a question may use (case-insensitive).
+EU_ACTS: dict[str, tuple[str, str]] = {
+    "eu-ai-act": ("AI Act", r"AI Act|AI Regulation|KI-VO|KI-Verordnung|2024/1689"),
+}
+GERMAN_LAWS: dict[str, tuple[str, str]] = {
+    "ki-mig": ("KI-MIG", r"KI-MIG|KI-Marktüberwachungs\w*"),
+}
+
+
+def eu_id(act: str, unit: str) -> str:
+    """Native ID of a unit of an EU act: 'Art. 50(1)', 'Recital 133', 'Annex III 1(a)'."""
+    # The AI Act's recitals and annexes keep their IDs from when it was the only act indexed.
+    return unit if act == "AI Act" and not unit.startswith("Art.") else f"{act} {unit}"

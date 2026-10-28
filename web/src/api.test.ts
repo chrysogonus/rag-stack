@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createSseParser, RefusedError, sendMessage, stopped, STOPPED, type SseEvent } from './api'
+import { createSseParser, RefusedError, sendFeedback, sendMessage, stopped, STOPPED, type SseEvent } from './api'
 
 function parseAll(chunks: string[]): SseEvent[] {
   const events: SseEvent[] = []
@@ -91,5 +91,28 @@ describe('stopped', () => {
   it('marks a cut-off answer the way the server stores it', () => {
     expect(stopped('Partial')).toBe(`Partial\n\n${STOPPED}`)
     expect(stopped('  ')).toBe(STOPPED)
+  })
+})
+
+describe('sendFeedback', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('posts the rating for an answer by its index in the thread', async () => {
+    const fetch = vi.fn(async () => new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetch)
+
+    await sendFeedback('t1', 3, false)
+
+    expect(fetch).toHaveBeenCalledWith('/api/threads/t1/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 3, helpful: false }),
+    })
+  })
+
+  it('fails when the server refuses the rating', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 404 })))
+
+    await expect(sendFeedback('t1', 3, true)).rejects.toThrow()
   })
 })

@@ -1,0 +1,1485 @@
+{
+ "type": "bundle",
+ "id": "bundle--fixture-enterprise",
+ "objects": [
+  {
+   "type": "attack-pattern",
+   "spec_version": "2.1",
+   "id": "attack-pattern--7385dfaf-6886-4229-9ecd-6fd678040830",
+   "created": "2017-05-31T21:30:49.546Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/techniques/T1059",
+     "external_id": "T1059"
+    },
+    {
+     "source_name": "Remote Shell Execution in Python",
+     "description": "Abdou Rockikz. (2020, July). How to Execute Shell Commands in a Remote Machine in Python. Retrieved July 26, 2021.",
+     "url": "https://www.thepythoncode.com/article/executing-bash-commands-remotely-in-python"
+    },
+    {
+     "source_name": "Cisco IOS Software Integrity Assurance - Command History",
+     "description": "Cisco. (n.d.). Cisco IOS Software Integrity Assurance - Command History. Retrieved October 21, 2020.",
+     "url": "https://tools.cisco.com/security/center/resources/integrity_assurance.html#23"
+    },
+    {
+     "source_name": "Powershell Remote Commands",
+     "description": "Microsoft. (2020, August 21). Running Remote Commands. Retrieved July 26, 2021.",
+     "url": "https://docs.microsoft.com/en-us/powershell/scripting/learn/remoting/running-remote-commands?view=powershell-7.1"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-05-12T15:12:00.641Z",
+   "name": "Command and Scripting Interpreter",
+   "description": "Adversaries may abuse command and script interpreters to execute commands, scripts, or binaries. These interfaces and languages provide ways of interacting with computer systems and are a common feature across many different platforms. Most systems come with some built-in command-line interface and scripting capabilities, for example, macOS and Linux distributions include some flavor of [Unix Shell](https://attack.mitre.org/techniques/T1059/004) while Windows installations include the [Windows Command Shell](https://attack.mitre.org/techniques/T1059/003) and [PowerShell](https://attack.mitre.org/techniques/T1059/001).\n\nThere are also cross-platform interpreters such as [Python](https://attack.mitre.org/techniques/T1059/006), as well as those commonly associated with client applications such as [JavaScript](https://attack.mitre.org/techniques/T1059/007) and [Visual Basic](https://attack.mitre.org/techniques/T1059/005).\n\nAdversaries may abuse these technologies in various ways as a means of executing arbitrary commands. Commands and scripts can be embedded in [Initial Access](https://attack.mitre.org/tactics/TA0001) payloads delivered to victims as lure documents or as secondary payloads downloaded from an existing C2. Adversaries may also execute commands through interactive terminals/shells, as well as utilize various [Remote Services](https://attack.mitre.org/techniques/T1021) in order to achieve remote Execution.(Citation: Powershell Remote Commands)(Citation: Cisco IOS Software Integrity Assurance - Command History)(Citation: Remote Shell Execution in Python)",
+   "kill_chain_phases": [
+    {
+     "kill_chain_name": "mitre-attack",
+     "phase_name": "execution"
+    }
+   ],
+   "x_mitre_attack_spec_version": "3.3.0",
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "enterprise-attack"
+   ],
+   "x_mitre_is_subtechnique": false,
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_platforms": [
+    "Containers",
+    "ESXi",
+    "IaaS",
+    "Identity Provider",
+    "Linux",
+    "macOS",
+    "Network Devices",
+    "Office Suite",
+    "SaaS",
+    "Windows"
+   ],
+   "x_mitre_version": "2.7",
+   "x_mitre_remote_support": false
+  },
+  {
+   "type": "attack-pattern",
+   "spec_version": "2.1",
+   "id": "attack-pattern--970a3432-3237-47ad-bcca-7d8cbb217736",
+   "created": "2020-03-09T13:48:55.078Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/techniques/T1059/001",
+     "external_id": "T1059.001"
+    },
+    {
+     "source_name": "Microsoft PSfromCsharp APR 2014",
+     "description": "Babinec, K. (2014, April 28). Executing PowerShell scripts from C#. Retrieved April 22, 2019.",
+     "url": "https://blogs.msdn.microsoft.com/kebab/2014/04/28/executing-powershell-scripts-from-c/"
+    },
+    {
+     "source_name": "SilentBreak Offensive PS Dec 2015",
+     "description": "Christensen, L.. (2015, December 28). The Evolution of Offensive PowerShell Invocation. Retrieved December 8, 2018.",
+     "url": "https://web.archive.org/web/20190508170150/https://silentbreaksecurity.com/powershell-jobs-without-powershell-exe/"
+    },
+    {
+     "source_name": "Github PSAttack",
+     "description": "Haight, J. (2016, April 21). PS>Attack. Retrieved September 27, 2024.",
+     "url": "https://github.com/Exploit-install/PSAttack-1"
+    },
+    {
+     "source_name": "Powershell installation",
+     "description": "Microsoft. (n.d.). Install PowerShell on Windows, Linux, and macOS. Retrieved September 17, 2026.",
+     "url": "https://learn.microsoft.com/en-us/powershell/scripting/install/install-powershell?view=powershell-7.6"
+    },
+    {
+     "source_name": "TechNet PowerShell",
+     "description": "Microsoft. (n.d.). Windows PowerShell Scripting. Retrieved April 28, 2016.",
+     "url": "https://technet.microsoft.com/en-us/scriptcenter/dd742419.aspx"
+    },
+    {
+     "source_name": "Sixdub PowerPick Jan 2016",
+     "description": "Warner, J.. (2015, January 6). Inexorable PowerShell – A Red Teamer’s Tale of Overcoming Simple AppLocker Policies. Retrieved December 8, 2018.",
+     "url": "https://web.archive.org/web/20160327101330/http://www.sixdub.net/?p=367"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-09-18T13:23:14.419Z",
+   "name": "PowerShell",
+   "description": "Adversaries may abuse PowerShell commands and scripts for execution. PowerShell is a powerful interactive command-line interface and scripting environment included in the Windows operating system.(Citation: TechNet PowerShell) PowerShell can also be installed on Linux and macOS.(Citation: Powershell installation) Adversaries can use PowerShell to perform a number of actions, including discovery of information and execution of code. Examples include the <code>Start-Process</code> cmdlet which can be used to run an executable and the <code>Invoke-Command</code> cmdlet which runs a command locally or on a remote computer (though administrator permissions are required to use PowerShell to connect to remote systems).\n\nPowerShell may also be used to download and run executables from the Internet, which can be executed from disk or in memory without touching disk.\n\nA number of PowerShell-based offensive testing tools are available, including [Empire](https://attack.mitre.org/software/S0363),  [PowerSploit](https://attack.mitre.org/software/S0194), [PoshC2](https://attack.mitre.org/software/S0378), and PSAttack.(Citation: Github PSAttack)\n\nPowerShell commands/scripts can also be executed without directly invoking the <code>powershell.exe</code> binary through interfaces to PowerShell's underlying <code>System.Management.Automation</code> assembly DLL exposed through the .NET framework and Windows Common Language Interface (CLI).(Citation: Sixdub PowerPick Jan 2016)(Citation: SilentBreak Offensive PS Dec 2015)(Citation: Microsoft PSfromCsharp APR 2014)",
+   "kill_chain_phases": [
+    {
+     "kill_chain_name": "mitre-attack",
+     "phase_name": "execution"
+    }
+   ],
+   "x_mitre_attack_spec_version": "3.3.0",
+   "x_mitre_contributors": [
+    "Mayuresh Dani, Qualys",
+    "Praetorian",
+    "Ross Brittain",
+    "Stephan H. Wenderlich, Gray-Hat IT-Security Consulting"
+   ],
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "enterprise-attack"
+   ],
+   "x_mitre_is_subtechnique": true,
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_platforms": [
+    "Windows",
+    "Linux",
+    "macOS"
+   ],
+   "x_mitre_version": "1.6",
+   "x_mitre_remote_support": false
+  },
+  {
+   "type": "attack-pattern",
+   "spec_version": "2.1",
+   "id": "attack-pattern--f4882e23-8aa7-4b12-b28a-b349c12ee9e0",
+   "created": "2017-05-31T21:31:06.512Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": true,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/techniques/T1086",
+     "external_id": "T1086"
+    },
+    {
+     "source_name": "TechNet PowerShell",
+     "description": "Microsoft. (n.d.). Windows PowerShell Scripting. Retrieved April 28, 2016.",
+     "url": "https://technet.microsoft.com/en-us/scriptcenter/dd742419.aspx"
+    },
+    {
+     "source_name": "Powersploit",
+     "description": "PowerSploit. (n.d.). Retrieved December 4, 2014.",
+     "url": "https://github.com/mattifestation/PowerSploit"
+    },
+    {
+     "source_name": "Github PSAttack",
+     "description": "Haight, J. (2016, April 21). PS>Attack. Retrieved June 1, 2016.",
+     "url": "https://github.com/jaredhaight/PSAttack"
+    },
+    {
+     "source_name": "Sixdub PowerPick Jan 2016",
+     "description": "Warner, J.. (2015, January 6). Inexorable PowerShell – A Red Teamer’s Tale of Overcoming Simple AppLocker Policies. Retrieved December 8, 2018.",
+     "url": "http://www.sixdub.net/?p=367"
+    },
+    {
+     "source_name": "SilentBreak Offensive PS Dec 2015",
+     "description": "Christensen, L.. (2015, December 28). The Evolution of Offensive PowerShell Invocation. Retrieved December 8, 2018.",
+     "url": "https://silentbreaksecurity.com/powershell-jobs-without-powershell-exe/"
+    },
+    {
+     "source_name": "Microsoft PSfromCsharp APR 2014",
+     "description": "Babinec, K. (2014, April 28). Executing PowerShell scripts from C#. Retrieved April 22, 2019.",
+     "url": "https://blogs.msdn.microsoft.com/kebab/2014/04/28/executing-powershell-scripts-from-c/"
+    },
+    {
+     "source_name": "Malware Archaeology PowerShell Cheat Sheet",
+     "description": "Malware Archaeology. (2016, June). WINDOWS POWERSHELL LOGGING CHEAT SHEET - Win 7/Win 2008 or later. Retrieved June 24, 2016.",
+     "url": "http://www.malwarearchaeology.com/s/Windows-PowerShell-Logging-Cheat-Sheet-ver-June-2016-v2.pdf"
+    },
+    {
+     "source_name": "FireEye PowerShell Logging 2016",
+     "description": "Dunwoody, M. (2016, February 11). GREATER VISIBILITY THROUGH POWERSHELL LOGGING. Retrieved February 16, 2016.",
+     "url": "https://www.fireeye.com/blog/threat-research/2016/02/greater_visibilityt.html"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2025-10-24T17:49:36.765Z",
+   "name": "PowerShell",
+   "description": "PowerShell is a powerful interactive command-line interface and scripting environment included in the Windows operating system. (Citation: TechNet PowerShell) Adversaries can use PowerShell to perform a number of actions, including discovery of information and execution of code. Examples include the Start-Process cmdlet which can be used to run an executable and the Invoke-Command cmdlet which runs a command locally or on a remote computer. \n\nPowerShell may also be used to download and run executables from the Internet, which can be executed from disk or in memory without touching disk.\n\nAdministrator permissions are required to use PowerShell to connect to remote systems.\n\nA number of PowerShell-based offensive testing tools are available, including [Empire](https://attack.mitre.org/software/S0363),  PowerSploit, (Citation: Powersploit) and PSAttack. (Citation: Github PSAttack)\n\nPowerShell commands/scripts can also be executed without directly invoking the powershell.exe binary through interfaces to PowerShell's underlying System.Management.Automation assembly exposed through the .NET framework and Windows Common Language Interface (CLI). (Citation: Sixdub PowerPick Jan 2016)(Citation: SilentBreak Offensive PS Dec 2015) (Citation: Microsoft PSfromCsharp APR 2014)",
+   "kill_chain_phases": [
+    {
+     "kill_chain_name": "mitre-attack",
+     "phase_name": "execution"
+    }
+   ],
+   "x_mitre_attack_spec_version": "3.2.0",
+   "x_mitre_contributors": [
+    "Praetorian"
+   ],
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "enterprise-attack"
+   ],
+   "x_mitre_is_subtechnique": false,
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_platforms": [
+    "Windows"
+   ],
+   "x_mitre_version": "1.2"
+  },
+  {
+   "type": "campaign",
+   "spec_version": "2.1",
+   "id": "campaign--808d6b30-df4e-4341-8248-724da4bac650",
+   "created": "2023-03-24T14:59:26.744Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/campaigns/C0024",
+     "external_id": "C0024"
+    },
+    {
+     "source_name": "Volexity SolarWinds",
+     "description": "Cash, D. et al. (2020, December 14). Dark Halo Leverages SolarWinds Compromise to Breach Organizations. Retrieved December 29, 2020.",
+     "url": "https://www.volexity.com/blog/2020/12/14/dark-halo-leverages-solarwinds-compromise-to-breach-organizations/"
+    },
+    {
+     "source_name": "CrowdStrike StellarParticle January 2022",
+     "description": "CrowdStrike. (2022, January 27). Early Bird Catches the Wormhole: Observations from the StellarParticle Campaign. Retrieved February 7, 2022.",
+     "url": "https://www.crowdstrike.com/blog/observations-from-the-stellarparticle-campaign/"
+    },
+    {
+     "source_name": "USG Joint Statement SolarWinds January 2021",
+     "description": "FBI, CISA, ODNI, NSA. (2022, January 5). Joint Statement by the Federal Bureau of Investigation (FBI), the Cybersecurity and Infrastructure Security Agency (CISA), the Office of the Director of National Intelligence (ODNI), and the National Security Agency (NSA). Retrieved March 26, 2023.",
+     "url": "https://www.cisa.gov/news-events/news/joint-statement-federal-bureau-investigation-fbi-cybersecurity-and-infrastructure"
+    },
+    {
+     "source_name": "FireEye SUNBURST Backdoor December 2020",
+     "description": "FireEye. (2020, December 13). Highly Evasive Attacker Leverages SolarWinds Supply Chain to Compromise Multiple Global Victims With SUNBURST Backdoor. Retrieved January 4, 2021.",
+     "url": "https://www.fireeye.com/blog/threat-research/2020/12/evasive-attacker-leverages-solarwinds-supply-chain-compromises-with-sunburst-backdoor.html"
+    },
+    {
+     "source_name": "Mandiant UNC2452 APT29 April 2022",
+     "description": "Mandiant. (2022, April 27). Assembling the Russian Nesting Doll: UNC2452 Merged into APT29. Retrieved March 26, 2023.",
+     "url": "https://www.mandiant.com/resources/blog/unc2452-merged-into-apt29"
+    },
+    {
+     "source_name": "MSTIC NOBELIUM May 2021",
+     "description": "Microsoft Threat Intelligence Center (MSTIC). (2021, May 27). New sophisticated email-based attack from NOBELIUM. Retrieved May 28, 2021.",
+     "url": "https://www.microsoft.com/security/blog/2021/05/27/new-sophisticated-email-based-attack-from-nobelium/"
+    },
+    {
+     "source_name": "Microsoft Internal Solorigate Investigation Blog",
+     "description": "MSRC Team. (2021, February 18). Microsoft Internal Solorigate Investigation – Final Update. Retrieved May 14, 2021.",
+     "url": "https://msrc-blog.microsoft.com/2021/02/18/microsoft-internal-solorigate-investigation-final-update/"
+    },
+    {
+     "source_name": "Microsoft Analyzing Solorigate Dec 2020",
+     "description": "MSTIC. (2020, December 18). Analyzing Solorigate, the compromised DLL file that started a sophisticated cyberattack, and how Microsoft Defender helps protect customers . Retrieved January 5, 2021.",
+     "url": "https://www.microsoft.com/security/blog/2020/12/18/analyzing-solorigate-the-compromised-dll-file-that-started-a-sophisticated-cyberattack-and-how-microsoft-defender-helps-protect/"
+    },
+    {
+     "source_name": "NSA Joint Advisory SVR SolarWinds April 2021",
+     "description": "NSA, FBI, DHS. (2021, April 15). Russian SVR Targets U.S. and Allied Networks. Retrieved April 16, 2021.",
+     "url": "https://media.defense.gov/2021/Apr/15/2002621240/-1/-1/0/CSA_SVR_TARGETS_US_ALLIES_UOO13234021.PDF/CSA_SVR_TARGETS_US_ALLIES_UOO13234021.PDF"
+    },
+    {
+     "source_name": "SolarWinds Advisory Dec 2020",
+     "description": "SolarWinds. (2020, December 24). SolarWinds Security Advisory. Retrieved February 22, 2021.",
+     "url": "https://www.solarwinds.com/sa-overview/securityadvisory"
+    },
+    {
+     "source_name": "SolarWinds Sunburst Sunspot Update January 2021",
+     "description": "Sudhakar Ramakrishna . (2021, January 11). New Findings From Our Investigation of SUNBURST. Retrieved January 13, 2021.",
+     "url": "https://orangematter.solarwinds.com/2021/01/11/new-findings-from-our-investigation-of-sunburst/"
+    },
+    {
+     "source_name": "UK NSCS Russia SolarWinds April 2021",
+     "description": "UK NCSC. (2021, April 15). UK and US call out Russia for SolarWinds compromise. Retrieved April 16, 2021.",
+     "url": "https://www.ncsc.gov.uk/news/uk-and-us-call-out-russia-for-solarwinds-compromise"
+    },
+    {
+     "source_name": "Unit 42 SolarStorm December 2020",
+     "description": "Unit 42. (2020, December 23). SolarStorm Supply Chain Attack Timeline. Retrieved March 24, 2023.",
+     "url": "https://unit42.paloaltonetworks.com/solarstorm-supply-chain-attack-timeline/"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-07-31T18:47:25.784Z",
+   "name": "SolarWinds Compromise",
+   "description": "The [SolarWinds Compromise](https://attack.mitre.org/campaigns/C0024) was a sophisticated supply chain cyber operation conducted by [APT29](https://attack.mitre.org/groups/G0016) that was discovered in mid-December 2020. [APT29](https://attack.mitre.org/groups/G0016) used customized malware to inject malicious code into the SolarWinds Orion software build process that was later distributed through a normal software update; they also used password spraying, token theft, API abuse, spear phishing, and other supply chain attacks to compromise user accounts and leverage their associated access. Victims of this campaign included government, consulting, technology, telecom, and other organizations in North America, Europe, Asia, and the Middle East. This activity has been labled the StellarParticle campaign in industry reporting.(Citation: CrowdStrike StellarParticle January 2022) Industry reporting also initially referred to the actors involved in this campaign as UNC2452, NOBELIUM, Dark Halo, and SolarStorm.(Citation: SolarWinds Advisory Dec 2020)(Citation: SolarWinds Sunburst Sunspot Update January 2021)(Citation: FireEye SUNBURST Backdoor December 2020)(Citation: Volexity SolarWinds)(Citation: CrowdStrike StellarParticle January 2022)(Citation: Unit 42 SolarStorm December 2020)(Citation: Microsoft Analyzing Solorigate Dec 2020)(Citation: Microsoft Internal Solorigate Investigation Blog) \n\nIn April 2021, the US and UK governments attributed the [SolarWinds Compromise](https://attack.mitre.org/campaigns/C0024) to Russia's Foreign Intelligence Service (SVR); public statements included citations to [APT29](https://attack.mitre.org/groups/G0016), Cozy Bear, and The Dukes.(Citation: NSA Joint Advisory SVR SolarWinds April 2021)(Citation: UK NSCS Russia SolarWinds April 2021)(Citation: Mandiant UNC2452 APT29 April 2022) The US government assessed that of the approximately 18,000 affected public and private sector customers of Solar Winds’ Orion product, a much smaller number were compromised by follow-on [APT29](https://attack.mitre.org/groups/G0016) activity on their systems.(Citation: USG Joint Statement SolarWinds January 2021) ",
+   "aliases": [
+    "SolarWinds Compromise"
+   ],
+   "first_seen": "2019-08-01T05:00:00.000Z",
+   "last_seen": "2021-01-01T06:00:00.000Z",
+   "x_mitre_first_seen_citation": "(Citation: Unit 42 SolarStorm December 2020)",
+   "x_mitre_last_seen_citation": "(Citation: MSTIC NOBELIUM May 2021)",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "enterprise-attack"
+   ],
+   "x_mitre_version": "1.1",
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "course-of-action",
+   "spec_version": "2.1",
+   "id": "course-of-action--47e0e9fe-96ce-4f65-8bb1-8be1feacb5db",
+   "created": "2019-06-11T16:35:25.488Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/mitigations/M1038",
+     "external_id": "M1038"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-05-12T15:12:00.730Z",
+   "name": "Execution Prevention",
+   "description": "Prevent the execution of unauthorized or malicious code on systems by implementing application control, script blocking, and other execution prevention mechanisms. This ensures that only trusted and authorized code is executed, reducing the risk of malware and unauthorized actions. This mitigation can be implemented through the following measures:\n\nApplication Control:\n\n- Use Case: Use tools like AppLocker or Windows Defender Application Control (WDAC) to create whitelists of authorized applications and block unauthorized ones. On Linux, use tools like SELinux or AppArmor to define mandatory access control policies for application execution.\n- Implementation: Allow only digitally signed or pre-approved applications to execute on servers and endpoints. (e.g., `New-AppLockerPolicy -PolicyType Enforced -FilePath \"C:\\Policies\\AppLocker.xml\"`) \n\n\nScript Blocking:\n\n- Use Case: Use script control mechanisms to block unauthorized execution of scripts, such as PowerShell or JavaScript. Web Browsers: Use browser extensions or settings to block JavaScript execution from untrusted sources.\n- Implementation: Configure PowerShell to enforce Constrained Language Mode for non-administrator users. (e.g., `Set-ExecutionPolicy AllSigned`) \n\nExecutable Blocking:\n\n- Use Case: Prevent execution of binaries from suspicious locations, such as `%TEMP%` or `%APPDATA%` directories.\n- Implementation: Block execution of `.exe`, `.bat`, or `.ps1` files from user-writable directories.\n\nDynamic Analysis Prevention:\n- Use Case: Use behavior-based execution prevention tools to identify and block malicious activity in real time.\n- Implemenation: Employ EDR solutions that analyze runtime behavior and block suspicious code execution.",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "enterprise-attack"
+   ],
+   "x_mitre_version": "1.3",
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "course-of-action",
+   "spec_version": "2.1",
+   "id": "course-of-action--d0415180-51e9-40ce-b57c-c332b0b441f2",
+   "created": "2018-10-17T00:14:20.652Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/mitigations/T1086",
+     "external_id": "T1086"
+    },
+    {
+     "source_name": "Netspi PowerShell Execution Policy Bypass",
+     "description": "Sutherland, S. (2014, September 9). 15 Ways to Bypass the PowerShell Execution Policy. Retrieved July 23, 2015.",
+     "url": "https://blog.netspi.com/15-ways-to-bypass-the-powershell-execution-policy/"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2025-04-18T18:00:15.501Z",
+   "name": "PowerShell Mitigation",
+   "description": "It may be possible to remove PowerShell from systems when not needed, but a review should be performed to assess the impact to an environment, since it could be in use for many legitimate purposes and administrative functions. When PowerShell is necessary, restrict PowerShell execution policy to administrators and to only execute signed scripts. Be aware that there are methods of bypassing the PowerShell execution policy, depending on environment configuration. (Citation: Netspi PowerShell Execution Policy Bypass) Disable/restrict the WinRM Service to help prevent uses of PowerShell for remote execution.",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": true,
+   "x_mitre_domains": [
+    "enterprise-attack"
+   ],
+   "x_mitre_version": "1.0",
+   "x_mitre_attack_spec_version": "3.2.0"
+  },
+  {
+   "type": "intrusion-set",
+   "spec_version": "2.1",
+   "id": "intrusion-set--00f67a77-86a4-4adf-be26-1a54fc713340",
+   "created": "2019-01-29T21:27:24.793Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/groups/G0082",
+     "external_id": "G0082"
+    },
+    {
+     "source_name": "BeagleBoyz",
+     "description": "(Citation: CISA AA20-239A BeagleBoyz August 2020)"
+    },
+    {
+     "source_name": "Stardust Chollima",
+     "description": "(Citation: CrowdStrike Stardust Chollima Profile April 2018)(Citation: CrowdStrike GTR 2021 June 2021)"
+    },
+    {
+     "source_name": "APT38",
+     "description": "(Citation: FireEye APT38 Oct 2018)"
+    },
+    {
+     "source_name": "Bluenoroff",
+     "description": "(Citation: Kaspersky Lazarus Under The Hood Blog 2017)"
+    },
+    {
+     "source_name": "Sapphire Sleet",
+     "description": "(Citation: Microsoft Threat Actor Naming July 2023)"
+    },
+    {
+     "source_name": "COPERNICIUM",
+     "description": "(Citation: Microsoft Threat Actor Naming July 2023)"
+    },
+    {
+     "source_name": "NICKEL GLADSTONE",
+     "description": "(Citation: SecureWorks NICKEL GLADSTONE profile Sept 2021)"
+    },
+    {
+     "source_name": "CrowdStrike GTR 2021 June 2021",
+     "description": "CrowdStrike. (2021, June 7). CrowdStrike 2021 Global Threat Report. Retrieved September 29, 2021.",
+     "url": "https://go.crowdstrike.com/rs/281-OBQ-266/images/Report2021GTR.pdf"
+    },
+    {
+     "source_name": "DOJ North Korea Indictment Feb 2021",
+     "description": "Department of Justice. (2021, February 17). Three North Korean Military Hackers Indicted in Wide-Ranging Scheme to Commit Cyberattacks and Financial Crimes Across the Globe. Retrieved June 9, 2021.",
+     "url": "https://www.justice.gov/opa/pr/three-north-korean-military-hackers-indicted-wide-ranging-scheme-commit-cyberattacks-and"
+    },
+    {
+     "source_name": "CISA AA20-239A BeagleBoyz August 2020",
+     "description": "DHS/CISA. (2020, August 26). FASTCash 2.0: North Korea's BeagleBoyz Robbing Banks. Retrieved September 29, 2021.",
+     "url": "https://us-cert.cisa.gov/ncas/alerts/aa20-239a"
+    },
+    {
+     "source_name": "FireEye APT38 Oct 2018",
+     "description": "FireEye. (2018, October 03). APT38: Un-usual Suspects. Retrieved November 17, 2024.",
+     "url": "https://services.google.com/fh/files/misc/apt38-un-usual-suspects.pdf"
+    },
+    {
+     "source_name": "Kaspersky Lazarus Under The Hood Blog 2017",
+     "description": "GReAT. (2017, April 3). Lazarus Under the Hood. Retrieved April 17, 2019.",
+     "url": "https://securelist.com/lazarus-under-the-hood/77908/"
+    },
+    {
+     "source_name": "CrowdStrike Stardust Chollima Profile April 2018",
+     "description": "Meyers, Adam. (2018, April 6). Meet CrowdStrike’s Adversary of the Month for April: STARDUST CHOLLIMA. Retrieved September 29, 2021.",
+     "url": "https://www.crowdstrike.com/blog/meet-crowdstrikes-adversary-of-the-month-for-april-stardust-chollima/"
+    },
+    {
+     "source_name": "Microsoft Threat Actor Naming July 2023",
+     "description": "Microsoft . (2023, July 12). How Microsoft names threat actors. Retrieved November 17, 2023.",
+     "url": "https://learn.microsoft.com/en-us/microsoft-365/security/intelligence/microsoft-threat-actor-naming?view=o365-worldwide"
+    },
+    {
+     "source_name": "Microsoft Axios Compromise APR 2026",
+     "description": "Microsoft Threat Intelligence. (2026, April 1). Mitigating the Axios npm supply chain compromise. Retrieved September 30, 2026.",
+     "url": "https://www.microsoft.com/en-us/security/blog/2026/04/01/mitigating-the-axios-npm-supply-chain-compromise/"
+    },
+    {
+     "source_name": "Microsoft Sapphire Sleet APR 2026",
+     "description": "Microsoft Threat Intelligence. (2026, April 16). Dissecting Sapphire Sleet’s macOS intrusion from lure to compromise. Retrieved September 30, 2026.",
+     "url": "https://www.microsoft.com/en-us/security/blog/2026/04/16/dissecting-sapphire-sleets-macos-intrusion-from-lure-to-compromise/"
+    },
+    {
+     "source_name": "MIcrosoft Mastra npm Compromise JUN 2026",
+     "description": "Microsoft Threat Intelligence. (2026, June 17). From package to postinstall payload: Inside the Mastra npm supply chain compromise by Sapphire Sleet. Retrieved September 30, 2026.",
+     "url": "https://www.microsoft.com/en-us/security/blog/2026/06/17/postinstall-payload-inside-mastra-npm-supply-chain-compromise/"
+    },
+    {
+     "source_name": "SecureWorks NICKEL GLADSTONE profile Sept 2021",
+     "description": "SecureWorks. (2021, September 29). NICKEL GLADSTONE Threat Profile. Retrieved September 29, 2021.",
+     "url": "https://www.secureworks.com/research/threat-profiles/nickel-gladstone"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-10-09T03:56:03.463Z",
+   "name": "APT38",
+   "description": "[APT38](https://attack.mitre.org/groups/G0082) is a North Korean state-sponsored threat group that specializes in financial cyber operations; it has been attributed to the Reconnaissance General Bureau.(Citation: CISA AA20-239A BeagleBoyz August 2020) Active since at least 2014, [APT38](https://attack.mitre.org/groups/G0082) has targeted banks, financial institutions, casinos, cryptocurrency exchanges, SWIFT system endpoints, and ATMs in at least 38 countries worldwide. Significant operations include the 2016 Bank of Bangladesh heist, Bancomext (Citation: FireEye APT38 Oct 2018) and Banco de Chile (Citation: FireEye APT38 Oct 2018), along with software supply chain compromises and destructive malware attacks.(Citation: CISA AA20-239A BeagleBoyz August 2020)(Citation: FireEye APT38 Oct 2018)(Citation: DOJ North Korea Indictment Feb 2021)(Citation: Kaspersky Lazarus Under The Hood Blog 2017)(Citation: Microsoft Axios Compromise APR 2026)(Citation: Microsoft Sapphire Sleet APR 2026)(Citation: MIcrosoft Mastra npm Compromise JUN 2026)\n\nNorth Korean group definitions are known to have significant overlap, and some security researchers report all North Korean state-sponsored cyber activity under the name [Lazarus Group](https://attack.mitre.org/groups/G0032) instead of tracking clusters or subgroups.",
+   "aliases": [
+    "APT38",
+    "NICKEL GLADSTONE",
+    "BeagleBoyz",
+    "Bluenoroff",
+    "Stardust Chollima",
+    "Sapphire Sleet",
+    "COPERNICIUM"
+   ],
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "enterprise-attack",
+    "ics-attack"
+   ],
+   "x_mitre_version": "4.0",
+   "x_mitre_attack_spec_version": "3.3.0",
+   "x_mitre_contributors": [
+    "Hiroki Nagahama, NEC Corporation",
+    "Manikantan Srinivasan, NEC Corporation India",
+    "Pooja Natarajan, NEC Corporation India"
+   ]
+  },
+  {
+   "type": "intrusion-set",
+   "spec_version": "2.1",
+   "id": "intrusion-set--899ce53f-13a0-479b-a0e4-67d46e241542",
+   "created": "2017-05-31T21:31:52.748Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/groups/G0016",
+     "external_id": "G0016"
+    },
+    {
+     "source_name": "CozyDuke",
+     "description": "(Citation: Crowdstrike DNC June 2016)"
+    },
+    {
+     "source_name": "Cozy Bear",
+     "description": "(Citation: Crowdstrike DNC June 2016)(Citation: ESET Dukes October 2019)(Citation: NCSC APT29 July 2020)(Citation: Cybersecurity Advisory SVR TTP May 2021)(Citation: CrowdStrike StellarParticle January 2022)"
+    },
+    {
+     "source_name": "The Dukes",
+     "description": "(Citation: F-Secure The Dukes)(Citation: ESET Dukes October 2019)(Citation: NCSC APT29 July 2020)(Citation: Cybersecurity Advisory SVR TTP May 2021)"
+    },
+    {
+     "source_name": "APT29",
+     "description": "(Citation: F-Secure The Dukes)(Citation: FireEye APT29 Nov 2018)(Citation: ESET Dukes October 2019)(Citation: NCSC APT29 July 2020)(Citation: Cybersecurity Advisory SVR TTP May 2021)"
+    },
+    {
+     "source_name": "UNC2452",
+     "description": "(Citation: FireEye SUNBURST Backdoor December 2020)"
+    },
+    {
+     "source_name": "UNC3524",
+     "description": "(Citation: Mandiant APT29 Eye Spy Email Nov 22)"
+    },
+    {
+     "source_name": "Midnight Blizzard",
+     "description": "(Citation: Microsoft Threat Actor Naming July 2023)"
+    },
+    {
+     "source_name": "YTTRIUM",
+     "description": "(Citation: Microsoft Unidentified Dec 2018)"
+    },
+    {
+     "source_name": "NOBELIUM",
+     "description": "(Citation: MSTIC NOBELIUM Mar 2021)(Citation: MSTIC NOBELIUM May 2021)(Citation: MSTIC Nobelium Toolset May 2021)(Citation: MSRC Nobelium June 2021)"
+    },
+    {
+     "source_name": "Blue Kitsune",
+     "description": "(Citation: PWC WellMess July 2020)(Citation: PWC WellMess C2 August 2020)"
+    },
+    {
+     "source_name": "IRON HEMLOCK",
+     "description": "(Citation: Secureworks IRON HEMLOCK Profile)"
+    },
+    {
+     "source_name": "IRON RITUAL",
+     "description": "(Citation: Secureworks IRON RITUAL Profile)"
+    },
+    {
+     "source_name": "NobleBaron",
+     "description": "(Citation: SentinelOne NobleBaron June 2021)"
+    },
+    {
+     "source_name": "SolarStorm",
+     "description": "(Citation: Unit 42 SolarStorm December 2020)"
+    },
+    {
+     "source_name": "Dark Halo",
+     "description": "(Citation: Volexity SolarWinds)"
+    },
+    {
+     "source_name": "Crowdstrike DNC June 2016",
+     "description": "Alperovitch, D.. (2016, June 15). Bears in the Midst: Intrusion into the Democratic National Committee. Retrieved August 3, 2016.",
+     "url": "https://www.crowdstrike.com/blog/bears-midst-intrusion-democratic-national-committee/"
+    },
+    {
+     "source_name": "Volexity SolarWinds",
+     "description": "Cash, D. et al. (2020, December 14). Dark Halo Leverages SolarWinds Compromise to Breach Organizations. Retrieved December 29, 2020.",
+     "url": "https://www.volexity.com/blog/2020/12/14/dark-halo-leverages-solarwinds-compromise-to-breach-organizations/"
+    },
+    {
+     "source_name": "CrowdStrike SUNSPOT Implant January 2021",
+     "description": "CrowdStrike Intelligence Team. (2021, January 11). SUNSPOT: An Implant in the Build Process. Retrieved January 11, 2021.",
+     "url": "https://www.crowdstrike.com/blog/sunspot-malware-technical-analysis/"
+    },
+    {
+     "source_name": "CrowdStrike StellarParticle January 2022",
+     "description": "CrowdStrike. (2022, January 27). Early Bird Catches the Wormhole: Observations from the StellarParticle Campaign. Retrieved February 7, 2022.",
+     "url": "https://www.crowdstrike.com/blog/observations-from-the-stellarparticle-campaign/"
+    },
+    {
+     "source_name": "GRIZZLY STEPPE JAR",
+     "description": "Department of Homeland Security and Federal Bureau of Investigation. (2016, December 29). GRIZZLY STEPPE – Russian Malicious Cyber Activity. Retrieved January 11, 2017.",
+     "url": "https://www.us-cert.gov/sites/default/files/publications/JAR_16-20296A_GRIZZLY%20STEPPE-2016-1229.pdf"
+    },
+    {
+     "source_name": "FireEye APT29 Nov 2018",
+     "description": "Dunwoody, M., et al. (2018, November 19). Not So Cozy: An Uncomfortable Examination of a Suspected APT29 Phishing Campaign. Retrieved November 27, 2018.",
+     "url": "https://www.fireeye.com/blog/threat-research/2018/11/not-so-cozy-an-uncomfortable-examination-of-a-suspected-apt29-phishing-campaign.html"
+    },
+    {
+     "source_name": "F-Secure The Dukes",
+     "description": "F-Secure Labs. (2015, September 17). The Dukes: 7 years of Russian cyberespionage. Retrieved December 10, 2015.",
+     "url": "https://www.f-secure.com/documents/996508/1030745/dukes_whitepaper.pdf"
+    },
+    {
+     "source_name": "ESET Dukes October 2019",
+     "description": "Faou, M., Tartare, M., Dupuy, T. (2019, October). OPERATION GHOST. Retrieved September 23, 2020.",
+     "url": "https://www.welivesecurity.com/wp-content/uploads/2019/10/ESET_Operation_Ghost_Dukes.pdf"
+    },
+    {
+     "source_name": "FireEye SUNBURST Backdoor December 2020",
+     "description": "FireEye. (2020, December 13). Highly Evasive Attacker Leverages SolarWinds Supply Chain to Compromise Multiple Global Victims With SUNBURST Backdoor. Retrieved January 4, 2021.",
+     "url": "https://www.fireeye.com/blog/threat-research/2020/12/evasive-attacker-leverages-solarwinds-supply-chain-compromises-with-sunburst-backdoor.html"
+    },
+    {
+     "source_name": "SentinelOne NobleBaron June 2021",
+     "description": "Guerrero-Saade, J. (2021, June 1). NobleBaron | New Poisoned Installers Could Be Used In Supply Chain Attacks. Retrieved August 4, 2021.",
+     "url": "https://labs.sentinelone.com/noblebaron-new-poisoned-installers-could-be-used-in-supply-chain-attacks/"
+    },
+    {
+     "source_name": "Mandiant APT29 Eye Spy Email Nov 22",
+     "description": "Mandiant. (2022, May 2). UNC3524: Eye Spy on Your Email. Retrieved August 17, 2023.",
+     "url": "https://www.mandiant.com/resources/blog/unc3524-eye-spy-email"
+    },
+    {
+     "source_name": "Microsoft Threat Actor Naming July 2023",
+     "description": "Microsoft . (2023, July 12). How Microsoft names threat actors. Retrieved November 17, 2023.",
+     "url": "https://learn.microsoft.com/en-us/microsoft-365/security/intelligence/microsoft-threat-actor-naming?view=o365-worldwide"
+    },
+    {
+     "source_name": "Microsoft Unidentified Dec 2018",
+     "description": "Microsoft Defender Research Team. (2018, December 3). Analysis of cyberattack on U.S. think tanks, non-profits, public sector by unidentified attackers. Retrieved April 15, 2019.",
+     "url": "https://www.microsoft.com/security/blog/2018/12/03/analysis-of-cyberattack-on-u-s-think-tanks-non-profits-public-sector-by-unidentified-attackers/"
+    },
+    {
+     "source_name": "MSTIC NOBELIUM May 2021",
+     "description": "Microsoft Threat Intelligence Center (MSTIC). (2021, May 27). New sophisticated email-based attack from NOBELIUM. Retrieved May 28, 2021.",
+     "url": "https://www.microsoft.com/security/blog/2021/05/27/new-sophisticated-email-based-attack-from-nobelium/"
+    },
+    {
+     "source_name": "MSRC Nobelium June 2021",
+     "description": "MSRC. (2021, June 25). New Nobelium activity. Retrieved August 4, 2021.",
+     "url": "https://msrc-blog.microsoft.com/2021/06/25/new-nobelium-activity/"
+    },
+    {
+     "source_name": "MSTIC Nobelium Toolset May 2021",
+     "description": "MSTIC. (2021, May 28). Breaking down NOBELIUM’s latest early-stage toolset. Retrieved August 4, 2021.",
+     "url": "https://www.microsoft.com/security/blog/2021/05/28/breaking-down-nobeliums-latest-early-stage-toolset/"
+    },
+    {
+     "source_name": "MSTIC NOBELIUM Mar 2021",
+     "description": "Nafisi, R., Lelli, A. (2021, March 4). GoldMax, GoldFinder, and Sibot: Analyzing NOBELIUM’s layered persistence. Retrieved March 8, 2021.",
+     "url": "https://www.microsoft.com/security/blog/2021/03/04/goldmax-goldfinder-sibot-analyzing-nobelium-malware/"
+    },
+    {
+     "source_name": "NCSC APT29 July 2020",
+     "description": "National Cyber Security Centre. (2020, July 16). Advisory: APT29 targets COVID-19 vaccine development. Retrieved September 29, 2020.",
+     "url": "https://www.ncsc.gov.uk/files/Advisory-APT29-targets-COVID-19-vaccine-development-V1-1.pdf"
+    },
+    {
+     "source_name": "Cybersecurity Advisory SVR TTP May 2021",
+     "description": "NCSC, CISA, FBI, NSA. (2021, May 7). Further TTPs associated with SVR cyber actors. Retrieved July 29, 2021.",
+     "url": "https://www.ncsc.gov.uk/files/Advisory-further-TTPs-associated-with-SVR-cyber-actors.pdf"
+    },
+    {
+     "source_name": "NSA Joint Advisory SVR SolarWinds April 2021",
+     "description": "NSA, FBI, DHS. (2021, April 15). Russian SVR Targets U.S. and Allied Networks. Retrieved April 16, 2021.",
+     "url": "https://media.defense.gov/2021/Apr/15/2002621240/-1/-1/0/CSA_SVR_TARGETS_US_ALLIES_UOO13234021.PDF/CSA_SVR_TARGETS_US_ALLIES_UOO13234021.PDF"
+    },
+    {
+     "source_name": "PWC WellMess C2 August 2020",
+     "description": "PWC. (2020, August 17). WellMess malware: analysis of its Command and Control (C2) server. Retrieved September 29, 2020.",
+     "url": "https://www.pwc.co.uk/issues/cyber-security-services/insights/wellmess-analysis-command-control.html"
+    },
+    {
+     "source_name": "PWC WellMess July 2020",
+     "description": "PWC. (2020, July 16). How WellMess malware has been used to target COVID-19 vaccines. Retrieved September 24, 2020.",
+     "url": "https://www.pwc.co.uk/issues/cyber-security-services/insights/cleaning-up-after-wellmess.html"
+    },
+    {
+     "source_name": "Secureworks IRON HEMLOCK Profile",
+     "description": "Secureworks CTU. (n.d.). IRON HEMLOCK. Retrieved February 22, 2022.",
+     "url": "http://www.secureworks.com/research/threat-profiles/iron-hemlock"
+    },
+    {
+     "source_name": "Secureworks IRON RITUAL Profile",
+     "description": "Secureworks CTU. (n.d.). IRON RITUAL. Retrieved February 24, 2022.",
+     "url": "https://www.sophos.com/en-us/threat-profiles/iron-ritual"
+    },
+    {
+     "source_name": "UK Gov Malign RIS Activity April 2021",
+     "description": "UK Gov. (2021, April 15). UK and US expose global campaign of malign activity by Russian intelligence services . Retrieved April 16, 2021.",
+     "url": "https://www.gov.uk/government/news/russia-uk-and-us-expose-global-campaigns-of-malign-activity-by-russian-intelligence-services"
+    },
+    {
+     "source_name": "UK Gov UK Exposes Russia SolarWinds April 2021",
+     "description": "UK Gov. (2021, April 15). UK exposes Russian involvement in SolarWinds cyber compromise . Retrieved April 16, 2021.",
+     "url": "https://www.gov.uk/government/news/russia-uk-exposes-russian-involvement-in-solarwinds-cyber-compromise"
+    },
+    {
+     "source_name": "UK NSCS Russia SolarWinds April 2021",
+     "description": "UK NCSC. (2021, April 15). UK and US call out Russia for SolarWinds compromise. Retrieved April 16, 2021.",
+     "url": "https://www.ncsc.gov.uk/news/uk-and-us-call-out-russia-for-solarwinds-compromise"
+    },
+    {
+     "source_name": "Unit 42 SolarStorm December 2020",
+     "description": "Unit 42. (2020, December 23). SolarStorm Supply Chain Attack Timeline. Retrieved March 24, 2023.",
+     "url": "https://unit42.paloaltonetworks.com/solarstorm-supply-chain-attack-timeline/"
+    },
+    {
+     "source_name": "White House Imposing Costs RU Gov April 2021",
+     "description": "White House. (2021, April 15). Imposing Costs for Harmful Foreign Activities by the Russian Government. Retrieved April 16, 2021.",
+     "url": "https://www.whitehouse.gov/briefing-room/statements-releases/2021/04/15/fact-sheet-imposing-costs-for-harmful-foreign-activities-by-the-russian-government/"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-07-31T18:48:06.517Z",
+   "name": "APT29",
+   "description": "[APT29](https://attack.mitre.org/groups/G0016) is threat group that has been attributed to Russia's Foreign Intelligence Service (SVR).(Citation: White House Imposing Costs RU Gov April 2021)(Citation: UK Gov Malign RIS Activity April 2021) They have operated since at least 2008, often targeting government networks in Europe and NATO member countries, research institutes, and think tanks. [APT29](https://attack.mitre.org/groups/G0016) reportedly compromised the Democratic National Committee starting in the summer of 2015.(Citation: F-Secure The Dukes)(Citation: GRIZZLY STEPPE JAR)(Citation: Crowdstrike DNC June 2016)(Citation: UK Gov UK Exposes Russia SolarWinds April 2021)\n\nIn April 2021, the US and UK governments attributed the [SolarWinds Compromise](https://attack.mitre.org/campaigns/C0024) to the SVR; public statements included citations to [APT29](https://attack.mitre.org/groups/G0016), Cozy Bear, and The Dukes.(Citation: NSA Joint Advisory SVR SolarWinds April 2021)(Citation: UK NSCS Russia SolarWinds April 2021) Industry reporting also referred to the actors involved in this campaign as UNC2452, NOBELIUM, StellarParticle, Dark Halo, and SolarStorm.(Citation: FireEye SUNBURST Backdoor December 2020)(Citation: MSTIC NOBELIUM Mar 2021)(Citation: CrowdStrike SUNSPOT Implant January 2021)(Citation: Volexity SolarWinds)(Citation: Cybersecurity Advisory SVR TTP May 2021)(Citation: Unit 42 SolarStorm December 2020)",
+   "aliases": [
+    "APT29",
+    "IRON RITUAL",
+    "IRON HEMLOCK",
+    "NobleBaron",
+    "Dark Halo",
+    "NOBELIUM",
+    "UNC2452",
+    "YTTRIUM",
+    "The Dukes",
+    "Cozy Bear",
+    "CozyDuke",
+    "SolarStorm",
+    "Blue Kitsune",
+    "UNC3524",
+    "Midnight Blizzard"
+   ],
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "enterprise-attack"
+   ],
+   "x_mitre_version": "6.2",
+   "x_mitre_attack_spec_version": "3.3.0",
+   "x_mitre_contributors": [
+    "Daniyal Naeem, BT Security",
+    "Matt Brenton, Zurich Insurance Group",
+    "Katie Nickels, Red Canary",
+    "Joe Gumke, U.S. Bank",
+    "Liran Ravich, CardinalOps",
+    "Vicky Ray, RayvenX"
+   ]
+  },
+  {
+   "type": "malware",
+   "spec_version": "2.1",
+   "id": "malware--a7881f21-e978-4fe4-af56-92c9416a2616",
+   "created": "2017-12-14T16:46:06.044Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/software/S0154",
+     "external_id": "S0154"
+    },
+    {
+     "source_name": "cobaltstrike manual",
+     "description": "Strategic Cyber LLC. (2017, March 14). Cobalt Strike Manual. Retrieved May 24, 2017.",
+     "url": "https://web.archive.org/web/20210825130434/https://cobaltstrike.com/downloads/csmanual38.pdf"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-04-23T21:14:18.712Z",
+   "name": "Cobalt Strike",
+   "description": "[Cobalt Strike](https://attack.mitre.org/software/S0154) is a commercial, full-featured, remote access tool that bills itself as “adversary simulation software designed to execute targeted attacks and emulate the post-exploitation actions of advanced threat actors”. Cobalt Strike’s interactive post-exploit capabilities cover the full range of ATT&CK tactics, all executed within a single, integrated system.(Citation: cobaltstrike manual)\n\nIn addition to its own capabilities, [Cobalt Strike](https://attack.mitre.org/software/S0154) leverages the capabilities of other well-known tools such as Metasploit and [Mimikatz](https://attack.mitre.org/software/S0002).(Citation: cobaltstrike manual)",
+   "is_family": true,
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_platforms": [
+    "Linux",
+    "macOS",
+    "Windows"
+   ],
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "enterprise-attack"
+   ],
+   "x_mitre_version": "1.14",
+   "x_mitre_attack_spec_version": "3.3.0",
+   "x_mitre_contributors": [
+    "Josh Abraham",
+    "Martin Sohn Christensen, Improsec"
+   ],
+   "x_mitre_aliases": [
+    "Cobalt Strike"
+   ]
+  },
+  {
+   "type": "tool",
+   "spec_version": "2.1",
+   "id": "tool--03342581-f790-4f03-ba41-e82e67392e23",
+   "created": "2017-05-31T21:32:31.601Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/software/S0039",
+     "external_id": "S0039"
+    },
+    {
+     "source_name": "Microsoft Net Utility",
+     "description": "Microsoft. (2006, October 18). Net.exe Utility. Retrieved September 22, 2015.",
+     "url": "https://msdn.microsoft.com/en-us/library/aa939914"
+    },
+    {
+     "source_name": "Savill 1999",
+     "description": "Savill, J. (1999, March 4). Net.exe reference. Retrieved September 22, 2015.",
+     "url": "https://web.archive.org/web/20150511162820/http://windowsitpro.com/windows/netexe-reference"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-05-12T15:12:00.740Z",
+   "name": "Net",
+   "description": "The [Net](https://attack.mitre.org/software/S0039) utility is a component of the Windows operating system. It is used in command-line operations for control of users, groups, services, and network connections. (Citation: Microsoft Net Utility)\n\n[Net](https://attack.mitre.org/software/S0039) has a great deal of functionality, (Citation: Savill 1999) much of which is useful for an adversary, such as gathering system and network information for Discovery, moving laterally through [SMB/Windows Admin Shares](https://attack.mitre.org/techniques/T1021/002) using <code>net use</code> commands, and interacting with services. The net1.exe utility is executed for certain functionality when net.exe is run and can be used directly in commands such as <code>net1 user</code>.",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_platforms": [
+    "Windows"
+   ],
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "enterprise-attack"
+   ],
+   "x_mitre_version": "2.8",
+   "x_mitre_attack_spec_version": "3.3.0",
+   "x_mitre_contributors": [
+    "David Ferguson, CyberSponse"
+   ],
+   "x_mitre_aliases": [
+    "Net",
+    "net.exe"
+   ]
+  },
+  {
+   "type": "x-mitre-analytic",
+   "spec_version": "2.1",
+   "id": "x-mitre-analytic--78864416-9ea3-4285-aab4-ecf31c935253",
+   "created": "2025-10-21T15:10:28.402Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/detectionstrategies/DET0455#AN1252",
+     "external_id": "AN1252"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2025-11-12T22:03:39.105Z",
+   "name": "Analytic 1252",
+   "description": "Detects behavioral chains where PowerShell is launched with encoded commands, unusual parent processes, or suspicious modules loaded, potentially followed by network connections or child process spawning. Supports detection of both direct (powershell.exe) and indirect (.NET automation) invocations.",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_version": "1.0",
+   "x_mitre_attack_spec_version": "3.3.0",
+   "x_mitre_domains": [
+    "enterprise-attack"
+   ],
+   "x_mitre_platforms": [
+    "Windows"
+   ],
+   "x_mitre_log_source_references": [
+    {
+     "x_mitre_data_component_ref": "x-mitre-data-component--3d20385b-24ef-40e1-9f56-f39750379077",
+     "name": "WinEventLog:Sysmon",
+     "channel": "EventCode=1"
+    },
+    {
+     "x_mitre_data_component_ref": "x-mitre-data-component--685f917a-e95e-4ba0-ade1-c7d354dae6e0",
+     "name": "WinEventLog:PowerShell",
+     "channel": "EventCode=4103, 4104, 4105, 4106"
+    },
+    {
+     "x_mitre_data_component_ref": "x-mitre-data-component--ee575f4a-2d4f-48f6-b18b-89067760adc1",
+     "name": "WinEventLog:PowerShell",
+     "channel": "EventCode=400, 403"
+    },
+    {
+     "x_mitre_data_component_ref": "x-mitre-data-component--c0a4a086-cc20-4e1e-b7cb-29d99dfa3fb1",
+     "name": "WinEventLog:Sysmon",
+     "channel": "EventCode=7"
+    }
+   ],
+   "x_mitre_mutable_elements": [
+    {
+     "field": "CommandLinePattern",
+     "description": "Regex pattern for encoded, obfuscated, or hidden PowerShell arguments (e.g., '-enc', '-nop')."
+    },
+    {
+     "field": "ParentProcessName",
+     "description": "Filter based on abnormal parents like Excel, WinWord, or mshta spawning PowerShell."
+    },
+    {
+     "field": "TimeWindow",
+     "description": "Scope detection to off-hours, lateral movement timeframes, or non-maintenance windows."
+    },
+    {
+     "field": "LoadedModuleList",
+     "description": "Tuneable to monitor rare or never-before-seen .NET assemblies tied to PowerShell abuse."
+    },
+    {
+     "field": "ScriptBlockLengthThreshold",
+     "description": "Adjustable threshold for length of script blocks logged by Event ID 4104 (useful for filtering noise)."
+    }
+   ]
+  },
+  {
+   "type": "x-mitre-detection-strategy",
+   "spec_version": "2.1",
+   "id": "x-mitre-detection-strategy--72b209e2-8c65-4217-8532-fabd0cb54ae5",
+   "created": "2025-10-21T15:10:28.402Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/detectionstrategies/DET0455",
+     "external_id": "DET0455"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-05-12T16:34:50.681Z",
+   "name": "Abuse of PowerShell for Arbitrary Execution",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_version": "1.0",
+   "x_mitre_attack_spec_version": "3.3.0",
+   "x_mitre_domains": [
+    "enterprise-attack"
+   ],
+   "x_mitre_analytic_refs": [
+    "x-mitre-analytic--78864416-9ea3-4285-aab4-ecf31c935253"
+   ]
+  },
+  {
+   "type": "x-mitre-tactic",
+   "spec_version": "2.1",
+   "id": "x-mitre-tactic--4ca45d45-df4d-4613-8980-bac22d278fa5",
+   "created": "2018-10-17T00:14:20.652Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "url": "https://attack.mitre.org/tactics/TA0002",
+     "external_id": "TA0002"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-09-22T00:15:39.144Z",
+   "name": "Execution",
+   "description": "The adversary is trying to run malicious code or instructions on a system.\n\nExecution consists of techniques that result in adversary-controlled code running on a local or remote system. Techniques that run malicious code are often paired with techniques from all other tactics to achieve broader goals, like exploring a network or stealing data. For example, an adversary might use a remote access tool to run a PowerShell script that does Remote System Discovery. ",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_domains": [
+    "enterprise-attack"
+   ],
+   "x_mitre_version": "1.1",
+   "x_mitre_attack_spec_version": "3.3.0",
+   "x_mitre_shortname": "execution"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--029c6872-0b48-4838-ab3b-3a7c0e637be9",
+   "created": "2025-10-21T15:10:28.402Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2025-10-21T15:10:28.402Z",
+   "relationship_type": "detects",
+   "source_ref": "x-mitre-detection-strategy--72b209e2-8c65-4217-8532-fabd0cb54ae5",
+   "target_ref": "attack-pattern--970a3432-3237-47ad-bcca-7d8cbb217736",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--1f0832ca-30f2-4f5a-8e92-1d15222fc087",
+   "created": "2019-01-29T21:27:25.335Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "FireEye APT38 Oct 2018",
+     "description": "FireEye. (2018, October 03). APT38: Un-usual Suspects. Retrieved November 17, 2024.",
+     "url": "https://services.google.com/fh/files/misc/apt38-un-usual-suspects.pdf"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-07-31T20:48:23.087Z",
+   "description": "(Citation: FireEye APT38 Oct 2018)",
+   "relationship_type": "uses",
+   "source_ref": "intrusion-set--00f67a77-86a4-4adf-be26-1a54fc713340",
+   "target_ref": "tool--03342581-f790-4f03-ba41-e82e67392e23",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--3b2680f0-aa69-4766-ab41-9123373ffa4e",
+   "created": "2023-03-26T22:13:48.078Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "Mandiant UNC2452 APT29 April 2022",
+     "description": "Mandiant. (2022, April 27). Assembling the Russian Nesting Doll: UNC2452 Merged into APT29. Retrieved March 26, 2023.",
+     "url": "https://www.mandiant.com/resources/blog/unc2452-merged-into-apt29"
+    },
+    {
+     "source_name": "NSA Joint Advisory SVR SolarWinds April 2021",
+     "description": "NSA, FBI, DHS. (2021, April 15). Russian SVR Targets U.S. and Allied Networks. Retrieved April 16, 2021.",
+     "url": "https://media.defense.gov/2021/Apr/15/2002621240/-1/-1/0/CSA_SVR_TARGETS_US_ALLIES_UOO13234021.PDF/CSA_SVR_TARGETS_US_ALLIES_UOO13234021.PDF"
+    },
+    {
+     "source_name": "UK NSCS Russia SolarWinds April 2021",
+     "description": "UK NCSC. (2021, April 15). UK and US call out Russia for SolarWinds compromise. Retrieved April 16, 2021.",
+     "url": "https://www.ncsc.gov.uk/news/uk-and-us-call-out-russia-for-solarwinds-compromise"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-07-31T18:48:07.725Z",
+   "description": "(Citation: NSA Joint Advisory SVR SolarWinds April 2021)(Citation: UK NSCS Russia SolarWinds April 2021)(Citation: Mandiant UNC2452 APT29 April 2022)",
+   "relationship_type": "attributed-to",
+   "source_ref": "campaign--808d6b30-df4e-4341-8248-724da4bac650",
+   "target_ref": "intrusion-set--899ce53f-13a0-479b-a0e4-67d46e241542",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--5a580cd0-19f1-41d6-865b-786a41081a7e",
+   "created": "2020-03-09T13:48:55.802Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-04-29T14:23:06.048Z",
+   "description": "It may be possible to remove PowerShell from systems when not needed, but a review should be performed to assess the impact to an environment, since it could be in use for many legitimate purposes and administrative functions.\n\nDisable/restrict the WinRM Service to help prevent uses of PowerShell for remote execution.",
+   "relationship_type": "mitigates",
+   "source_ref": "course-of-action--eb88d97c-32f1-40be-80f0-d61a4b0b4b31",
+   "target_ref": "attack-pattern--970a3432-3237-47ad-bcca-7d8cbb217736",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--6abc6901-d152-4b5f-b27d-8b973ae567cb",
+   "created": "2020-03-09T13:41:14.499Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-04-29T14:23:06.070Z",
+   "description": "Disable or remove any unnecessary or unused shells or interpreters.",
+   "relationship_type": "mitigates",
+   "source_ref": "course-of-action--eb88d97c-32f1-40be-80f0-d61a4b0b4b31",
+   "target_ref": "attack-pattern--7385dfaf-6886-4229-9ecd-6fd678040830",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--7396dd25-432c-4285-8149-1237b1273a53",
+   "created": "2020-11-06T18:40:38.038Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "Cobalt Strike TTPs Dec 2017",
+     "description": "Cobalt Strike. (2017, December 8). Tactics, Techniques, and Procedures. Retrieved November 17, 2024.",
+     "url": "https://web.archive.org/web/20210924171429/https://www.cobaltstrike.com/downloads/reports/tacticstechniquesandprocedures.pdf"
+    },
+    {
+     "source_name": "Cyberreason Anchor December 2019",
+     "description": "Dahan, A. et al. (2019, December 11). DROPPING ANCHOR: FROM A TRICKBOT INFECTION TO THE DISCOVERY OF THE ANCHOR MALWARE. Retrieved September 10, 2020.",
+     "url": "https://www.cybereason.com/blog/dropping-anchor-from-a-trickbot-infection-to-the-discovery-of-the-anchor-malware"
+    },
+    {
+     "source_name": "Talos Cobalt Strike September 2020",
+     "description": "Mavis, N. (2020, September 21). The Art and Science of Detecting Cobalt Strike. Retrieved September 12, 2024.",
+     "url": "https://web.archive.org/web/20210219195905/https://talos-intelligence-site.s3.amazonaws.com/production/document_files/files/000/095/031/original/Talos_Cobalt_Strike.pdf"
+    },
+    {
+     "source_name": "CobaltStrike Daddy May 2017",
+     "description": "Mudge, R. (2017, May 23). Cobalt Strike 3.8 – Who’s Your Daddy?. Retrieved June 4, 2019.",
+     "url": "https://web.archive.org/web/20171009220105/https://blog.cobaltstrike.com/2017/05/23/cobalt-strike-3-8-whos-your-daddy/"
+    },
+    {
+     "source_name": "cobaltstrike manual",
+     "description": "Strategic Cyber LLC. (2017, March 14). Cobalt Strike Manual. Retrieved May 24, 2017.",
+     "url": "https://web.archive.org/web/20210825130434/https://cobaltstrike.com/downloads/csmanual38.pdf"
+    },
+    {
+     "source_name": "Cobalt Strike Manual 4.3 November 2020",
+     "description": "Strategic Cyber LLC. (2020, November 5). Cobalt Strike: Advanced Threat Tactics for Penetration Testers. Retrieved April 13, 2021.",
+     "url": "https://web.archive.org/web/20210708035426/https://www.cobaltstrike.com/downloads/csmanual43.pdf"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-04-29T14:23:06.083Z",
+   "description": "[Cobalt Strike](https://attack.mitre.org/software/S0154) can execute a payload on a remote host with PowerShell. This technique does not write any data to disk.(Citation: cobaltstrike manual)(Citation: Cyberreason Anchor December 2019) [Cobalt Strike](https://attack.mitre.org/software/S0154) can also use [PowerSploit](https://attack.mitre.org/software/S0194) and other scripting frameworks to perform execution.(Citation: Cobalt Strike TTPs Dec 2017)(Citation: CobaltStrike Daddy May 2017)(Citation: Talos Cobalt Strike September 2020)(Citation: Cobalt Strike Manual 4.3 November 2020)",
+   "relationship_type": "uses",
+   "source_ref": "malware--a7881f21-e978-4fe4-af56-92c9416a2616",
+   "target_ref": "attack-pattern--970a3432-3237-47ad-bcca-7d8cbb217736",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--7f78df2e-e6e9-43f1-815b-58e4a10fc594",
+   "created": "2017-05-31T21:33:27.048Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "Mandiant No Easy Breach",
+     "description": "Dunwoody, M. and Carr, N.. (2016, September 27). No Easy Breach DerbyCon 2016. Retrieved September 12, 2024.",
+     "url": "https://www.slideshare.net/slideshow/no-easy-breach-derby-con-2016/66447908"
+    },
+    {
+     "source_name": "ESET T3 Threat Report 2021",
+     "description": "ESET. (2022, February). THREAT REPORT T3 2021. Retrieved February 10, 2022.",
+     "url": "https://www.welivesecurity.com/wp-content/uploads/2022/02/eset_threat_report_t32021.pdf"
+    },
+    {
+     "source_name": "Secureworks IRON HEMLOCK Profile",
+     "description": "Secureworks CTU. (n.d.). IRON HEMLOCK. Retrieved February 22, 2022.",
+     "url": "http://www.secureworks.com/research/threat-profiles/iron-hemlock"
+    },
+    {
+     "source_name": "Symantec Seaduke 2015",
+     "description": "Symantec Security Response. (2015, July 13). “Forkmeiamfamous”: Seaduke, latest weapon in the Duke armory. Retrieved July 22, 2015.",
+     "url": "https://web.archive.org/web/20150717011546/http://www.symantec.com/connect/blogs/forkmeiamfamous-seaduke-latest-weapon-duke-armory"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-07-31T18:48:08.302Z",
+   "description": "[APT29](https://attack.mitre.org/groups/G0016) has used encoded PowerShell scripts uploaded to [CozyCar](https://attack.mitre.org/software/S0046) installations to download and install [SeaDuke](https://attack.mitre.org/software/S0053).(Citation: Symantec Seaduke 2015)(Citation: Mandiant No Easy Breach)(Citation: ESET T3 Threat Report 2021)(Citation: Secureworks IRON HEMLOCK Profile)",
+   "relationship_type": "uses",
+   "source_ref": "intrusion-set--899ce53f-13a0-479b-a0e4-67d46e241542",
+   "target_ref": "attack-pattern--970a3432-3237-47ad-bcca-7d8cbb217736",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--87fd0088-41da-47ac-bd69-a8ac151a0d39",
+   "created": "2019-06-24T18:00:41.676Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "Microsoft PowerShell CLM",
+     "description": "PowerShell Team. (2017, November 2). PowerShell Constrained Language Mode. Retrieved March 27, 2023.",
+     "url": "https://devblogs.microsoft.com/powershell/powershell-constrained-language-mode/"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-04-29T14:23:06.111Z",
+   "description": "Use application control where appropriate. For example, PowerShell Constrained Language mode can be used to restrict access to sensitive or otherwise dangerous language elements such as those used to execute arbitrary Windows APIs or files (e.g., `Add-Type`).(Citation: Microsoft PowerShell CLM)",
+   "relationship_type": "mitigates",
+   "source_ref": "course-of-action--47e0e9fe-96ce-4f65-8bb1-8be1feacb5db",
+   "target_ref": "attack-pattern--7385dfaf-6886-4229-9ecd-6fd678040830",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--949cf89d-6d65-4459-83e7-dc826ae9c894",
+   "created": "2023-03-26T15:09:08.495Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "Volexity SolarWinds",
+     "description": "Cash, D. et al. (2020, December 14). Dark Halo Leverages SolarWinds Compromise to Breach Organizations. Retrieved December 29, 2020.",
+     "url": "https://www.volexity.com/blog/2020/12/14/dark-halo-leverages-solarwinds-compromise-to-breach-organizations/"
+    },
+    {
+     "source_name": "CrowdStrike StellarParticle January 2022",
+     "description": "CrowdStrike. (2022, January 27). Early Bird Catches the Wormhole: Observations from the StellarParticle Campaign. Retrieved February 7, 2022.",
+     "url": "https://www.crowdstrike.com/blog/observations-from-the-stellarparticle-campaign/"
+    },
+    {
+     "source_name": "Microsoft Analyzing Solorigate Dec 2020",
+     "description": "MSTIC. (2020, December 18). Analyzing Solorigate, the compromised DLL file that started a sophisticated cyberattack, and how Microsoft Defender helps protect customers . Retrieved January 5, 2021.",
+     "url": "https://www.microsoft.com/security/blog/2020/12/18/analyzing-solorigate-the-compromised-dll-file-that-started-a-sophisticated-cyberattack-and-how-microsoft-defender-helps-protect/"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-07-31T18:47:27.020Z",
+   "description": "During the [SolarWinds Compromise](https://attack.mitre.org/campaigns/C0024), [APT29](https://attack.mitre.org/groups/G0016) used PowerShell to create new tasks on remote machines, identify configuration settings, exfiltrate data, and execute other commands.(Citation: Volexity SolarWinds)(Citation: Microsoft Analyzing Solorigate Dec 2020)(Citation: CrowdStrike StellarParticle January 2022)",
+   "relationship_type": "uses",
+   "source_ref": "campaign--808d6b30-df4e-4341-8248-724da4bac650",
+   "target_ref": "attack-pattern--970a3432-3237-47ad-bcca-7d8cbb217736",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--b4fad2c0-1407-4409-af5d-2cd098a1e536",
+   "created": "2023-03-26T22:01:21.533Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "FireEye SUNBURST Backdoor December 2020",
+     "description": "FireEye. (2020, December 13). Highly Evasive Attacker Leverages SolarWinds Supply Chain to Compromise Multiple Global Victims With SUNBURST Backdoor. Retrieved January 4, 2021.",
+     "url": "https://www.fireeye.com/blog/threat-research/2020/12/evasive-attacker-leverages-solarwinds-supply-chain-compromises-with-sunburst-backdoor.html"
+    },
+    {
+     "source_name": "Cybersecurity Advisory SVR TTP May 2021",
+     "description": "NCSC, CISA, FBI, NSA. (2021, May 7). Further TTPs associated with SVR cyber actors. Retrieved July 29, 2021.",
+     "url": "https://www.ncsc.gov.uk/files/Advisory-further-TTPs-associated-with-SVR-cyber-actors.pdf"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-07-31T18:47:27.312Z",
+   "description": "(Citation: FireEye SUNBURST Backdoor December 2020)(Citation: Cybersecurity Advisory SVR TTP May 2021)",
+   "relationship_type": "uses",
+   "source_ref": "campaign--808d6b30-df4e-4341-8248-724da4bac650",
+   "target_ref": "malware--a7881f21-e978-4fe4-af56-92c9416a2616",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--b7dc0db4-b1fb-4235-8b49-0792e7019377",
+   "created": "2020-03-09T13:48:55.816Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-04-29T14:23:06.176Z",
+   "relationship_type": "subtechnique-of",
+   "source_ref": "attack-pattern--970a3432-3237-47ad-bcca-7d8cbb217736",
+   "target_ref": "attack-pattern--7385dfaf-6886-4229-9ecd-6fd678040830",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--d948a3b2-4873-4175-be18-ddef1c20347d",
+   "created": "2020-03-09T13:51:07.152Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-04-29T14:23:06.222Z",
+   "relationship_type": "revoked-by",
+   "source_ref": "attack-pattern--f4882e23-8aa7-4b12-b28a-b349c12ee9e0",
+   "target_ref": "attack-pattern--970a3432-3237-47ad-bcca-7d8cbb217736",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--d9beae20-bd32-4141-95ff-053cf46e8210",
+   "created": "2020-11-06T18:40:38.501Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "ESET T3 Threat Report 2021",
+     "description": "ESET. (2022, February). THREAT REPORT T3 2021. Retrieved February 10, 2022.",
+     "url": "https://www.welivesecurity.com/wp-content/uploads/2022/02/eset_threat_report_t32021.pdf"
+    },
+    {
+     "source_name": "FireEye SUNBURST Backdoor December 2020",
+     "description": "FireEye. (2020, December 13). Highly Evasive Attacker Leverages SolarWinds Supply Chain to Compromise Multiple Global Victims With SUNBURST Backdoor. Retrieved January 4, 2021.",
+     "url": "https://www.fireeye.com/blog/threat-research/2020/12/evasive-attacker-leverages-solarwinds-supply-chain-compromises-with-sunburst-backdoor.html"
+    },
+    {
+     "source_name": "SentinelOne NobleBaron June 2021",
+     "description": "Guerrero-Saade, J. (2021, June 1). NobleBaron | New Poisoned Installers Could Be Used In Supply Chain Attacks. Retrieved August 4, 2021.",
+     "url": "https://labs.sentinelone.com/noblebaron-new-poisoned-installers-could-be-used-in-supply-chain-attacks/"
+    },
+    {
+     "source_name": "MSTIC NOBELIUM May 2021",
+     "description": "Microsoft Threat Intelligence Center (MSTIC). (2021, May 27). New sophisticated email-based attack from NOBELIUM. Retrieved May 28, 2021.",
+     "url": "https://www.microsoft.com/security/blog/2021/05/27/new-sophisticated-email-based-attack-from-nobelium/"
+    },
+    {
+     "source_name": "MSTIC Nobelium Toolset May 2021",
+     "description": "MSTIC. (2021, May 28). Breaking down NOBELIUM’s latest early-stage toolset. Retrieved August 4, 2021.",
+     "url": "https://www.microsoft.com/security/blog/2021/05/28/breaking-down-nobeliums-latest-early-stage-toolset/"
+    },
+    {
+     "source_name": "Cybersecurity Advisory SVR TTP May 2021",
+     "description": "NCSC, CISA, FBI, NSA. (2021, May 7). Further TTPs associated with SVR cyber actors. Retrieved July 29, 2021.",
+     "url": "https://www.ncsc.gov.uk/files/Advisory-further-TTPs-associated-with-SVR-cyber-actors.pdf"
+    },
+    {
+     "source_name": "Secureworks IRON RITUAL USAID Phish May 2021",
+     "description": "Secureworks CTU. (2021, May 28). USAID-Themed Phishing Campaign Leverages U.S. Elections Lure. Retrieved February 24, 2022.",
+     "url": "https://www.secureworks.com/blog/usaid-themed-phishing-campaign-leverages-us-elections-lure"
+    },
+    {
+     "source_name": "Secureworks IRON RITUAL Profile",
+     "description": "Secureworks CTU. (n.d.). IRON RITUAL. Retrieved February 24, 2022.",
+     "url": "https://www.sophos.com/en-us/threat-profiles/iron-ritual"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-07-31T18:48:09.072Z",
+   "description": "(Citation: FireEye SUNBURST Backdoor December 2020)(Citation: Cybersecurity Advisory SVR TTP May 2021)(Citation: MSTIC NOBELIUM May 2021)(Citation: MSTIC Nobelium Toolset May 2021)(Citation: SentinelOne NobleBaron June 2021)(Citation: ESET T3 Threat Report 2021)(Citation: Secureworks IRON RITUAL Profile)(Citation: Secureworks IRON RITUAL USAID Phish May 2021)",
+   "relationship_type": "uses",
+   "source_ref": "intrusion-set--899ce53f-13a0-479b-a0e4-67d46e241542",
+   "target_ref": "malware--a7881f21-e978-4fe4-af56-92c9416a2616",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--d9cd7a48-0728-4e56-9c74-45baf45cf0ff",
+   "created": "2021-09-29T20:46:38.429Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "CISA AA20-239A BeagleBoyz August 2020",
+     "description": "DHS/CISA. (2020, August 26). FASTCash 2.0: North Korea's BeagleBoyz Robbing Banks. Retrieved September 29, 2021.",
+     "url": "https://us-cert.cisa.gov/ncas/alerts/aa20-239a"
+    },
+    {
+     "source_name": "Microsoft Axios Compromise APR 2026",
+     "description": "Microsoft Threat Intelligence. (2026, April 1). Mitigating the Axios npm supply chain compromise. Retrieved September 30, 2026.",
+     "url": "https://www.microsoft.com/en-us/security/blog/2026/04/01/mitigating-the-axios-npm-supply-chain-compromise/"
+    },
+    {
+     "source_name": "MIcrosoft Mastra npm Compromise JUN 2026",
+     "description": "Microsoft Threat Intelligence. (2026, June 17). From package to postinstall payload: Inside the Mastra npm supply chain compromise by Sapphire Sleet. Retrieved September 30, 2026.",
+     "url": "https://www.microsoft.com/en-us/security/blog/2026/06/17/postinstall-payload-inside-mastra-npm-supply-chain-compromise/"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-09-30T18:43:57.805Z",
+   "description": "[APT38](https://attack.mitre.org/groups/G0082) has used PowerShell to execute commands and other operational tasks.(Citation: CISA AA20-239A BeagleBoyz August 2020)(Citation: Microsoft Axios Compromise APR 2026)\n[APT38](https://attack.mitre.org/groups/G0082) has also used PowerShell to establish persistence and establish C2 communication on compromised hosts.(Citation: MIcrosoft Mastra npm Compromise JUN 2026)",
+   "relationship_type": "uses",
+   "source_ref": "intrusion-set--00f67a77-86a4-4adf-be26-1a54fc713340",
+   "target_ref": "attack-pattern--970a3432-3237-47ad-bcca-7d8cbb217736",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--db80dd29-d335-48b9-853e-5f15e576acb3",
+   "created": "2020-09-30T14:29:28.424Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "CISA SoreFang July 2016",
+     "description": "CISA. (2020, July 16). MAR-10296782-1.v1 – SOREFANG. Retrieved September 29, 2020.",
+     "url": "https://us-cert.cisa.gov/ncas/analysis-reports/ar20-198a"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-07-31T18:48:09.122Z",
+   "description": "(Citation: CISA SoreFang July 2016)",
+   "relationship_type": "uses",
+   "source_ref": "intrusion-set--899ce53f-13a0-479b-a0e4-67d46e241542",
+   "target_ref": "tool--03342581-f790-4f03-ba41-e82e67392e23",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  },
+  {
+   "type": "relationship",
+   "spec_version": "2.1",
+   "id": "relationship--fe42b5e6-06dd-4b08-8ef8-31323f8190d2",
+   "created": "2021-05-28T14:56:24.055Z",
+   "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "revoked": false,
+   "external_references": [
+    {
+     "source_name": "Microsoft PowerShell CLM",
+     "description": "PowerShell Team. (2017, November 2). PowerShell Constrained Language Mode. Retrieved March 27, 2023.",
+     "url": "https://devblogs.microsoft.com/powershell/powershell-constrained-language-mode/"
+    }
+   ],
+   "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+   ],
+   "modified": "2026-04-29T14:23:06.270Z",
+   "description": "Use application control where appropriate. PowerShell Constrained Language mode can be used to restrict access to sensitive or otherwise dangerous language elements such as those used to execute arbitrary Windows APIs or files (e.g., `Add-Type`).(Citation: Microsoft PowerShell CLM)",
+   "relationship_type": "mitigates",
+   "source_ref": "course-of-action--47e0e9fe-96ce-4f65-8bb1-8be1feacb5db",
+   "target_ref": "attack-pattern--970a3432-3237-47ad-bcca-7d8cbb217736",
+   "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+   "x_mitre_deprecated": false,
+   "x_mitre_attack_spec_version": "3.3.0"
+  }
+ ]
+}

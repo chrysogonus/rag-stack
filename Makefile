@@ -6,8 +6,13 @@ MAKEFLAGS += --no-print-directory
 RUN := .run
 API_URL := http://127.0.0.1:8000/openapi.json
 WEB_URL := http://127.0.0.1:5173/
+API_CMD := exec uv run uvicorn rag_stack.api.app:create_app --factory --reload --host 127.0.0.1 --port 8000
+# Where the CLI writes the refresh log: DATA_DIR from .env or its default (read only when used).
+REFRESH_LOG = $(shell uv run python -c 'from rag_stack.config import Settings; print(Settings().data_dir)')/refresh.log
+UNITS := $(HOME)/.config/systemd/user
 
-.PHONY: help install format up down restart status logs services migrate ingest index ask eval \
+.PHONY: help install format up down restart restart-api status logs services tracing migrate ingest index refresh rollback schedule unschedule ask \
+	eval eval-retrieval eval-units eval-draft eval-labels eval-agreement \
 	ci lockfile lint secrets typecheck test audit build web-check evals e2e check-all
 
 SOURCE ?= all
@@ -82,9 +87,12 @@ endef
 services: ## Start Postgres and Qdrant and wait until they are healthy
 	docker compose up -d --wait
 
+tracing: ## Start self-hosted Langfuse (UI at http://localhost:3000, login in docker-compose.yml)
+	docker compose --profile tracing up -d --wait
+
 up: services ## Start everything: Docker services, API (:8000) and web UI (:5173)
 	@mkdir -p $(RUN)
-	$(call start,api,$(API_URL),exec uv run uvicorn rag_stack.api.app:create_app --factory --reload --host 127.0.0.1 --port 8000)
+	$(call start,api,$(API_URL),$(API_CMD))
 	$(call start,web,$(WEB_URL),cd web && exec npm run dev -- --host 127.0.0.1 --port 5173 --strictPort)
 	$(call wait_for,api,$(API_URL))
 	$(call wait_for,web,$(WEB_URL))
@@ -93,16 +101,25 @@ up: services ## Start everything: Docker services, API (:8000) and web UI (:5173
 down: ## Stop the API, the web UI and the Docker services (stored data is kept)
 	$(call stop,web)
 	$(call stop,api)
-	docker compose down
+	docker compose --profile tracing down
 
 restart: ## Stop everything, then start it again
 	@$(MAKE) down
 	@$(MAKE) up
 
+restart-api: ## Restart only the API, so it loads the index generation now served
+	$(call stop,api)
+	@mkdir -p $(RUN)
+	$(call start,api,$(API_URL),$(API_CMD))
+	$(call wait_for,api,$(API_URL))
+
 status: ## Show what is running
 	@if $(call ours,api); then echo "api: running (process group $$pgid)"; else echo "api: stopped"; fi
 	@if $(call ours,web); then echo "web: running (process group $$pgid)"; else echo "web: stopped"; fi
 	@docker compose ps --format 'table {{.Service}}\t{{.Status}}\t{{.Ports}}'
+	@echo "last refresh: $$(tail -n 1 $(REFRESH_LOG) 2>/dev/null || echo never)"
+	@next=$$(systemctl --user show rag-stack-refresh.timer -p NextElapseUSecRealtime --value 2>/dev/null); \
+	echo "next refresh: $${next:-not scheduled (make schedule)}"
 
 logs: ## Follow the API and web UI logs
 	tail -n 50 -f $(RUN)/api.log $(RUN)/web.log
@@ -118,12 +135,52 @@ ingest: ## Fetch, snapshot and chunk sources: make ingest SOURCE=<id|all> (uncha
 index: migrate ## Embed processed chunks into Qdrant and load edges: make index SOURCE=<id|all>
 	$(CLI) index $(SOURCE)
 
+refresh: ## Ingest all sources, check and score a new index, serve it if it passes [FORCE=1: allow shrinking]
+	@mkdir -p $(dir $(REFRESH_LOG))
+	@$(MAKE) migrate || { echo "$$(date -u +%FT%TZ) - FAILED: Postgres, Qdrant or the migration unavailable" >> $(REFRESH_LOG); exit 1; }
+	@code=0; $(CLI) refresh $(if $(FORCE),--force) || code=$$?; \
+	if tail -n 1 $(REFRESH_LOG) | grep -q '^[^|]* PROMOTED' && $(call ours,api); then $(MAKE) restart-api; fi; \
+	exit $$code
+
+rollback: ## Serve the previous index generation again (a second rollback undoes it)
+	$(CLI) rollback
+	@if $(call ours,api); then $(MAKE) restart-api; fi
+
+schedule: ## Refresh weekly (Sunday 03:00, or at the next start if missed) with a systemd user timer
+	@mkdir -p $(UNITS)
+	sed -e 's|@REPO@|$(CURDIR)|' -e "s|@PATH@|$$PATH|" deploy/systemd/rag-stack-refresh.service > $(UNITS)/rag-stack-refresh.service
+	cp deploy/systemd/rag-stack-refresh.timer $(UNITS)/
+	systemctl --user daemon-reload
+	systemctl --user enable --now rag-stack-refresh.timer
+	@[ "$$(loginctl show-user $$USER -p Linger --value 2>/dev/null)" = yes ] || \
+		echo "To run without a login session: sudo loginctl enable-linger $$USER"
+
+unschedule: ## Stop the weekly refresh
+	-systemctl --user disable --now rag-stack-refresh.timer
+	rm -f $(UNITS)/rag-stack-refresh.service $(UNITS)/rag-stack-refresh.timer
+	systemctl --user daemon-reload
+
 ask: ## Answer one question from the knowledge base: make ask Q="What is AML.T0051?"
 	@[ -n "$(Q)" ] || { echo 'Usage: make ask Q="your question"' >&2; exit 1; }
 	$(CLI) ask "$(Q)"
 
-eval: ## The paid eval run (~150 LLM calls): golden set vs. the baseline, writes report.md
-	$(CLI) eval
+eval: ## The paid eval run: asks and judges only questions whose inputs changed (FULL=1 all, FRESH=1 the baseline too), writes report.md
+	$(CLI) eval $(if $(FULL),--full) $(if $(FRESH),--fresh-baseline)
+
+eval-retrieval: ## Retrieval scores and latency, no LLM calls: make eval-retrieval [SPLIT=dev|test|all]
+	$(CLI) eval --retrieval-only --split $(or $(SPLIT),dev)
+
+eval-units: ## Retrieval checks generated from the corpus (ID, title, edges), no LLM calls: make eval-units [N=50]
+	$(CLI) eval-units -n $(or $(N),50)
+
+eval-labels: ## Sample 40 answers into judge_labels.jsonl for a person to label (no LLM calls)
+	$(CLI) eval-labels
+
+eval-agreement: ## Judge the labeled answers again (one call each) and compare with the labels
+	$(CLI) eval-agreement
+
+eval-draft: ## Draft test questions into drafts.jsonl for review: make eval-draft SOURCE=<id> CATEGORY=<c> [N=5]
+	$(CLI) eval-draft $(SOURCE) $(CATEGORY) -n $(or $(N),5)
 
 # --- Checks (same order as .github/workflows/ci.yml) -----------------------------------------
 
@@ -159,7 +216,7 @@ web-check: ## Lint, test and build the web UI
 	npm test --prefix web -- --run
 	npm run --prefix web build
 
-evals: ## AI tests: thresholds on the saved `make eval` results (fails if stale) + injection (1 call)
+evals: migrate ## AI tests: thresholds on the saved `make eval` results (fails if any question is stale) + injection (1 call)
 	uv run pytest tests/ai
 
 e2e: migrate ## Run end-to-end tests (real Postgres, Qdrant and LLM)

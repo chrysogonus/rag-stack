@@ -74,6 +74,16 @@ export async function getMessages(threadId: string, signal?: AbortSignal): Promi
   return response.json()
 }
 
+/** Rates the answer at `message` (its index in the thread) as helpful or not; a new rating replaces the old. */
+export async function sendFeedback(threadId: string, message: number, helpful: boolean): Promise<void> {
+  const response = await fetch(`/api/threads/${threadId}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, helpful }),
+  })
+  if (!response.ok) throw new Error(await refusal(response))
+}
+
 export interface StreamHandlers {
   /** The retrieved passages, before the answer starts. */
   onSources?: (sources: SourceRef[]) => void

@@ -10,3 +10,5 @@ data/raw/
 data/processed/
 data/cache/
 graphify-out/
+data/refresh.log
+data/.refresh.lock

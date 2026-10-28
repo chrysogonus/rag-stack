@@ -1,0 +1,775 @@
+{
+  "head": {
+    "vars": [
+      "query_def_tech_label",
+      "top_def_tech_label",
+      "def_tactic_label",
+      "def_tactic_rel_label",
+      "def_tech_label",
+      "def_artifact_rel_label",
+      "def_artifact_label",
+      "off_artifact_label",
+      "off_artifact_rel_label",
+      "off_tech_label",
+      "off_tech_id",
+      "framework_root_iri",
+      "off_tech_parent_label",
+      "off_tech_parent_is_toplevel",
+      "off_tactic_rel_label",
+      "off_tactic_label",
+      "def_tactic",
+      "def_tactic_rel",
+      "def_tech",
+      "def_artifact_rel",
+      "def_artifact",
+      "off_artifact",
+      "off_artifact_rel",
+      "off_tech",
+      "off_tech_parent",
+      "off_tactic_rel",
+      "off_tactic"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "query_def_tech_label": {
+          "type": "literal",
+          "value": "Token Binding"
+        },
+        "top_def_tech_label": {
+          "type": "literal",
+          "value": "Credential Hardening"
+        },
+        "def_tactic_label": {
+          "type": "literal",
+          "value": "Harden"
+        },
+        "def_tactic_rel_label": {
+          "type": "literal",
+          "value": "enables"
+        },
+        "def_tech_label": {
+          "type": "literal",
+          "value": "Credential Hardening"
+        },
+        "def_artifact_rel_label": {
+          "type": "literal",
+          "value": "hardens"
+        },
+        "def_artifact_label": {
+          "type": "literal",
+          "value": "Credential"
+        },
+        "off_artifact_label": {
+          "type": "literal",
+          "value": "Password"
+        },
+        "off_artifact_rel_label": {
+          "type": "literal",
+          "value": "uses"
+        },
+        "off_tech_label": {
+          "type": "literal",
+          "value": "Default Credentials"
+        },
+        "off_tech_id": {
+          "type": "literal",
+          "value": "T0812"
+        },
+        "framework_root_iri": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#ATTACKICSTechnique"
+        },
+        "off_tech_parent_label": {
+          "type": "literal",
+          "value": "Lateral Movement Technique"
+        },
+        "off_tech_parent_is_toplevel": {
+          "type": "literal",
+          "value": "true",
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean"
+        },
+        "off_tactic_rel_label": {
+          "type": "literal",
+          "value": "enables"
+        },
+        "off_tactic_label": {
+          "type": "literal",
+          "value": "Lateral Movement"
+        },
+        "def_tactic": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Harden"
+        },
+        "def_tactic_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#enables"
+        },
+        "def_tech": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#CredentialHardening"
+        },
+        "def_artifact_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#hardens"
+        },
+        "def_artifact": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Credential"
+        },
+        "off_artifact": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Password"
+        },
+        "off_artifact_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#uses"
+        },
+        "off_tech": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#T0812"
+        },
+        "off_tech_parent": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#ATTACKICSLateralMovementTechnique"
+        },
+        "off_tactic_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#enables"
+        },
+        "off_tactic": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#TA0109"
+        },
+        "framework_key": {
+          "type": "literal",
+          "value": "ics"
+        },
+        "framework_label": {
+          "type": "literal",
+          "value": "ICS"
+        },
+        "framework_root": {
+          "type": "literal",
+          "value": "d3f:ATTACKICSTechnique"
+        }
+      },
+      {
+        "query_def_tech_label": {
+          "type": "literal",
+          "value": "Token Binding"
+        },
+        "top_def_tech_label": {
+          "type": "literal",
+          "value": "Credential Hardening"
+        },
+        "def_tactic_label": {
+          "type": "literal",
+          "value": "Harden"
+        },
+        "def_tactic_rel_label": {
+          "type": "literal",
+          "value": "enables"
+        },
+        "def_tech_label": {
+          "type": "literal",
+          "value": "Credential Hardening"
+        },
+        "def_artifact_rel_label": {
+          "type": "literal",
+          "value": "hardens"
+        },
+        "def_artifact_label": {
+          "type": "literal",
+          "value": "Credential"
+        },
+        "off_artifact_label": {
+          "type": "literal",
+          "value": "Password"
+        },
+        "off_artifact_rel_label": {
+          "type": "literal",
+          "value": "accesses"
+        },
+        "off_tech_label": {
+          "type": "literal",
+          "value": "Password Guessing"
+        },
+        "off_tech_id": {
+          "type": "literal",
+          "value": "T1110.001"
+        },
+        "framework_root_iri": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#ATTACKEnterpriseTechnique"
+        },
+        "off_tech_parent_label": {
+          "type": "literal",
+          "value": "Brute Force"
+        },
+        "off_tech_parent_is_toplevel": {
+          "type": "literal",
+          "value": "false",
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean"
+        },
+        "off_tactic_rel_label": {
+          "type": "literal",
+          "value": "enables"
+        },
+        "off_tactic_label": {
+          "type": "literal",
+          "value": "Credential Access"
+        },
+        "def_tactic": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Harden"
+        },
+        "def_tactic_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#enables"
+        },
+        "def_tech": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#CredentialHardening"
+        },
+        "def_artifact_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#hardens"
+        },
+        "def_artifact": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Credential"
+        },
+        "off_artifact": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Password"
+        },
+        "off_artifact_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#accesses"
+        },
+        "off_tech": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#T1110.001"
+        },
+        "off_tech_parent": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#T1110"
+        },
+        "off_tactic_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#enables"
+        },
+        "off_tactic": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#TA0006"
+        },
+        "framework_key": {
+          "type": "literal",
+          "value": "enterprise"
+        },
+        "framework_label": {
+          "type": "literal",
+          "value": "Enterprise"
+        },
+        "framework_root": {
+          "type": "literal",
+          "value": "d3f:ATTACKEnterpriseTechnique"
+        }
+      },
+      {
+        "query_def_tech_label": {
+          "type": "literal",
+          "value": "Token Binding"
+        },
+        "top_def_tech_label": {
+          "type": "literal",
+          "value": "Credential Hardening"
+        },
+        "def_tactic_label": {
+          "type": "literal",
+          "value": "Harden"
+        },
+        "def_tactic_rel_label": {
+          "type": "literal",
+          "value": "enables"
+        },
+        "def_tech_label": {
+          "type": "literal",
+          "value": "Credential Hardening"
+        },
+        "def_artifact_rel_label": {
+          "type": "literal",
+          "value": "hardens"
+        },
+        "def_artifact_label": {
+          "type": "literal",
+          "value": "Credential"
+        },
+        "off_artifact_label": {
+          "type": "literal",
+          "value": "Credential"
+        },
+        "off_artifact_rel_label": {
+          "type": "literal",
+          "value": "uses"
+        },
+        "off_tech_label": {
+          "type": "literal",
+          "value": "Credentialed Persistence"
+        },
+        "off_tech_id": {
+          "type": "literal",
+          "value": "PER-0005"
+        },
+        "framework_root_iri": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#SPARTATechnique"
+        },
+        "off_tech_parent_label": {
+          "type": "literal",
+          "value": "Persistence Technique"
+        },
+        "off_tech_parent_is_toplevel": {
+          "type": "literal",
+          "value": "true",
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean"
+        },
+        "off_tactic_rel_label": {
+          "type": "literal",
+          "value": "enables"
+        },
+        "off_tactic_label": {
+          "type": "literal",
+          "value": "Persistence"
+        },
+        "def_tactic": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Harden"
+        },
+        "def_tactic_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#enables"
+        },
+        "def_tech": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#CredentialHardening"
+        },
+        "def_artifact_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#hardens"
+        },
+        "def_artifact": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Credential"
+        },
+        "off_artifact": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Credential"
+        },
+        "off_artifact_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#uses"
+        },
+        "off_tech": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#PER-0005"
+        },
+        "off_tech_parent": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#SPARTAPersistenceTechnique"
+        },
+        "off_tactic_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#enables"
+        },
+        "off_tactic": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#ST0005"
+        },
+        "framework_key": {
+          "type": "literal",
+          "value": "sparta"
+        },
+        "framework_label": {
+          "type": "literal",
+          "value": "SPARTA"
+        },
+        "framework_root": {
+          "type": "literal",
+          "value": "d3f:SPARTATechnique"
+        }
+      },
+      {
+        "query_def_tech_label": {
+          "type": "literal",
+          "value": "Multi-factor Authentication"
+        },
+        "top_def_tech_label": {
+          "type": "literal",
+          "value": "Agent Authentication"
+        },
+        "def_tactic_label": {
+          "type": "literal",
+          "value": "Harden"
+        },
+        "def_tactic_rel_label": {
+          "type": "literal",
+          "value": "enables"
+        },
+        "def_tech_label": {
+          "type": "literal",
+          "value": "Multi-factor Authentication"
+        },
+        "def_artifact_rel_label": {
+          "type": "literal",
+          "value": "uses"
+        },
+        "def_artifact_label": {
+          "type": "literal",
+          "value": "Credential"
+        },
+        "off_artifact_label": {
+          "type": "literal",
+          "value": "Password"
+        },
+        "off_artifact_rel_label": {
+          "type": "literal",
+          "value": "uses"
+        },
+        "off_tech_label": {
+          "type": "literal",
+          "value": "Default Credentials"
+        },
+        "off_tech_id": {
+          "type": "literal",
+          "value": "T0812"
+        },
+        "framework_root_iri": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#ATTACKICSTechnique"
+        },
+        "off_tech_parent_label": {
+          "type": "literal",
+          "value": "Lateral Movement Technique"
+        },
+        "off_tech_parent_is_toplevel": {
+          "type": "literal",
+          "value": "true",
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean"
+        },
+        "off_tactic_rel_label": {
+          "type": "literal",
+          "value": "enables"
+        },
+        "off_tactic_label": {
+          "type": "literal",
+          "value": "Lateral Movement"
+        },
+        "def_tactic": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Harden"
+        },
+        "def_tactic_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#enables"
+        },
+        "def_tech": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Multi-factorAuthentication"
+        },
+        "def_artifact_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#uses"
+        },
+        "def_artifact": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Credential"
+        },
+        "off_artifact": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Password"
+        },
+        "off_artifact_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#uses"
+        },
+        "off_tech": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#T0812"
+        },
+        "off_tech_parent": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#ATTACKICSLateralMovementTechnique"
+        },
+        "off_tactic_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#enables"
+        },
+        "off_tactic": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#TA0109"
+        },
+        "framework_key": {
+          "type": "literal",
+          "value": "ics"
+        },
+        "framework_label": {
+          "type": "literal",
+          "value": "ICS"
+        },
+        "framework_root": {
+          "type": "literal",
+          "value": "d3f:ATTACKICSTechnique"
+        }
+      },
+      {
+        "query_def_tech_label": {
+          "type": "literal",
+          "value": "Multi-factor Authentication"
+        },
+        "top_def_tech_label": {
+          "type": "literal",
+          "value": "Agent Authentication"
+        },
+        "def_tactic_label": {
+          "type": "literal",
+          "value": "Harden"
+        },
+        "def_tactic_rel_label": {
+          "type": "literal",
+          "value": "enables"
+        },
+        "def_tech_label": {
+          "type": "literal",
+          "value": "Multi-factor Authentication"
+        },
+        "def_artifact_rel_label": {
+          "type": "literal",
+          "value": "uses"
+        },
+        "def_artifact_label": {
+          "type": "literal",
+          "value": "Credential"
+        },
+        "off_artifact_label": {
+          "type": "literal",
+          "value": "Password"
+        },
+        "off_artifact_rel_label": {
+          "type": "literal",
+          "value": "accesses"
+        },
+        "off_tech_label": {
+          "type": "literal",
+          "value": "Password Guessing"
+        },
+        "off_tech_id": {
+          "type": "literal",
+          "value": "T1110.001"
+        },
+        "framework_root_iri": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#ATTACKEnterpriseTechnique"
+        },
+        "off_tech_parent_label": {
+          "type": "literal",
+          "value": "Brute Force"
+        },
+        "off_tech_parent_is_toplevel": {
+          "type": "literal",
+          "value": "false",
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean"
+        },
+        "off_tactic_rel_label": {
+          "type": "literal",
+          "value": "enables"
+        },
+        "off_tactic_label": {
+          "type": "literal",
+          "value": "Credential Access"
+        },
+        "def_tactic": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Harden"
+        },
+        "def_tactic_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#enables"
+        },
+        "def_tech": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Multi-factorAuthentication"
+        },
+        "def_artifact_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#uses"
+        },
+        "def_artifact": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Credential"
+        },
+        "off_artifact": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Password"
+        },
+        "off_artifact_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#accesses"
+        },
+        "off_tech": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#T1110.001"
+        },
+        "off_tech_parent": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#T1110"
+        },
+        "off_tactic_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#enables"
+        },
+        "off_tactic": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#TA0006"
+        },
+        "framework_key": {
+          "type": "literal",
+          "value": "enterprise"
+        },
+        "framework_label": {
+          "type": "literal",
+          "value": "Enterprise"
+        },
+        "framework_root": {
+          "type": "literal",
+          "value": "d3f:ATTACKEnterpriseTechnique"
+        }
+      },
+      {
+        "query_def_tech_label": {
+          "type": "literal",
+          "value": "Multi-factor Authentication"
+        },
+        "top_def_tech_label": {
+          "type": "literal",
+          "value": "Agent Authentication"
+        },
+        "def_tactic_label": {
+          "type": "literal",
+          "value": "Harden"
+        },
+        "def_tactic_rel_label": {
+          "type": "literal",
+          "value": "enables"
+        },
+        "def_tech_label": {
+          "type": "literal",
+          "value": "Multi-factor Authentication"
+        },
+        "def_artifact_rel_label": {
+          "type": "literal",
+          "value": "uses"
+        },
+        "def_artifact_label": {
+          "type": "literal",
+          "value": "Credential"
+        },
+        "off_artifact_label": {
+          "type": "literal",
+          "value": "Credential"
+        },
+        "off_artifact_rel_label": {
+          "type": "literal",
+          "value": "uses"
+        },
+        "off_tech_label": {
+          "type": "literal",
+          "value": "Credentialed Persistence"
+        },
+        "off_tech_id": {
+          "type": "literal",
+          "value": "PER-0005"
+        },
+        "framework_root_iri": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#SPARTATechnique"
+        },
+        "off_tech_parent_label": {
+          "type": "literal",
+          "value": "Persistence Technique"
+        },
+        "off_tech_parent_is_toplevel": {
+          "type": "literal",
+          "value": "true",
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean"
+        },
+        "off_tactic_rel_label": {
+          "type": "literal",
+          "value": "enables"
+        },
+        "off_tactic_label": {
+          "type": "literal",
+          "value": "Persistence"
+        },
+        "def_tactic": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Harden"
+        },
+        "def_tactic_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#enables"
+        },
+        "def_tech": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Multi-factorAuthentication"
+        },
+        "def_artifact_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#uses"
+        },
+        "def_artifact": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Credential"
+        },
+        "off_artifact": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#Credential"
+        },
+        "off_artifact_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#uses"
+        },
+        "off_tech": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#PER-0005"
+        },
+        "off_tech_parent": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#SPARTAPersistenceTechnique"
+        },
+        "off_tactic_rel": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#enables"
+        },
+        "off_tactic": {
+          "type": "uri",
+          "value": "http://d3fend.mitre.org/ontologies/d3fend.owl#ST0005"
+        },
+        "framework_key": {
+          "type": "literal",
+          "value": "sparta"
+        },
+        "framework_label": {
+          "type": "literal",
+          "value": "SPARTA"
+        },
+        "framework_root": {
+          "type": "literal",
+          "value": "d3f:SPARTATechnique"
+        }
+      }
+    ]
+  }
+}

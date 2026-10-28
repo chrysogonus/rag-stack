@@ -1,8 +1,10 @@
 # rag-stack
 
-A self-hosted RAG chatbot on attacks against AI systems and EU AI regulation. It answers from six
-openly licensed sources and cites every claim with its exact ID (ATLAS technique, OWASP risk,
-AI Act provision, KI-MIG section, CVE), quoting legal text verbatim in English or German.
+A self-hosted RAG chatbot on cybersecurity research, specializing in attacks against AI systems and
+EU and German AI regulation. It answers from ten openly licensed sources and cites every claim with
+its exact ID (ATT&CK or ATLAS technique, CAPEC attack pattern, CWE weakness, D3FEND countermeasure,
+OWASP risk, AI Act provision, KI-MIG section, CVE), quoting legal text verbatim in English or
+German.
 
 **How it works:** sources are fetched politely, snapshotted with sha256 and chunked one unit per
 chunk (technique, risk section, article paragraph, recital, annex point, advisory). Chunks are
@@ -15,11 +17,15 @@ versions, and an AI-generated label (EU AI Act Art. 50(1)).
 | Source | Version indexed | License |
 |---|---|---|
 | MITRE ATLAS | content version from the release (2026.09 at the last ingest) | Apache-2.0 |
+| MITRE ATT&CK (Enterprise, Mobile, ICS) | release pinned in `config/sources.yaml` (20.0) | ATT&CK terms of use |
+| MITRE CAPEC | release pinned in `config/sources.yaml` (3.9) | CAPEC terms of use |
+| MITRE CWE | release pinned in `config/sources.yaml` (4.20) | CWE terms of use |
+| MITRE D3FEND (with its ATT&CK mappings) | release pinned in `config/sources.yaml` (1.6.0) | D3FEND terms of use |
 | OWASP Top 10 for LLM Applications 2026 | `2026/final`, pinned commit | CC BY-SA 4.0 |
 | OWASP Top 10 for Agentic Applications 2026 | PDF of 2025-12-09 | CC BY-SA 4.0 |
 | EU AI Act (EN, DE) | latest consolidated version (02024R1689-20260727), recitals from the OJ | © EU, Decision 2011/833/EU |
 | KI-MIG | gesetze-im-internet.de XML (BGBl. 2026 I Nr. 223) | § 5 UrhG |
-| AI package CVEs | last 24 months, OSV + NVD + CISA KEV | CC BY 4.0 / public domain / CC0 |
+| Vulnerabilities: the whole CISA KEV catalog, GitHub-reviewed critical and high advisories and every AI-package advisory of the last 24 months, with EPSS scores | KEV + GitHub Advisory Database + OSV + NVD + EPSS, daily snapshot | CC0 / CC BY 4.0 / public domain / EPSS free use |
 
 See [NOTICE.md](NOTICE.md) for attribution, [docs/PLAN.md](docs/PLAN.md) for the design and
 [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md) for what is unresolved.
@@ -31,14 +37,45 @@ make install                 # Python and web dependencies; creates .env (pick t
 make services                # Postgres and Qdrant
 make ingest SOURCE=all       # fetch, snapshot and chunk the sources (unchanged ones are skipped)
 make index                   # create the edge table, embed chunks into Qdrant (models download once)
+make refresh                 # later updates: ingest, check, build and score a new index, serve it if it passes
+make schedule                # run `make refresh` weekly (systemd user timer); `make rollback` undoes a refresh
 make ask Q="Which ATLAS mitigations address AML.T0051?"
 make up                      # API (:8000) and chat UI: open http://localhost:5173
-make eval                    # golden set, RAG vs. no-retrieval baseline -> evals/datasets/ai_security/report.md
+make tracing                 # optional: self-hosted Langfuse at http://localhost:3000 (traces, ratings)
+make eval                    # golden set, RAG vs. baseline, only changed questions -> evals/datasets/ai_security/report.md
+make eval-retrieval          # retrieval only, free: tune on the dev split, confirm with SPLIT=test
+make eval-units              # free retrieval checks generated from the corpus: IDs, titles, edges (N=50 per source)
+make eval-draft SOURCE=atlas CATEGORY=paraphrase N=5   # draft test questions for review -> drafts.jsonl
+make eval-labels             # 40 answers to label yourself; then `make eval-agreement` scores the judge
 make down                    # stop everything (stored conversations and the index are kept)
 ```
 
-The CVE source queries NVD once per CVE; without `NVD_API_KEY` in `.env` NVD allows 5 requests
-per 30 seconds, so the first ingest of `ai-vulns` takes about an hour (responses are cached).
+The `vulns` source pages through GitHub's advisory API (about 130 requests) and asks NVD once
+per AI-package CVE. Without `GITHUB_TOKEN` in `.env` GitHub allows 60 requests an hour, so an
+ingest takes over two hours; without `NVD_API_KEY` NVD allows 5 requests per 30 seconds
+(responses are cached for a day).
+
+**GPU models (optional).** With an NVIDIA GPU, embeddings and reranking run on two vLLM
+services (`docker compose` profile `gpu`): Qwen3-Embedding-4B and Qwen3-Reranker-0.6B, both
+fp8. Put this into `.env`, then run `make refresh` (a new embedding model rebuilds the whole
+index, scored against the old one):
+
+```bash
+COMPOSE_PROFILES=gpu
+EMBEDDING_PROVIDER=vllm
+EMBEDDING_MODEL=Qwen/Qwen3-Embedding-4B
+EMBEDDING_BASE_URL=http://127.0.0.1:8001/v1
+RERANKER_PROVIDER=vllm
+RERANKER_MODEL=Qwen/Qwen3-Reranker-0.6B
+RERANKER_BASE_URL=http://127.0.0.1:8002/v1
+RERANK_MIN_SCORE=0.005
+```
+
+Together they take about 8 GB of VRAM (`EMBEDDINGS_GPU_SHARE`, `RERANKER_GPU_SHARE` set each
+one's share of the card; vLLM doesn't start unless that much is free). The API, `make refresh`
+and the evals then need both services; other GPU work slows retrieval down. `make rollback`
+after the switch also needs the old settings back in `.env`: queries are embedded with the
+configured model.
 
 `make` lists every command, including `make restart`, `make status`, `make logs` and `make ci`
 (the CI pipeline, run locally).
@@ -51,8 +88,8 @@ rate limits apply per user rather than per proxy.
 | Layer | Command | Needs |
 |-------|---------|-------|
 | Unit | `make test` | nothing (fixtures in `tests/fixtures/`, in-memory Qdrant, fake models) |
-| AI (evals) | `make eval` (paid, ~150 calls), then `make evals` | LLM access, an indexed knowledge base; `make evals` checks the saved results (1 call) and fails if they are stale |
-| End-to-end | `make e2e` | `make services`, LLM access, embedding models |
+| AI (evals) | `make eval` (paid: ~2 calls per question whose inputs changed, ~550 with `FULL=1`), then `make evals` | LLM access, an indexed knowledge base; `make evals` checks the saved results (~5 min of retrieval, 1 call) and fails if any question is stale |
+| End-to-end | `make e2e` | `make services`, LLM access, embedding models; the rating test also `make tracing` (skipped without `LANGFUSE_*`) |
 | Web | `make web-check` | nothing |
 
 See [AGENTS.md](AGENTS.md) for contributor and coding-agent guidelines.
