@@ -1,5 +1,21 @@
-import { useEffect, useRef, type RefObject } from 'react'
+import { Component, lazy, Suspense, useEffect, useRef, type ReactNode, type RefObject } from 'react'
 import { LABEL_FONT, SkyRenderer } from './renderer'
+
+// three.js is large: the deep field arrives after the page is up.
+const DeepSpace = lazy(() => import('../deep/DeepSpace'))
+
+/** The deep field is decoration: if it fails to load or start, the page goes on without it. */
+class Optional extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
+}
 
 const stillQuery = '(prefers-reduced-motion: reduce)'
 const darkQuery = '(prefers-color-scheme: dark)'
@@ -41,6 +57,11 @@ export function Sky({ rendererRef }: { rendererRef: RefObject<SkyRenderer | null
 
   return (
     <>
+      <Optional>
+        <Suspense fallback={null}>
+          <DeepSpace rendererRef={rendererRef} />
+        </Suspense>
+      </Optional>
       <canvas ref={canvasRef} className="sky" aria-hidden="true" />
       <canvas ref={overlayRef} className="sky overlay" aria-hidden="true" />
     </>

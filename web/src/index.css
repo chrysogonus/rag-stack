@@ -82,6 +82,21 @@ html {
 
 /* The sky, and a feathered band of darker night behind the reading column. */
 
+/* The deep field: a WebGL canvas beneath the atlas that paints the sky colour itself once it loads. */
+.deep {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  animation: deep-in 1.6s ease-out both;
+}
+
+@keyframes deep-in {
+  from {
+    opacity: 0;
+  }
+}
+
 .sky {
   position: fixed;
   inset: 0;
@@ -801,6 +816,7 @@ button:disabled {
   .forming,
   .forming circle,
   .spark,
+  .deep,
   .intro .welcome h1,
   .intro .welcome p,
   .intro .starters,
