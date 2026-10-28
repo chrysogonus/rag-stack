@@ -98,10 +98,11 @@ up: services ## Start everything: Docker services, API (:8000) and web UI (:5173
 	$(call wait_for,web,$(WEB_URL))
 	@echo "Ready: open http://localhost:5173"
 
+# --profile '*': any --profile flag replaces COMPOSE_PROFILES from .env, which would leave gpu up.
 down: ## Stop the API, the web UI and the Docker services (stored data is kept)
 	$(call stop,web)
 	$(call stop,api)
-	docker compose --profile tracing down
+	docker compose --profile '*' down
 
 restart: ## Stop everything, then start it again
 	@$(MAKE) down
