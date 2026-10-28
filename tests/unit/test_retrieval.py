@@ -4,6 +4,7 @@ import pytest
 from fakes.embeddings import FakeEmbedder, FakeReranker, FakeSparseEmbedder, chunk
 from qdrant_client import QdrantClient
 
+from rag_stack.config import Settings
 from rag_stack.db.edges import EdgeGraph
 from rag_stack.ingestion.models import Edge, Snapshot
 from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS, SOURCES
@@ -505,3 +506,65 @@ async def test_the_section_cap_counts_language_copies_once():
         ("de", 2),
         ("de", 1),
     ]
+
+
+def surveillance_kb() -> KnowledgeBase:
+    # English AI Act text shares the question's words; the German-only KI-MIG doesn't.
+    articles = [
+        chunk(
+            f"AI Act Art. 74({i})",
+            "which authority is the market surveillance authority",
+            source_id="eu-ai-act",
+        )
+        for i in range(1, 5)
+    ]
+    section = chunk(
+        "KI-MIG § 2 Abs. 1",
+        "KI-MIG Marktüberwachungsbehörde ist die Bundesnetzagentur",
+        source_id="ki-mig",
+        language="de",
+    )
+    return small_kb([*articles, section], [], candidates=4, limit=3)
+
+
+async def test_a_question_naming_an_act_finds_its_text_over_another_acts():
+    found = await surveillance_kb().retrieve(
+        "Which authority is the market surveillance authority under the KI-MIG?"
+    )
+
+    assert len(found) == 3
+    assert "KI-MIG § 2 Abs. 1" in [r.chunk.native_id for r in found]
+
+
+async def test_a_question_naming_no_act_is_searched_once():
+    found = await surveillance_kb().retrieve(
+        "Which authority is the market surveillance authority?"
+    )
+
+    assert {r.chunk.source_id for r in found} == {"eu-ai-act"}
+
+
+async def test_search_hits_add_no_sections_past_a_named_units_cap():
+    sections = [
+        chunk("LLM06:2026", "llm06:2026 unbounded consumption", source_id="owasp-llm-2026",
+              chunk_index=i)
+        for i in range(5)
+    ]  # fmt: skip
+    mitigation = chunk("AML.M0036", "atlas mitigation")
+    kb = small_kb([*sections, mitigation], [], limit=retriever.MAX_PER_UNIT + 1)
+
+    found = await kb.retrieve("Which ATLAS mitigation addresses LLM06:2026 unbounded consumption?")
+
+    assert [r.chunk.native_id for r in found] == ["LLM06:2026"] * retriever.MAX_PER_UNIT + [
+        "AML.M0036"
+    ]
+
+
+def test_the_knowledge_base_returns_only_what_the_answer_sees():
+    settings = Settings(retrieval_top_k=3)
+    kb = retriever.knowledge_base(
+        settings, QdrantClient(":memory:"), "kb", FakeEmbedder(), FakeSparseEmbedder(),
+        FakeReranker(), EdgeGraph([]),
+    )  # fmt: skip
+
+    assert kb.limit == settings.retrieval_top_k

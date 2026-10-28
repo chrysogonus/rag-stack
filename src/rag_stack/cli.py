@@ -93,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
     run_eval.add_argument(
         "--retrieval-only",
         action="store_true",
-        help="only score retrieval (recall@10, MRR, time): no LLM calls, nothing written",
+        help="only score retrieval (recall@k, MRR, time): no LLM calls, nothing written",
     )
     run_eval.add_argument(
         "--split",

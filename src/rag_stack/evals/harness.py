@@ -426,7 +426,7 @@ def report(results: list[dict], settings: Settings, previous: dict | None = None
         return value if interval is None else f"{value} [{interval[0]:.2f}, {interval[1]:.2f}]"
 
     header = (
-        "| Category | n | Recall@10 | MRR | Correctness (base → RAG) | Citation precision "
+        "| Category | n | Recall@k | MRR | Correctness (base → RAG) | Citation precision "
         "(base → RAG) | Abstention acc. (base → RAG) | Faithfulness (RAG) |\n"
         "|---|---|---|---|---|---|---|---|\n"
     )
@@ -468,9 +468,10 @@ def report(results: list[dict], settings: Settings, previous: dict | None = None
         "were asked anew; the others, and every verdict whose inputs are unchanged, are reused "
         "from earlier runs (`make eval FULL=1` asks everything again, `FRESH=1` the baseline). "
         "Scores are means in [0, 1] with 95% bootstrap "
-        "intervals for RAG; judge scores map 1-5 to 0-1. Retrieval metrics and citation "
-        "precision skip abstention questions. Settings are tuned on `dev`; `test` is the "
-        "holdout.\n\n"
+        "intervals for RAG; judge scores map 1-5 to 0-1. Recall@k counts the first "
+        f"{settings.retrieval_top_k} passages, the ones the model sees. Retrieval metrics and "
+        "citation precision skip abstention questions. Settings are tuned on `dev`; `test` is "
+        "the holdout.\n\n"
         f"Thresholds (`thresholds.yaml`, on the `{row}` row): {status}.\n\n"
         f"{changes}\n\n"
         + header
@@ -582,7 +583,7 @@ def commit() -> str:
 async def retrieval_scores(
     kb: Retriever, split: str
 ) -> tuple[dict[str, dict[str, float | None]], list[float]]:
-    """Mean recall@10 and MRR per category and `all`, and each retrieval's seconds, sorted."""
+    """Mean recall@k and MRR per category and `all`, and each retrieval's seconds, sorted."""
     rows = []
     for case in load_cases():
         if not case["gold_ids"] or split not in ("all", case["split"]):
@@ -608,9 +609,9 @@ async def retrieval_scores(
 async def retrieval_only(
     settings: Settings, kb: Retriever | None = None, split: str = "dev"
 ) -> int:
-    """Recall@10, MRR and retrieval time on one split of the golden set (or `all`), with no LLM
-    calls and no files written: a quick loop for tuning retrieval settings on dev, confirmed on
-    test."""
+    """Recall@k (k = RETRIEVAL_TOP_K), MRR and retrieval time on one split of the golden set (or
+    `all`), with no LLM calls and no files written: a quick loop for tuning retrieval settings on
+    dev, confirmed on test."""
     if not any(split in ("all", case["split"]) for case in load_cases()):
         print(f"split {split}: no questions")
         return 1
@@ -618,7 +619,7 @@ async def retrieval_only(
     print(f"split: {split}")
     summary, seconds = await retrieval_scores(kb, split)
     for name, scores in summary.items():
-        print(f"{name:14} recall@10 {scores['recall_at_10']:.3f}  mrr {scores['mrr']:.3f}")
+        print(f"{name:14} recall@k {scores['recall_at_10']:.3f}  mrr {scores['mrr']:.3f}")
     p50, p95 = seconds[len(seconds) // 2], seconds[int(len(seconds) * 0.95)]
     print(f"retrieval p50 {p50:.2f} s, p95 {p95:.2f} s")
     thresholds = yaml.safe_load((DATASET / "thresholds.yaml").read_text())
