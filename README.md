@@ -278,6 +278,8 @@ deploy/           systemd timer for the weekly refresh, vLLM reranker template
 
 **Read next:**
 
+- [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md): a plain-language tour in pictures, also usable
+  as the outline for a 5-minute talk.
 - [docs/PLAN.md](docs/PLAN.md): the design, the measurements behind each choice, and the
   roadmap toward general cybersecurity research.
 - [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md): what is still unresolved.
