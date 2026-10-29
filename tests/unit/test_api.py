@@ -198,6 +198,64 @@ def test_daily_token_budget_returns_429(make_client):
     assert "Daily usage limit" in response.json()["detail"]
 
 
+def test_a_turn_counts_against_the_budget_before_it_reports_usage(make_client):
+    # The reservation (max_output_tokens) counts even when the model fails before reporting usage.
+    client = make_client(FailingChatModel(), max_output_tokens=100, daily_token_budget_total=100)
+
+    assert client.post(url(), json={"content": "Hi"}).status_code == 200
+    assert client.post(url(), json={"content": "Hi"}).status_code == 429
+
+
+def test_the_reservation_is_settled_with_the_reported_usage(make_client):
+    model = FakeChatModel(tokens_per_reply=10)
+    client = make_client(model, max_output_tokens=100, daily_token_budget_total=150)
+
+    # Unsettled, the third turn would be refused (200 reserved); settled, 20 tokens are spent.
+    for _ in range(3):
+        assert client.post(url(), json={"content": "Hi"}).status_code == 200
+
+
+def test_an_abstained_turn_gives_its_reservation_back():
+    settings = Settings(max_output_tokens=100, daily_token_budget_total=150)
+    app = create_app(settings, FakeChatModel(), InMemorySaver(), FakeRetriever())
+
+    with TestClient(app) as client:
+        for _ in range(3):
+            assert client.post(url(), json={"content": "Hi"}).status_code == 200
+
+
+def test_total_daily_token_budget_refuses_every_client(make_client):
+    client = make_client(FakeChatModel(tokens_per_reply=10), daily_token_budget_total=10)
+
+    assert client.post(url(), json={"content": "Hi"}).status_code == 200
+    response = client.post(url(), json={"content": "Hi"})
+    assert response.status_code == 429
+    assert "reached its daily limit" in response.json()["detail"]
+
+
+def test_health_answers_while_storage_and_knowledge_base_do(make_client):
+    assert make_client().get("/api/health").json() == {"status": "ok"}
+
+
+def test_health_returns_503_when_the_knowledge_base_fails(make_client):
+    client = make_client()
+
+    async def down() -> list[str]:
+        raise ConnectionError("qdrant down")
+
+    client.app.state.knowledge.catalog = down  # type: ignore[attr-defined]
+    assert client.get("/api/health").status_code == 503
+
+
+def test_serves_the_built_web_ui_beside_the_api(make_client, tmp_path):
+    (tmp_path / "index.html").write_text("<title>Knowledge base</title>")
+    client = make_client(web_dist=str(tmp_path))
+
+    assert "Knowledge base" in client.get("/").text
+    assert client.get("/api/health").json() == {"status": "ok"}
+    assert client.get("/missing.js").status_code == 404
+
+
 def test_full_thread_returns_409(make_client):
     client = make_client(max_turns_per_thread=1)
     thread = url()

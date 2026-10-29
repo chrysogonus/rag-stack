@@ -12,3 +12,12 @@ updates:
     directory: /web
     schedule:
       interval: weekly
+  # The pinned base images (Dockerfile) and services, Caddy among them (docker-compose*.yml).
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly

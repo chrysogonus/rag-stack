@@ -8,6 +8,7 @@ import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from datetime import datetime
 from typing import Any, Literal
 
 from langfuse import Langfuse, propagate_attributes  # noqa: TID251
@@ -106,6 +107,27 @@ async def rate_turn(trace_id: str, helpful: bool) -> bool:
         logger.warning("Rating for trace %s not stored", trace_id, exc_info=True)
         return False
     return not getattr(result, "rejected", 0)
+
+
+async def prune_traces(before: datetime) -> int | None:
+    """Delete the traces started before `before`; None when nothing is traced. Self-hosted
+    Langfuse OSS has no retention setting (an Enterprise feature), so this is it."""
+    if _client is None:
+        return None
+    api = _client.async_api
+    ids: set[str] = set()
+    cursor = None
+    while True:
+        page = await api.observations.get_many(
+            to_start_time=before, fields="core", limit=1000, cursor=cursor
+        )
+        ids.update(o.trace_id for o in page.data if o.trace_id)
+        if not (cursor := page.meta.cursor):
+            break
+    batch = sorted(ids)
+    for start in range(0, len(batch), 1000):
+        await api.trace.delete_multiple(trace_ids=batch[start : start + 1000])
+    return len(batch)
 
 
 def flush() -> None:

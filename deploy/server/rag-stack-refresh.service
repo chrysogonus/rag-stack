@@ -1,0 +1,12 @@
+# Installed by docs/deployment.md, which fills in @REPO@ and @USER@ (a member of the docker group).
+[Unit]
+Description=Refresh the rag-stack knowledge base
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=@USER@
+WorkingDirectory=@REPO@
+ExecStart=@REPO@/deploy/server/refresh.sh
+TimeoutStartSec=3h

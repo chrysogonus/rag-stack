@@ -32,8 +32,10 @@ writes an answer grounded in them.
 - Web UI: Vite + React + TypeScript in `web/`: the chat over a star-atlas sky (2D canvas, one
   constellation per source) and a lazily loaded three.js deep field; a Motion switch overrides
   `prefers-reduced-motion`.
-- Tracing: Langfuse, self-hosted (`make tracing`). Deploy: Kubernetes with a Helm chart, planned
-  (not built yet).
+- Tracing: Langfuse, self-hosted (`make tracing`). Deploy: Docker Compose on one VM
+  (`docker-compose.prod.yml`, `deploy/Caddyfile`, `docs/deployment.md`), from the image
+  `Dockerfile` builds and CI publishes on `v*` tags. Operator-specific files (legal pages, the
+  server's `.env`) stay out of this repo.
 - Users are public and anonymous: rate limits, token budgets and input caps are required,
   not optional.
 
@@ -56,10 +58,13 @@ src/rag_stack/
 config/sources.yaml     # the source allowlist and pinned upstream refs
 data/                   # raw snapshots, processed chunks, HTTP cache (not committed)
 web/           # chat UI
-deploy/        # systemd/: timer for `make refresh` (`make schedule`); vllm/: Qwen3 reranker template
+deploy/        # Caddyfile; server/: refresh and prune timers of the deployment; systemd/: timer for
+               # `make refresh` (`make schedule`); vllm/: Qwen3 reranker template
 docker-compose.yml  # Postgres, Qdrant; profiles `gpu` (vLLM) and `tracing` (Langfuse)
+docker-compose.prod.yml  # the deployment: api image, Caddy, restart policies, required secrets
+Dockerfile     # the deployed image: API, built web UI, CLI
 Makefile       # every command; `make` lists them
-.github/workflows/ci.yml  # CI: lint, secrets, types, unit tests, audit, build, web
+.github/workflows/ci.yml  # CI: lint, secrets, types, unit tests, audit, build, web, docker; publish on v*
 tests/
   fakes/       # fake LLM / embedder / reranker / retriever shared by unit tests
   fixtures/    # small verbatim excerpts of each source (see NOTICE.md)

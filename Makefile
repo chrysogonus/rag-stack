@@ -11,7 +11,7 @@ API_CMD := exec uv run uvicorn rag_stack.api.app:create_app --factory --reload -
 REFRESH_LOG = $(shell uv run python -c 'from rag_stack.config import Settings; print(Settings().data_dir)')/refresh.log
 UNITS := $(HOME)/.config/systemd/user
 
-.PHONY: help install format up down restart restart-api status logs services tracing migrate ingest index refresh rollback schedule unschedule ask \
+.PHONY: help install format up down restart restart-api status logs services tracing migrate ingest index refresh rollback prune schedule unschedule ask \
 	eval eval-retrieval eval-units eval-draft eval-labels eval-agreement \
 	ci lockfile lint secrets typecheck test audit build web-check evals e2e check-all
 
@@ -146,6 +146,9 @@ refresh: ## Ingest all sources, check and score a new index, serve it if it pass
 rollback: ## Serve the previous index generation again (a second rollback undoes it)
 	$(CLI) rollback
 	@if $(call ours,api); then $(MAKE) restart-api; fi
+
+prune: ## Delete conversations and traces older than CONVERSATION_RETENTION_DAYS / TRACE_RETENTION_DAYS
+	$(CLI) prune
 
 schedule: ## Refresh weekly (Sunday 03:00, or at the next start if missed) with a systemd user timer
 	@mkdir -p $(UNITS)

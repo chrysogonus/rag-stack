@@ -3,11 +3,12 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Annotated, Any, NamedTuple
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import anyio
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.sse import EventSourceResponse, ServerSentEvent
+from fastapi.staticfiles import StaticFiles
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
@@ -15,7 +16,7 @@ from pydantic import BaseModel, NonNegativeInt, StringConstraints
 
 from rag_stack import observability
 from rag_stack.agent.graph import build_graph
-from rag_stack.api.limits import ClientLimiter
+from rag_stack.api.limits import ClientLimiter, client_key
 from rag_stack.config import Settings
 from rag_stack.db.checkpointer import open_checkpointer
 from rag_stack.llm.base import ChatModel, Message
@@ -80,7 +81,11 @@ def create_app(
     """Build the API. By default the LLM comes from settings, conversations are stored in
     Postgres and the knowledge base is Qdrant with local embedding models."""
     settings = settings or Settings()
-    limiter = ClientLimiter(settings.rate_limit_per_minute, settings.daily_token_budget_per_client)
+    limiter = ClientLimiter(
+        settings.rate_limit_per_minute,
+        settings.daily_token_budget_per_client,
+        settings.daily_token_budget_total,
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -96,6 +101,7 @@ def create_app(
                 base_url=settings.llm_base_url,
             )
             knowledge = retriever or await asyncio.to_thread(open_knowledge_base, settings)
+            app.state.knowledge = knowledge
             app.state.graph = build_graph(model, saver, settings, knowledge)
             yield
         observability.flush()
@@ -124,10 +130,24 @@ def create_app(
         messages: list[Message] = state.values.get("messages", [])
         if sum(m["role"] == "user" for m in messages) >= settings.max_turns_per_thread:
             raise HTTPException(409, "This conversation is full. Please start a new chat.")
-        client = request.client.host if request.client else "unknown"
+        client = client_key(request.client.host if request.client else "unknown")
         if refusal := limiter.check(client):
             raise HTTPException(429, refusal)
+        # Reserved now, settled when the usage arrives: concurrent turns count at once, and a turn
+        # that fails or is disconnected before it reports usage still counts.
+        limiter.charge(client, settings.max_output_tokens)
         return Turn(client, len(messages) + 1)
+
+    @app.get("/api/health")
+    async def health(request: Request, graph: Graph) -> dict[str, str]:
+        """200 while Postgres (conversations) and Qdrant (the knowledge base) answer."""
+        try:
+            await graph.aget_state(thread_config(uuid4()))
+            await request.app.state.knowledge.catalog()
+        except Exception:
+            logger.exception("Health check failed")
+            raise HTTPException(503, "unavailable") from None
+        return {"status": "ok"}
 
     @app.get("/api/threads/{thread_id}/messages")
     async def get_messages(thread_id: UUID, graph: Graph) -> list[Message]:
@@ -137,7 +157,7 @@ def create_app(
     @app.post("/api/threads/{thread_id}/feedback", status_code=204)
     async def post_feedback(thread_id: UUID, body: Rating, request: Request, graph: Graph) -> None:
         """A reader's rating of one answer, stored as a score on that turn's trace."""
-        client = request.client.host if request.client else "unknown"
+        client = client_key(request.client.host if request.client else "unknown")
         if refusal := limiter.check(client):
             raise HTTPException(429, refusal)
         state = await graph.aget_state(thread_config(thread_id))
@@ -159,6 +179,7 @@ def create_app(
         config = thread_config(thread_id)
         written: list[str] = []
         done = False
+        reserved = settings.max_output_tokens
         try:
             async for part in graph.astream(
                 {"messages": [user]}, config, stream_mode=["custom", "updates"], version="v2"
@@ -168,7 +189,8 @@ def create_app(
                         written.append(part["data"]["delta"])
                         yield ServerSentEvent(event="delta", data={"text": part["data"]["delta"]})
                     else:
-                        limiter.charge(turn.client, part["data"]["usage"])
+                        limiter.charge(turn.client, part["data"]["usage"] - reserved)
+                        reserved = 0
                 elif part["type"] == "updates" and "retrieve" in part["data"]:
                     found = part["data"]["retrieve"]["sources"]
                     refs = source_refs(found, settings.retrieval_top_k)
@@ -183,6 +205,8 @@ def create_app(
                 event="error", data={"detail": "Something went wrong. Please try again."}
             )
         finally:
+            if done and reserved:
+                limiter.charge(turn.client, -reserved)  # abstained: the model was never asked
             if not done:
                 # Stopped, disconnected or failed: keep what was streamed, so the thread still
                 # alternates and a reload shows what the user saw. Shielded, because a client
@@ -190,4 +214,7 @@ def create_app(
                 with anyio.CancelScope(shield=True):
                     await save_stopped(graph, config, "".join(written), turn.length)
 
+    if settings.web_dist:
+        # Mounted last: the routes above take precedence over files of the same path.
+        app.mount("/", StaticFiles(directory=settings.web_dist, html=True), name="web")
     return app

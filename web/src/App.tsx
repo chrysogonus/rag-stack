@@ -352,7 +352,8 @@ export default function App() {
             <h1>What do you want to know about cybersecurity?</h1>
             <p>
               Each constellation is one source. When you ask, the passages behind the answer light up. Answers come
-              from an AI model and can be wrong, so check anything important.
+              from an AI model and can be wrong, so check anything important. Answers about law are information, not
+              legal advice.
             </p>
             <ul className="visually-hidden" aria-label="Sources">
               {SOURCES.map((s) => (
@@ -452,6 +453,11 @@ export default function App() {
               </>
             )}
           </p>
+          {/* The deployment serves these pages (deploy/Caddyfile); German law requires both. */}
+          <nav className="legal" aria-label="Legal">
+            <a href="/impressum">Impressum</a>
+            <a href="/datenschutz">Datenschutz</a>
+          </nav>
           <MotionSwitch />
         </div>
       </form>

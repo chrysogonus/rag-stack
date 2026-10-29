@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     max_turns_per_thread: int = 50
     rate_limit_per_minute: int = 10
     daily_token_budget_per_client: int = 200_000
+    # All clients together: bounds spend when requests come from many addresses.
+    daily_token_budget_total: int = 5_000_000
+    # Deleted by `rag_stack.cli prune`: conversations and traces whose last activity is older.
+    conversation_retention_days: int = 30
+    trace_retention_days: int = 30
 
     eval_judge_model: str = "gpt-6-luna"
     # Where the judge runs. Unset: on the RAG model's provider (LLM_*).
@@ -75,6 +80,10 @@ class Settings(BaseSettings):
     fetch_cache_ttl_hours: float = 24
     nvd_api_key: SecretStr = SecretStr("")
     github_token: SecretStr = SecretStr("")
+
+    # The built web UI (`npm run build`), served at / when set (the Docker image); in development
+    # the Vite dev server serves it instead.
+    web_dist: str | None = None
 
     # Tracing: the self-hosted Langfuse from `make tracing`. Without keys nothing is traced.
     langfuse_base_url: str = "http://localhost:3000"

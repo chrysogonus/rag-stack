@@ -242,8 +242,11 @@ Users are public and anonymous, so every request is capped (`.env`):
 - a thread that is full gets 409;
 - going over the per-client rate limit or the daily token budget gets 429.
 
-Behind a reverse proxy, start uvicorn with `--proxy-headers --forwarded-allow-ips=<proxy IP>`
-so these limits apply per user rather than per proxy.
+A daily token budget for all clients together (`DAILY_TOKEN_BUDGET_TOTAL`) bounds the cost of
+requests from many addresses; an IPv6 client counts by its /64. Behind a reverse proxy, start
+uvicorn with `--proxy-headers --forwarded-allow-ips=<proxy IP>` so these limits apply per user
+rather than per proxy (the deployment does: [docs/deployment.md](docs/deployment.md)).
+`GET /api/health` answers 200 while Postgres and Qdrant do.
 
 </details>
 
@@ -273,7 +276,7 @@ web/              chat UI (Vite, React, three.js)
 config/           source allowlist with pinned versions
 evals/datasets/   golden questions, thresholds, reports, run history
 tests/            unit, ai (real LLM), e2e
-deploy/           systemd timer for the weekly refresh, vLLM reranker template
+deploy/           Caddyfile and server timers for the deployment, local refresh timer, vLLM template
 ```
 
 **Read next:**
@@ -283,5 +286,6 @@ deploy/           systemd timer for the weekly refresh, vLLM reranker template
 - [docs/PLAN.md](docs/PLAN.md): the design, the measurements behind each choice, and the
   roadmap toward general cybersecurity research.
 - [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md): what is still unresolved.
+- [docs/deployment.md](docs/deployment.md): running the public chatbot on one VM.
 - [AGENTS.md](AGENTS.md): guidelines for contributors and coding agents.
 - [NOTICE.md](NOTICE.md): attribution and licenses.

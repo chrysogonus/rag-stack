@@ -1,0 +1,100 @@
+# Production on one VM, on top of docker-compose.yml (docs/deployment.md). With
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
+#   COMPOSE_PROFILES=tracing
+# in .env, a plain `docker compose` uses both files, here and in deploy/server/.
+
+# Every secret must be set in .env: the dev defaults in docker-compose.yml are published.
+x-required:
+  - ${DOMAIN:?DOMAIN must be set}
+  - ${IMAGE_TAG:?IMAGE_TAG must be a published version, e.g. 0.1.0}
+  - ${GHCR_OWNER:?GHCR_OWNER must be set}
+  - ${LEGAL_PAGES_PATH:?LEGAL_PAGES_PATH must name the folder with impressum.html and datenschutz.html}
+  - ${LLM_API_KEY:?LLM_API_KEY must be set}
+  - ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+  - ${LANGFUSE_POSTGRES_PASSWORD:?LANGFUSE_POSTGRES_PASSWORD must be set}
+  - ${LANGFUSE_SALT:?LANGFUSE_SALT must be set}
+  - ${LANGFUSE_ENCRYPTION_KEY:?LANGFUSE_ENCRYPTION_KEY must be set (openssl rand -hex 32)}
+  - ${LANGFUSE_NEXTAUTH_SECRET:?LANGFUSE_NEXTAUTH_SECRET must be set}
+  - ${LANGFUSE_CLICKHOUSE_PASSWORD:?LANGFUSE_CLICKHOUSE_PASSWORD must be set}
+  - ${LANGFUSE_REDIS_PASSWORD:?LANGFUSE_REDIS_PASSWORD must be set}
+  - ${LANGFUSE_MINIO_PASSWORD:?LANGFUSE_MINIO_PASSWORD must be set}
+  - ${LANGFUSE_PUBLIC_KEY:?LANGFUSE_PUBLIC_KEY must be set}
+  - ${LANGFUSE_SECRET_KEY:?LANGFUSE_SECRET_KEY must be set}
+  - ${LANGFUSE_ADMIN_EMAIL:?LANGFUSE_ADMIN_EMAIL must be set}
+  - ${LANGFUSE_ADMIN_PASSWORD:?LANGFUSE_ADMIN_PASSWORD must be set}
+
+# Docker's json-file logs never rotate by default.
+x-service: &service
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
+x-app: &app
+  <<: *service
+  image: ghcr.io/${GHCR_OWNER}/rag-stack:${IMAGE_TAG}
+  build: .
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql://rag:${POSTGRES_PASSWORD}@postgres:5432/rag
+    QDRANT_URL: http://qdrant:6333
+    LANGFUSE_BASE_URL: http://langfuse-web:3000
+    DATA_DIR: /app/data
+    # Trust X-Forwarded-For only from Caddy, on the Compose network.
+    FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+  volumes:
+    - kb_data:/app/data
+    - models:/models
+
+services:
+  api:
+    <<: *app
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      qdrant: {condition: service_started}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      # The models load at startup; the first download takes minutes.
+      start_period: 10m
+
+  # Creates or upgrades the edge table, then exits; `api` waits for it.
+  migrate:
+    <<: *app
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  # Stock Caddy, pinned: TLS, headers, the legal pages, and the proxy to api (deploy/Caddyfile).
+  caddy:
+    <<: *service
+    image: caddy:2-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${LEGAL_PAGES_PATH}:/srv/legal:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api]
+
+  qdrant: *service
+  postgres: *service
+  langfuse-web: *service
+  langfuse-worker: *service
+  langfuse-postgres: *service
+  langfuse-clickhouse: *service
+  langfuse-redis: *service
+  langfuse-minio: *service
+
+volumes:
+  kb_data:
+  models:
+  caddy_data:
+  caddy_config:

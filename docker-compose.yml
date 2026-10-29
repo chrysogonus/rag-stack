@@ -10,12 +10,13 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
-  # Conversations, via the LangGraph checkpointer. Local dev credentials only.
+  # Conversations, via the LangGraph checkpointer. The defaults are local dev credentials;
+  # a deployment sets every ${...} secret in .env (docker-compose.prod.yml requires them).
   postgres:
     image: postgres:17.6
     environment:
       POSTGRES_USER: rag
-      POSTGRES_PASSWORD: rag
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag}
       POSTGRES_DB: rag
     ports:
       - "127.0.0.1:5432:5432"
@@ -92,43 +93,44 @@ services:
     environment:
       <<: &langfuse-env
         NEXTAUTH_URL: http://localhost:3000
-        DATABASE_URL: postgresql://langfuse:langfuse@langfuse-postgres:5432/langfuse
-        SALT: local-dev-salt
-        ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+        DATABASE_URL: postgresql://langfuse:${LANGFUSE_POSTGRES_PASSWORD:-langfuse}@langfuse-postgres:5432/langfuse
+        SALT: ${LANGFUSE_SALT:-local-dev-salt}
+        ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
         TELEMETRY_ENABLED: "false"
         CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
         CLICKHOUSE_URL: http://langfuse-clickhouse:8123
         CLICKHOUSE_USER: clickhouse
-        CLICKHOUSE_PASSWORD: clickhouse
+        CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD:-clickhouse}
         CLICKHOUSE_CLUSTER_ENABLED: "false"
         LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
         LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
         LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
-        LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+        LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_MINIO_PASSWORD:-miniosecret}
         LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
         LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
         LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
         LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
         LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
         LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: minio
-        LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+        LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_MINIO_PASSWORD:-miniosecret}
         LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://langfuse-minio:9000
         LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
         LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
         REDIS_HOST: langfuse-redis
         REDIS_PORT: "6379"
-        REDIS_AUTH: redissecret
-      NEXTAUTH_SECRET: local-dev-secret
+        REDIS_AUTH: ${LANGFUSE_REDIS_PASSWORD:-redissecret}
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-local-dev-secret}
+      AUTH_DISABLE_SIGNUP: ${LANGFUSE_DISABLE_SIGNUP:-false}
       # A ready project whose keys match .env.example, and a login for the UI.
       LANGFUSE_INIT_ORG_ID: rag-stack
       LANGFUSE_INIT_ORG_NAME: rag-stack
       LANGFUSE_INIT_PROJECT_ID: rag-stack
       LANGFUSE_INIT_PROJECT_NAME: rag-stack
-      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-local
-      LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-local
-      LANGFUSE_INIT_USER_EMAIL: dev@localhost.local
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-local}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-local}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_ADMIN_EMAIL:-dev@localhost.local}
       LANGFUSE_INIT_USER_NAME: dev
-      LANGFUSE_INIT_USER_PASSWORD: local-dev-password
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_ADMIN_PASSWORD:-local-dev-password}
     healthcheck:
       # Next.js listens on the container's hostname, not on 127.0.0.1.
       test: ["CMD-SHELL", "wget -q -O /dev/null http://$$HOSTNAME:3000/api/public/health || exit 1"]
@@ -147,7 +149,7 @@ services:
     image: postgres:17.6
     environment:
       POSTGRES_USER: langfuse
-      POSTGRES_PASSWORD: langfuse
+      POSTGRES_PASSWORD: ${LANGFUSE_POSTGRES_PASSWORD:-langfuse}
       POSTGRES_DB: langfuse
     volumes:
       - langfuse_postgres_data:/var/lib/postgresql/data
@@ -164,7 +166,7 @@ services:
     environment:
       CLICKHOUSE_DB: default
       CLICKHOUSE_USER: clickhouse
-      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD:-clickhouse}
     volumes:
       - langfuse_clickhouse_data:/var/lib/clickhouse
       - langfuse_clickhouse_logs:/var/log/clickhouse-server
@@ -177,11 +179,13 @@ services:
   langfuse-redis:
     profiles: [tracing]
     image: redis:7.4
-    command: --requirepass redissecret --maxmemory-policy noeviction
+    command: --requirepass ${LANGFUSE_REDIS_PASSWORD:-redissecret} --maxmemory-policy noeviction
+    environment:
+      REDISCLI_AUTH: ${LANGFUSE_REDIS_PASSWORD:-redissecret}
     volumes:
       - langfuse_redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redissecret", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 3s
       timeout: 10s
       retries: 10
@@ -194,7 +198,7 @@ services:
     command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" /data'
     environment:
       MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: miniosecret
+      MINIO_ROOT_PASSWORD: ${LANGFUSE_MINIO_PASSWORD:-miniosecret}
     volumes:
       - langfuse_minio_data:/data
     healthcheck:

@@ -338,5 +338,6 @@ the one-time embedding of about 35k chunks on CPU, and a golden set of about 300
 
 ## Not built (out of scope)
 
-Auth, multi-tenancy, deployment (the Helm chart), and any source not on the allowlist. Outbound links
+Auth, multi-tenancy, scaling beyond one VM (the deployment is Docker Compose on one VM:
+[deployment.md](deployment.md)), and any source not on the allowlist. Outbound links
 in ATLAS and OWASP (news, papers) are stored as metadata and never fetched.

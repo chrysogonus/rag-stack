@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -139,3 +140,40 @@ async def test_a_rating_langfuse_rejects_is_not_stored(monkeypatch):
 async def test_a_rating_is_not_stored_while_langfuse_is_unreachable(spans):
     # The fixture's client points at a closed port: the rating must fail, not vanish in a queue.
     assert await observability.rate_turn("a" * 32, True) is False
+
+
+class Traces:
+    """Langfuse's observation list (two pages) and trace deletion."""
+
+    def __init__(self) -> None:
+        self.asked: list[dict] = []
+        self.deleted: list[list[str]] = []
+        self.observations = SimpleNamespace(get_many=self._get_many)
+        self.trace = SimpleNamespace(delete_multiple=self._delete_multiple)
+
+    async def _get_many(self, **query):
+        self.asked.append(query)
+        if query["cursor"] is None:
+            data = [SimpleNamespace(trace_id="t1"), SimpleNamespace(trace_id="t2")]
+            return SimpleNamespace(data=data, meta=SimpleNamespace(cursor="next"))
+        data = [SimpleNamespace(trace_id="t2"), SimpleNamespace(trace_id=None)]
+        return SimpleNamespace(data=data, meta=SimpleNamespace(cursor=None))
+
+    async def _delete_multiple(self, trace_ids):
+        self.deleted.append(trace_ids)
+
+
+async def test_prune_deletes_each_trace_started_before_the_cutoff_once(monkeypatch):
+    api = Traces()
+    monkeypatch.setattr(observability, "_client", SimpleNamespace(async_api=api))
+    cutoff = datetime(2026, 10, 1, tzinfo=UTC)
+
+    assert await observability.prune_traces(cutoff) == 2
+    assert {q["to_start_time"] for q in api.asked} == {cutoff}
+    assert api.deleted == [["t1", "t2"]]
+
+
+async def test_prune_without_tracing_does_nothing(monkeypatch):
+    monkeypatch.setattr(observability, "_client", None)
+
+    assert await observability.prune_traces(datetime.now(UTC)) is None

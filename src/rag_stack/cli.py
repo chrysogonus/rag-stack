@@ -1,4 +1,4 @@
-"""Command line: ingest, index, refresh, ask, eval. Run `uv run python -m rag_stack.cli --help`."""
+"""Command line: ingest, index, refresh, prune, ask, eval. `python -m rag_stack.cli --help`."""
 
 import argparse
 import asyncio
@@ -71,6 +71,25 @@ def refresh(settings: Settings, command: str, force: bool) -> int:
     return code
 
 
+async def prune(settings: Settings) -> int:
+    """Delete conversations and traces older than their retention periods."""
+    from datetime import UTC, datetime, timedelta
+
+    from rag_stack import observability
+    from rag_stack.db.checkpointer import open_checkpointer, prune_threads
+
+    now = datetime.now(UTC)
+    async with open_checkpointer(settings.database_url) as checkpointer:
+        before = now - timedelta(days=settings.conversation_retention_days)
+        threads = await prune_threads(checkpointer, before)
+    traces = await observability.prune_traces(now - timedelta(days=settings.trace_retention_days))
+    print(
+        f"deleted {threads} conversations and "
+        + ("no traces (tracing is off)" if traces is None else f"{traces} traces")
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="rag-stack")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -85,6 +104,9 @@ def main(argv: list[str] | None = None) -> int:
         "--force", action="store_true", help="build even if a source shrank by more than 10%%"
     )
     commands.add_parser("rollback", help="serve the previous index generation again")
+    commands.add_parser(
+        "prune", help="delete conversations and traces older than their retention periods"
+    )
     ask_cmd = commands.add_parser("ask", help="answer one question from the knowledge base")
     ask_cmd.add_argument("question")
     run_eval = commands.add_parser(
@@ -154,6 +176,8 @@ def main(argv: list[str] | None = None) -> int:
             print(error, file=sys.stderr)
             return 1
         return 0
+    if args.command == "prune":
+        return asyncio.run(prune(settings))
     if args.command == "ask":
         from rag_stack.agent.ask import ask
 

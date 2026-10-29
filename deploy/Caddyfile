@@ -1,0 +1,63 @@
+# The public entry point (the `caddy` service of docker-compose.prod.yml): the app and the
+# operator's legal pages on one domain with automatic TLS. DOMAIN comes from .env
+# (docs/deployment.md); DOMAIN=localhost serves a local test over a self-signed certificate.
+{
+	servers {
+		timeouts {
+			read_body 30s
+			read_header 10s
+			idle 5m
+		}
+	}
+}
+
+{$DOMAIN} {
+	# No access log: it would hold every visitor's IP address (see the privacy policy).
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# The UI loads nothing from other origins; data: is the star mask in index.css.
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+		-Server
+	}
+
+	request_body {
+		max_size 64KB
+	}
+
+	# FastAPI's interactive docs and schema stay private (`make up` still uses them locally).
+	@internal path /docs /docs/* /redoc /openapi.json
+	handle @internal {
+		respond 404
+	}
+
+	handle /api/* {
+		header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+		# Answers stream as server-sent events: pass each chunk on at once, uncompressed.
+		reverse_proxy api:8000 {
+			flush_interval -1
+		}
+	}
+
+	# Operator-supplied pages from the private deploy repo, mounted at /srv/legal.
+	handle /impressum {
+		root * /srv/legal
+		rewrite * /impressum.html
+		file_server
+	}
+	handle /datenschutz {
+		root * /srv/legal
+		rewrite * /datenschutz.html
+		file_server
+	}
+
+	# The web UI, served by the api image. Built file names change with their content.
+	handle {
+		encode zstd gzip
+		header /assets/* Cache-Control "public, max-age=31536000, immutable"
+		reverse_proxy api:8000
+	}
+}
