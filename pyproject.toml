@@ -23,7 +23,7 @@ dependencies = [
     "pypdf>=6.21.2",
     "pyyaml>=6.0.3",
     # At most one minor version from the Qdrant server in docker-compose.yml (v1.15).
-    "qdrant-client>=1.16.2,<1.17",
+    "qdrant-client>=1.16.2,<1.21",
     "sqlalchemy>=2.1.6",
     "uvicorn[standard]>=0.54.0",
 ]
