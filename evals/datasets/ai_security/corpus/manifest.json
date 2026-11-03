@@ -7,9 +7,9 @@
  },
  {
   "source_id": "atlas",
-  "version": "2026.09",
-  "sha256": "d76528c1355063d29b7de0f1acab6a49319b30be9a3e95c544dfc6e3b000d698",
-  "retrieved_at": "2026-10-26T22:59:11+00:00"
+  "version": "2026.10",
+  "sha256": "859ce8dd82462759b45e71edf59f3fd25990e530f2b49804c20224b9260e9fa8",
+  "retrieved_at": "2026-10-29T20:37:15+00:00"
  },
  {
   "source_id": "attack",
@@ -43,9 +43,9 @@
  },
  {
   "source_id": "ki-mig",
-  "version": "20260729215513",
-  "sha256": "136ba3312278ab9ee9274ac7af98191bd52142c48be5a398d0b36345ed33127c",
-  "retrieved_at": "2026-10-26T22:59:14+00:00"
+  "version": "20261028220005",
+  "sha256": "d4a1878f290b0e72d3bd3683ef8b8aa4e3937e3854a0374b3a5eaa943242c7b8",
+  "retrieved_at": "2026-10-29T20:37:42+00:00"
  },
  {
   "source_id": "owasp-agentic-2026",
@@ -61,8 +61,8 @@
  },
  {
   "source_id": "vulns",
-  "version": "2026-10-27",
-  "sha256": "86cc7adc7dd44b66be7fcc7f942382a1516e868547bdd5cd37e2f0472d464d29",
-  "retrieved_at": "2026-10-27T14:58:48+00:00"
+  "version": "2026-10-29",
+  "sha256": "7df8f351866aaadff6220cc5b1c9471c8329d5b72b023b03d2d947ddd614e907",
+  "retrieved_at": "2026-10-29T20:37:42+00:00"
  }
 ]

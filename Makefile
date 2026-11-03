@@ -11,7 +11,7 @@ API_CMD := exec uv run uvicorn rag_stack.api.app:create_app --factory --reload -
 REFRESH_LOG = $(shell uv run python -c 'from rag_stack.config import Settings; print(Settings().data_dir)')/refresh.log
 UNITS := $(HOME)/.config/systemd/user
 
-.PHONY: help install format up down restart restart-api status logs services tracing migrate ingest index refresh rollback schedule unschedule ask \
+.PHONY: help install format up down restart restart-api status logs services tracing migrate ingest reparse index refresh rollback schedule unschedule ask \
 	eval eval-retrieval eval-units eval-draft eval-labels eval-agreement \
 	ci lockfile lint secrets typecheck test audit build web-check evals e2e check-all
 
@@ -132,6 +132,9 @@ migrate: services ## Create or upgrade our Postgres tables (the edge table)
 
 ingest: ## Fetch, snapshot and chunk sources: make ingest SOURCE=<id|all> (unchanged ones are skipped)
 	$(CLI) ingest $(SOURCE)
+
+reparse: ## Parse the raw snapshots again offline, print sha256 of chunks and edges: make reparse [SOURCE=<id|all>]
+	$(CLI) reparse $(or $(SOURCE),all)
 
 index: migrate ## Embed processed chunks into Qdrant and load edges: make index SOURCE=<id|all>
 	$(CLI) index $(SOURCE)

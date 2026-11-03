@@ -65,7 +65,7 @@ select = ["E", "F", "I", "B", "UP", "TID", "S"]
 "langfuse".msg = "Tracing lives only in rag_stack.observability."
 
 [tool.pyright]
-include = ["src", "tests"]
+include = ["src", "tests", "packs"]
 extraPaths = ["tests"]
 
 [tool.uv]

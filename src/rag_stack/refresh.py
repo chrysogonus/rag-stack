@@ -6,7 +6,7 @@ import fcntl
 import hashlib
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Callable, Generator, Iterable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -21,8 +21,9 @@ from rag_stack.db import edges as edge_store
 from rag_stack.db.edges import EdgeGraph
 from rag_stack.evals import harness
 from rag_stack.ingestion.models import Chunk, Edge
-from rag_stack.ingestion.pipeline import MODULES, load_processed
+from rag_stack.ingestion.pipeline import load_processed
 from rag_stack.llm.embeddings import Embedder, Reranker, SparseEmbedder
+from rag_stack.pack import Source
 from rag_stack.retrieval import generations as gens
 from rag_stack.retrieval.index import embedding_in, ensure_collection, index_source, match
 from rag_stack.retrieval.retriever import knowledge_base
@@ -78,9 +79,10 @@ def gate(diffs: dict[str, Diff], max_drop: float = MAX_DROP) -> list[str]:
     return reasons
 
 
-def missing_gold(chunks: Iterable[Chunk]) -> list[str]:
+def missing_gold(settings: Settings, chunks: Iterable[Chunk]) -> list[str]:
     found = {c.native_id for c in chunks}
-    return sorted({g for case in harness.load_cases() for g in case["gold_ids"]} - found)
+    cases = harness.load_cases(settings.pack.evals.dataset)
+    return sorted({g for case in cases for g in case["gold_ids"]} - found)
 
 
 def served_chunks(client: QdrantClient, collection: str) -> dict[str, tuple[str, list[Chunk]]]:
@@ -131,6 +133,7 @@ def build_candidate(
     processed: Processed,
     embedder: Embedder,
     sparse: SparseEmbedder,
+    sources: Mapping[str, Source],
 ) -> int:
     """Fill the candidate: unchanged sources are copied from the served collection with their
     vectors; of a changed source only new and changed chunks are embedded. Returns the number of
@@ -141,7 +144,15 @@ def build_candidate(
             gens.copy_points(client, served, candidate, only)
         else:
             index_source(
-                client, candidate, source_id, sha, chunks, embedder, sparse, reuse_from=served
+                client,
+                candidate,
+                source_id,
+                sha,
+                chunks,
+                embedder,
+                sparse,
+                sources=sources,
+                reuse_from=served,
             )
     return sum(len(chunks) for _, chunks, _ in processed.values())
 
@@ -174,7 +185,8 @@ async def refresh(
         served = gens.serving(client, alias)
         before = served_chunks(client, served) if served else {}
         served_shas = {s: sha for s, (sha, _) in before.items()}
-        processed: Processed = {s: p for s in MODULES if (p := load_processed(settings, s))}
+        sources = settings.pack.sources
+        processed: Processed = {s: p for s in sources if (p := load_processed(settings, s))}
         shas = {s: sha for s, (sha, _, _) in processed.items()}
         served_model = embedding_in(client, served) if served else None
         switch = served_model not in (None, settings.embedding)
@@ -190,13 +202,15 @@ async def refresh(
         notes.insert(0, changes(diffs, processed, len(processed) - len(diffs)))
         if switch:
             notes.insert(1, f"embedding {served_model} → {settings.embedding}: rebuilt in full")
-        # A served source no longer in MODULES was retired on purpose: the candidate drops it.
-        if removed := sorted(served_shas.keys() - MODULES.keys()):
+        # A served source no longer in the pack was retired on purpose: the candidate drops it.
+        if removed := sorted(served_shas.keys() - sources.keys()):
             notes.insert(1, f"removed: {', '.join(removed)}")
         missing = served_shas.keys() - shas.keys() - set(removed)
         reasons = [f"{s} has no processed snapshot" for s in sorted(missing)]
         reasons += [] if force else gate(diffs)
-        if missing := missing_gold(c for _, chunks, _ in processed.values() for c in chunks):
+        if missing := missing_gold(
+            settings, (c for _, chunks, _ in processed.values() for c in chunks)
+        ):
             reasons.append(f"gold IDs missing: {', '.join(missing)}")
         if reasons:
             tidy(client, alias, db)
@@ -210,7 +224,14 @@ async def refresh(
         ensure_collection(client, candidate, embedder.dim)
         # Vectors of another model are never copied or reused.
         expected = build_candidate(
-            client, None if switch else served, served_shas, candidate, processed, embedder, sparse
+            client,
+            None if switch else served,
+            served_shas,
+            candidate,
+            processed,
+            embedder,
+            sparse,
+            settings.pack.sources,
         )
         for source_id, (_, _, edges) in processed.items():
             edge_store.replace_edges(db, generation, source_id, edges)
@@ -223,7 +244,7 @@ async def refresh(
         async def scores(collection: str, queries: Embedder) -> dict[str, float | None]:
             graph = EdgeGraph(edge_store.load_edges(db, gens.generation_of(alias, collection)))
             kb = knowledge_base(settings, client, collection, queries, sparse, reranker, graph)
-            return (await harness.retrieval_scores(kb, "all"))[0]["all"]
+            return (await harness.retrieval_scores(kb, "all", settings.pack.evals))[0]["all"]
 
         new = await scores(candidate, embedder)
         old = None
@@ -241,7 +262,7 @@ async def refresh(
                 f"{m} {new[m]:.3f}" + (f" (served {old[m]:.3f})" if old else "") for m in METRICS
             )
         )
-        thresholds = yaml.safe_load((harness.DATASET / "thresholds.yaml").read_text())
+        thresholds = yaml.safe_load((settings.pack.evals.dataset / "thresholds.yaml").read_text())
         reasons = [
             f"{m} {new[m]} < {thresholds[m]}" for m in METRICS if (new[m] or 0) < thresholds[m]
         ]

@@ -3,7 +3,6 @@
 import io
 import json
 import zipfile
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -506,7 +505,9 @@ def test_legal_parsers_take_ids_and_licenses_from_the_registry(monkeypatch):
     """Another act through the same parsers: its short name prefixes every ID; only the AI Act
     keeps bare recital and annex IDs."""
     for source_id in ("nis2", "bsig"):
-        monkeypatch.setitem(SOURCES, source_id, replace(SOURCES["eu-ai-act"], id=source_id))
+        monkeypatch.setitem(
+            SOURCES, source_id, SOURCES["eu-ai-act"].model_copy(update={"id": source_id})
+        )
     monkeypatch.setitem(EU_ACTS, "nis2", ("NIS2", "NIS2"))
     monkeypatch.setitem(GERMAN_LAWS, "bsig", ("BSIG", "BSIG"))
     names = ["consolidated_en.xhtml", "oj_en.xhtml"]

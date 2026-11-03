@@ -9,15 +9,15 @@ import asyncio
 import json
 import random
 from collections import defaultdict
+from pathlib import Path
 from typing import Any
 
 from rag_stack.agent.answer import FOOTER_START
 from rag_stack.config import Settings
-from rag_stack.evals.harness import CATEGORIES, DATASET, judge, judge_model, load_cases
+from rag_stack.evals.harness import judge, judge_model, load_cases
 from rag_stack.llm.base import ChatModel
 from rag_stack.retrieval.retriever import Retriever, open_knowledge_base
 
-LABELS = DATASET / "judge_labels.jsonl"
 # Per category: RAG answers and baseline answers, so both sides of the comparison are checked.
 PER_CATEGORY = {"rag": 3, "baseline": 2}
 
@@ -35,20 +35,26 @@ async def passages(kb: Retriever, case: dict, result: dict, top_k: int) -> list[
     ]  # fmt: skip
 
 
+def sheet(settings: Settings) -> Path:
+    """The labeling sheet, next to the pack's golden set."""
+    return settings.pack.evals.dataset / "judge_labels.jsonl"
+
+
 async def write_sheet(settings: Settings, kb: Retriever | None = None, seed: int = 0) -> int:
     """Sample answers from results.json into a sheet to label; never overwrites labels."""
-    if LABELS.exists():
-        print(f"{LABELS.name} exists: label it, or delete it to draw a new sample")
+    labels, evals = sheet(settings), settings.pack.evals
+    if labels.exists():
+        print(f"{labels.name} exists: label it, or delete it to draw a new sample")
         return 1
     kb = kb or await asyncio.to_thread(open_knowledge_base, settings)
-    results = json.loads((DATASET / "results.json").read_text())
+    results = json.loads((evals.dataset / "results.json").read_text())
     by_category: dict[str, list[dict]] = defaultdict(list)
     for r in results:
         by_category[r["category"]].append(r)
     rng = random.Random(seed)  # noqa: S311 (sampling)
-    cases = {c["id"]: c for c in load_cases()}
+    cases = {c["id"]: c for c in load_cases(evals.dataset)}
     rows = []
-    for category in CATEGORIES:
+    for category in evals.categories:
         for kind, n in PER_CATEGORY.items():
             for r in rng.sample(by_category[category], min(n, len(by_category[category]))):
                 answer = r["answer"] if kind == "rag" else r["baseline_answer"]
@@ -65,26 +71,28 @@ async def write_sheet(settings: Settings, kb: Retriever | None = None, seed: int
                         "answer": answer.split(FOOTER_START, 1)[0],
                         # What the judge saw with a RAG answer; the baseline answers without.
                         "sources": seen,
-                        # 1-5 by the rubric in evals/rubrics/judge_v1.md; null = not labeled.
+                        # 1-5 by the pack's rubric (Evals.rubric); null = not labeled.
                         "correctness": None,
                     }
                 )
     rng.shuffle(rows)  # RAG and baseline answers mixed, categories interleaved
-    LABELS.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
-    print(f"{len(rows)} answers written to {LABELS.name}: set each correctness to 1-5")
+    labels.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+    print(f"{len(rows)} answers written to {labels.name}: set each correctness to 1-5")
     return 0
 
 
 async def agreement(settings: Settings, llm: ChatModel | None = None) -> int:
     """Judge the labeled answers again and compare with the labels (one call per label)."""
-    rows = [json.loads(line) for line in LABELS.read_text().splitlines() if line]
+    labels = sheet(settings)
+    rows = [json.loads(line) for line in labels.read_text().splitlines() if line]
     labeled = [r for r in rows if r["correctness"] is not None]
     if not labeled:
-        print(f"no labels in {LABELS.name} yet")
+        print(f"no labels in {labels.name} yet")
         return 1
     if bad := [r["id"] for r in labeled if r["correctness"] not in (1, 2, 3, 4, 5)]:
         raise ValueError(f"correctness must be 1-5: {bad}")
     llm = llm or judge_model(settings)
+    rubric = settings.pack.evals.rubric.read_text()
     gate = asyncio.Semaphore(4)
 
     async def score(row: dict[str, Any]) -> float:
@@ -92,7 +100,7 @@ async def agreement(settings: Settings, llm: ChatModel | None = None) -> int:
         if row["previous_question"]:
             case["follow_up_of"] = row["previous_question"]
         async with gate:
-            verdict = await judge(llm, case, row["answer"], row["sources"])
+            verdict = await judge(llm, case, row["answer"], row["sources"], rubric)
         return verdict["correctness"] * 4 + 1  # back to the rubric's 1-5
 
     judged = await asyncio.gather(*(score(r) for r in labeled))

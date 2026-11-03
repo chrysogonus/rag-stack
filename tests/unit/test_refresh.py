@@ -14,6 +14,8 @@ from rag_stack.ingestion.pipeline import write_processed
 from rag_stack.retrieval import generations as gens
 from rag_stack.retrieval.index import embedding_in, ensure_collection, index_source
 
+SOURCES = Settings().pack.sources
+
 CASES = [
     {"question": "What is AML.T0001?", "split": "dev", "category": "id-exact",
      "gold_ids": ["AML.T0001"]},
@@ -43,7 +45,7 @@ def owasp() -> list:
 @pytest.fixture
 def env(tmp_path, monkeypatch):
     """A data dir with two processed sources, in-memory Qdrant and edge store, two questions."""
-    monkeypatch.setattr(harness, "load_cases", lambda: CASES)
+    monkeypatch.setattr(harness, "load_cases", lambda _: CASES)
     settings = Settings(data_dir=str(tmp_path), qdrant_collection="kb", database_url="fake")
     store = FakeEdgeStore().install(monkeypatch)
     embedder = CountingEmbedder()
@@ -65,8 +67,19 @@ def env(tmp_path, monkeypatch):
     write("owasp-llm-2026", "o1", owasp())
     # Indexed before generations existed: a real collection named like the alias.
     ensure_collection(client, "kb", embedder.dim)
-    index_source(client, "kb", "atlas", "a1", atlas(), embedder, FakeSparseEmbedder())
-    index_source(client, "kb", "owasp-llm-2026", "o1", owasp(), embedder, FakeSparseEmbedder())
+    index_source(
+        client, "kb", "atlas", "a1", atlas(), embedder, FakeSparseEmbedder(), sources=SOURCES
+    )
+    index_source(
+        client,
+        "kb",
+        "owasp-llm-2026",
+        "o1",
+        owasp(),
+        embedder,
+        FakeSparseEmbedder(),
+        sources=SOURCES,
+    )
     store.rows[""] = [EDGE]
     embedder.embedded = 0
 
@@ -202,11 +215,13 @@ async def test_a_source_that_shrank_blocks_before_anything_is_built(env):
 
 
 @pytest.mark.anyio
-async def test_a_retired_source_is_dropped_and_one_without_a_snapshot_blocks(env, monkeypatch):
+async def test_a_retired_source_is_dropped_and_one_without_a_snapshot_blocks(
+    env, monkeypatch, use_pack
+):
     await env.run()
     served = gens.serving(env.client, "kb")
-    monkeypatch.setattr(harness, "load_cases", lambda: CASES[:1])
-    monkeypatch.setattr(refresh, "MODULES", {"atlas": "atlas"})
+    monkeypatch.setattr(harness, "load_cases", lambda _: CASES[:1])
+    use_pack(sources={"atlas": SOURCES["atlas"]})
 
     code, line = await env.run()
 
@@ -214,8 +229,8 @@ async def test_a_retired_source_is_dropped_and_one_without_a_snapshot_blocks(env
     candidate = gens.serving(env.client, "kb")
     assert candidate != served and env.client.count(candidate).count == 10
 
-    # A source still in MODULES whose snapshot is gone is not retired: it blocks.
-    monkeypatch.setattr(refresh, "MODULES", {"atlas": "atlas", "ki-mig": "gesetze_im_internet"})
+    # A source still in the pack whose snapshot is gone is not retired: it blocks.
+    use_pack(sources={s: SOURCES[s] for s in ("atlas", "ki-mig")})
     env.client.upsert(
         candidate, env.client.retrieve(served, [owasp()[0].point_id], with_vectors=True)
     )
@@ -243,8 +258,8 @@ async def test_a_retrieval_regression_blocks_and_keeps_the_candidate_for_inspect
     env.write("atlas", "a2", atlas(10, "changed"))
     real = harness.retrieval_scores
 
-    async def worse_candidate(kb, split):
-        summary, seconds = await real(kb, split)
+    async def worse_candidate(kb, split, evals):
+        summary, seconds = await real(kb, split, evals)
         if kb.collection != served:
             summary["all"] = {"recall_at_10": 0.95, "mrr": 0.9}
         return summary, seconds
@@ -279,7 +294,7 @@ async def test_a_blocked_first_build_is_never_served_by_a_later_run(env, monkeyp
     env.client.delete_collection("kb")  # a fresh machine: nothing indexed yet
     real = harness.retrieval_scores
 
-    async def nothing_found(kb, split):
+    async def nothing_found(kb, split, evals):
         return {"all": {"recall_at_10": 0.0, "mrr": 0.0}}, []
 
     monkeypatch.setattr(harness, "retrieval_scores", nothing_found)
@@ -351,10 +366,20 @@ def test_vectors_of_another_model_are_never_reused():
     new.name = "fastembed:other"
     for collection in ("served", "candidate"):
         ensure_collection(client, collection, old.dim)
-    index_source(client, "served", "atlas", "a1", atlas(3), old, FakeSparseEmbedder())
+    index_source(
+        client, "served", "atlas", "a1", atlas(3), old, FakeSparseEmbedder(), sources=SOURCES
+    )
 
     index_source(
-        client, "candidate", "atlas", "a1", atlas(3), new, FakeSparseEmbedder(), reuse_from="served"
+        client,
+        "candidate",
+        "atlas",
+        "a1",
+        atlas(3),
+        new,
+        FakeSparseEmbedder(),
+        reuse_from="served",
+        sources=SOURCES,
     )
 
     assert new.embedded == 3

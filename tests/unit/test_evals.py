@@ -3,9 +3,8 @@ import json
 import pytest
 from fakes.embeddings import chunk
 
+from rag_stack.config import Settings
 from rag_stack.evals.harness import (
-    CATEGORIES,
-    DATASET,
     SPLITS,
     check_thresholds,
     citations,
@@ -13,6 +12,11 @@ from rag_stack.evals.harness import (
     summarize,
 )
 from rag_stack.evals.metrics import bootstrap_ci, citation_precision, mean, mrr, recall_at_k
+
+PACK = Settings().pack
+DATASET, CATEGORIES = PACK.evals.dataset, PACK.evals.categories
+SOURCES = PACK.sources
+RUBRIC = PACK.evals.rubric.read_text()
 
 
 def test_recall_and_mrr_count_distinct_ids():
@@ -48,7 +52,11 @@ def test_citations_read_links_to_sources_and_normalize_bracketed_ids():
     m0019 = chunk("AML.M0019")
     text = f"Per [Article 50(1)] and [AML.T0051, AML.M0019], see [Access control]({m0019.url})."
 
-    assert citations(text, [m0019]) == ["AML.M0019", "AI Act Art. 50(1)", "AML.T0051"]
+    assert citations(text, [m0019], PACK.detect_ids) == [
+        "AML.M0019",
+        "AI Act Art. 50(1)",
+        "AML.T0051",
+    ]
 
 
 def test_summary_and_thresholds():
@@ -79,7 +87,7 @@ def test_summary_and_thresholds():
 
 
 def test_golden_set_has_the_required_shape():
-    cases = load_cases()
+    cases = load_cases(DATASET)
     counts = {c: sum(case["category"] == c for case in cases) for c in CATEGORIES}
 
     # At least the original set; reviewed drafts add to it.
@@ -164,13 +172,13 @@ async def test_the_judge_is_asked_once_more_when_its_json_is_broken():
     case = {"id": "x", "question": "Q?", "key_facts": ["F"]}
     broken = '{"correctness": 5 "reason": "says "hi""}'
     llm = FakeChatModel(broken, '```json\n{"correctness": 5, "reason": "ok"}\n```')
-    assert await judge(llm, case, "A", None) == {
+    assert await judge(llm, case, "A", None, RUBRIC) == {
         "correctness": 1.0, "faithfulness": None, "reason": "ok"
     }  # fmt: skip
     assert llm.calls[0] == llm.calls[1]
 
     with pytest.raises(ValueError, match="x: judge returned no valid JSON twice"):
-        await judge(FakeChatModel(broken, "no verdict"), case, "A", None)
+        await judge(FakeChatModel(broken, "no verdict"), case, "A", None, RUBRIC)
 
 
 @pytest.mark.anyio
@@ -305,13 +313,12 @@ async def test_a_follow_up_is_stale_when_its_previous_turn_retrieves_something_e
 
 
 @pytest.mark.anyio
-async def test_stale_questions_lists_what_make_eval_would_change(tmp_path, monkeypatch):
-    from rag_stack.config import Settings
+async def test_stale_questions_lists_what_make_eval_would_change(tmp_path, monkeypatch, use_pack):
     from rag_stack.evals import harness
 
-    monkeypatch.setattr(harness, "DATASET", tmp_path)
+    use_pack(evals=PACK.evals.model_copy(update={"dataset": tmp_path}))
     cases = [CASE, {**CASE, "id": "d", "question": "What is D?", "gold_ids": ["D"]}]
-    monkeypatch.setattr(harness, "load_cases", lambda: cases)
+    monkeypatch.setattr(harness, "load_cases", lambda _: cases)
     kb = ByQuestion({"What is A?": [chunk("A")], "What is D?": [chunk("D")]})
     stale = lambda: harness.stale_questions(Settings(), kb)  # noqa: E731
 
@@ -347,7 +354,16 @@ def test_indexed_versions_reads_the_searched_collection():
         found = [
             chunk(f"{source_id}-{i}", source_id=source_id, source_version=version) for i in range(3)
         ]
-        index_source(client, "kb", source_id, "sha", found, FakeEmbedder(), FakeSparseEmbedder())
+        index_source(
+            client,
+            "kb",
+            source_id,
+            "sha",
+            found,
+            FakeEmbedder(),
+            FakeSparseEmbedder(),
+            sources=SOURCES,
+        )
 
     assert indexed_versions(client, "kb") == {"atlas": "2026.09", "owasp-llm-2026": "2026@abc"}
 
@@ -385,7 +401,8 @@ async def test_retrieval_only_scores_the_golden_set_without_an_llm(capsys):
         def __init__(self) -> None:
             self.asked: list[tuple[str, str]] = []
             self.gold = {
-                (c["question"], c.get("follow_up_of", "")): c["gold_ids"] for c in load_cases()
+                (c["question"], c.get("follow_up_of", "")): c["gold_ids"]
+                for c in load_cases(DATASET)
             }
 
         async def retrieve(self, query: str, context: str = "") -> list[Retrieved]:
@@ -421,9 +438,28 @@ async def test_retrieval_only_fails_on_a_split_without_questions(capsys, monkeyp
     from rag_stack.config import Settings
     from rag_stack.evals import harness
 
-    monkeypatch.setattr(harness, "load_cases", lambda: [{"split": "dev", "gold_ids": ["A"]}])
+    monkeypatch.setattr(harness, "load_cases", lambda _: [{"split": "dev", "gold_ids": ["A"]}])
     kb = FakeRetriever()
 
     assert await harness.retrieval_only(Settings(), kb, split="test") == 1
     assert kb.calls == []
     assert "split test: no questions" in capsys.readouterr().out
+
+
+def test_the_report_names_a_rubric_outside_the_repository_by_its_full_path(tmp_path, use_pack):
+    from rag_stack.evals.harness import METRICS, report
+
+    (tmp_path / "golden.jsonl").write_text(json.dumps({**CASE, "needs_review": False}) + "\n")
+    (tmp_path / "thresholds.yaml").write_text("correctness: 0.5\n")
+    rubric = tmp_path / "rubric.md"
+    use_pack(evals=PACK.evals.model_copy(update={"dataset": tmp_path, "rubric": rubric}))
+    result = {
+        **{m: 1.0 for m in METRICS},
+        "id": CASE["id"],
+        "category": CASE["category"],
+        "split": "test",
+        "answer_reused": True,
+        "baseline_reused": True,
+    }
+
+    assert f"with rubric `{rubric}`" in report([result], Settings())

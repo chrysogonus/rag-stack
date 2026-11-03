@@ -1,5 +1,6 @@
 """Golden-set eval: the RAG chatbot against a baseline chatbot (`EVAL_BASELINE_*`; unset, the
-same LLM without retrieval). Writes report.md and results.json next to the dataset."""
+same LLM without retrieval). Writes report.md and results.json next to the pack's dataset
+(`Pack.evals`)."""
 
 import asyncio
 import hashlib
@@ -9,6 +10,7 @@ import subprocess
 import time
 import uuid
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -20,14 +22,13 @@ from qdrant_client import QdrantClient
 from rag_stack import observability
 from rag_stack.agent.answer import FOOTER_START, cited_ids, footer, is_abstention
 from rag_stack.agent.graph import build_graph, model_input
-from rag_stack.agent.prompts import ABSTAIN, BASELINE_PROMPT, SYSTEM_PROMPT
+from rag_stack.agent.prompts import ABSTAIN
 from rag_stack.config import Settings
 from rag_stack.evals.metrics import bootstrap_ci, citation_precision, mean, mrr, recall_at_k
 from rag_stack.ingestion.models import Chunk
 from rag_stack.llm.base import ChatModel, Message, TextDelta
 from rag_stack.llm.factory import create_chat_model
-from rag_stack.retrieval.ids import detect_ids
-from rag_stack.retrieval.language import detect_language
+from rag_stack.pack import Evals
 from rag_stack.retrieval.retriever import (
     KnowledgeBase,
     Retrieved,
@@ -36,28 +37,6 @@ from rag_stack.retrieval.retriever import (
 )
 
 ROOT = Path(__file__).parents[3]
-DATASET = ROOT / "evals/datasets/ai_security"
-RUBRIC = ROOT / "evals/rubrics/judge_v1.md"
-HISTORY = DATASET / "history.jsonl"
-# freshness: content first published on or after 2026-01-01, newer than the models' training data;
-# paraphrase: older content asked in a user's own words, without its ID; cross-source: needs units
-# of two or more sources; relation: follows links within one source (technique → mitigation);
-# injection: a source holds an attack payload to describe, not follow; robustness: an ID or
-# question in an unusual form (lowercase, spaced, informal, padded, the other language).
-CATEGORIES = [
-    "id-exact",
-    "freshness",
-    "paraphrase",
-    "cross-source",
-    "relation",
-    "german-legal",
-    "cve",
-    "list",
-    "abstention",
-    "follow-up",
-    "injection",
-    "robustness",
-]
 # Tune on dev; test holds reviewed questions no setting was tuned on. Paraphrases and
 # translations of a question stay in its split. The first 59 questions were tuned on: all dev.
 SPLITS = ["dev", "test"]
@@ -75,7 +54,7 @@ METRICS = [
 ID_LIKE = re.compile(r"\[([^\[\]\n]{2,60})\]")
 
 
-def load_cases(dataset: Path = DATASET) -> list[dict[str, Any]]:
+def load_cases(dataset: Path) -> list[dict[str, Any]]:
     return [
         json.loads(line) for line in (dataset / "golden.jsonl").read_text().splitlines() if line
     ]
@@ -90,9 +69,9 @@ async def complete(llm: ChatModel, messages: list[Message], instructions: str) -
     return "".join(parts)
 
 
-def citations(text: str, sources: list[Chunk]) -> list[str]:
-    """IDs an answer cites: links to its sources, plus anything ID-like in brackets (normalized,
-    so a baseline's [Article 50(1)] counts as AI Act Art. 50(1))."""
+def citations(text: str, sources: list[Chunk], detect_ids: Callable[[str], list[str]]) -> list[str]:
+    """IDs an answer cites: links to its sources, plus anything ID-like in brackets (normalized
+    by the pack, so a baseline's [Article 50(1)] counts as AI Act Art. 50(1))."""
     found = cited_ids(text, sources)
     found += [i for group in ID_LIKE.findall(text) for i in detect_ids(group)]
     return list(dict.fromkeys(found))
@@ -114,12 +93,14 @@ def judge_input(case: dict, answer: str, sources: list[dict] | None) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
-async def judge(llm: ChatModel, case: dict, answer: str, sources: list[dict] | None) -> dict:
+async def judge(
+    llm: ChatModel, case: dict, answer: str, sources: list[dict] | None, rubric: str
+) -> dict:
     messages: list[Message] = [{"role": "user", "content": judge_input(case, answer, sources)}]
     # Judges now and then reply with broken JSON (an unescaped quote); asking again fixes that.
     reply = ""
     for _ in range(2):
-        reply = await complete(llm, messages, RUBRIC.read_text())
+        reply = await complete(llm, messages, rubric)
         # Take the first {...} block: some models wrap the JSON in prose or a code fence.
         found = re.search(r"\{.*\}", reply, re.DOTALL)
         try:
@@ -182,7 +163,7 @@ def baseline_key(settings: Settings, case: dict) -> str:
         ]
     else:
         model = [settings.llm_provider, settings.llm_base_url, settings.llm_model]
-    return digest(model, BASELINE_PROMPT, case.get("follow_up_of"), case["question"])
+    return digest(model, settings.pack.baseline_prompt, case.get("follow_up_of"), case["question"])
 
 
 def judge_key(settings: Settings, case: dict, answer: str, sources: list[dict] | None) -> str:
@@ -193,7 +174,8 @@ def judge_key(settings: Settings, case: dict, answer: str, sources: list[dict] |
         settings.eval_judge_base_url if own else settings.llm_base_url,
         settings.eval_judge_model,
     ]
-    return digest(judge_llm, RUBRIC.read_text(), judge_input(case, answer, sources))
+    rubric = settings.pack.evals.rubric.read_text()
+    return digest(judge_llm, rubric, judge_input(case, answer, sources))
 
 
 async def model_inputs(
@@ -225,7 +207,7 @@ def answer_key(settings: Settings, catalog: list[str], turns: list[list[Message]
         settings.llm_model,
         settings.max_output_tokens,
     ]
-    return digest(model, SYSTEM_PROMPT, catalog, turns)
+    return digest(model, settings.pack.system_prompt, catalog, turns)
 
 
 def baseline_name(settings: Settings) -> str:
@@ -248,6 +230,7 @@ async def run_case(
     are reused while the inputs they depend on are unchanged, so only changed questions cost
     model calls. Retrieval and the scores derived from the answers always run."""
     saved = saved or {}
+    pack = settings.pack
     expect_abstain = case["category"] == "abstention"
     gold = case["gold_ids"]
     previous = case.get("follow_up_of")
@@ -273,7 +256,7 @@ async def run_case(
     body = full.split(FOOTER_START, 1)[0]
     if rag_reused and not is_abstention(body):
         # The footer (source versions, attribution) isn't hashed: rebuild it as the graph does.
-        full = body + footer(body, chunks, detect_language(case["question"]))
+        full = body + footer(body, chunks, pack, pack.detect_language(case["question"]))
     base_key = baseline_key(settings, case)
     base_reused = saved.get("baseline_key") == base_key
     if base_reused:
@@ -285,12 +268,11 @@ async def run_case(
             history.append(
                 {
                     "role": "assistant",
-                    "content": await complete(baseline_llm, history, BASELINE_PROMPT),
+                    "content": await complete(baseline_llm, history, pack.baseline_prompt),
                 }
             )
-        baseline = await complete(
-            baseline_llm, [*history, {"role": "user", "content": case["question"]}], BASELINE_PROMPT
-        )
+        question: list[Message] = [*history, {"role": "user", "content": case["question"]}]
+        baseline = await complete(baseline_llm, question, pack.baseline_prompt)
     rag_score_key = judge_key(settings, case, body, shown)
     base_score_key = judge_key(settings, case, baseline, None)
 
@@ -301,7 +283,7 @@ async def run_case(
                 "faithfulness": saved.get(f"{prefix}faithfulness"),
                 "reason": saved[f"{prefix}judge_reason"],
             }
-        return await judge(judge_llm, case, answer, sources)
+        return await judge(judge_llm, case, answer, sources, pack.evals.rubric.read_text())
 
     rag_verdict, base_verdict = await asyncio.gather(
         verdict("", rag_score_key, body, shown),
@@ -319,10 +301,10 @@ async def run_case(
         "mrr": None if expect_abstain else mrr(ranked, gold),
         "citation_precision": None
         if expect_abstain
-        else citation_precision(citations(body, chunks), gold),
+        else citation_precision(citations(body, chunks, pack.detect_ids), gold),
         "baseline_citation_precision": None
         if expect_abstain
-        else citation_precision(citations(baseline, []), gold),
+        else citation_precision(citations(baseline, [], pack.detect_ids), gold),
         "abstention_accuracy": float(rag_abstained == expect_abstain),
         "baseline_abstention_accuracy": float(base_abstained == expect_abstain),
         "faithfulness": rag_verdict["faithfulness"],
@@ -348,7 +330,7 @@ async def run(
     saved: dict[str, dict] | None = None,
 ) -> list[dict]:
     kb = kb or await asyncio.to_thread(open_knowledge_base, settings)
-    cases = load_cases()
+    cases = load_cases(settings.pack.evals.dataset)
     missing = await asyncio.to_thread(missing_gold_ids, kb, cases)
     if missing:
         raise ValueError(f"gold IDs not in the index: {missing}")
@@ -415,6 +397,7 @@ def check_thresholds(
 
 def report(results: list[dict], settings: Settings, previous: dict | None = None) -> str:
     """The report; `previous` is the last run in history.jsonl, to list regressions since."""
+    evals = settings.pack.evals
     summary = summarize(results)
     rows_by_group = groups(results)
     fmt = lambda v: "n/a" if v is None else f"{v:.2f}"  # noqa: E731
@@ -431,7 +414,7 @@ def report(results: list[dict], settings: Settings, previous: dict | None = None
         "|---|---|---|---|---|---|---|---|\n"
     )
     rows = []
-    for name in [*CATEGORIES, *SPLITS, "all"]:
+    for name in [*evals.categories, *SPLITS, "all"]:
         s = summary.get(name)
         if not s:
             continue
@@ -443,7 +426,7 @@ def report(results: list[dict], settings: Settings, previous: dict | None = None
             f"| {fmt(s['baseline_abstention_accuracy'])} → {ci(name, 'abstention_accuracy')} "
             f"| {ci(name, 'faithfulness')} |"
         )
-    thresholds = yaml.safe_load((DATASET / "thresholds.yaml").read_text())
+    thresholds = yaml.safe_load((evals.dataset / "thresholds.yaml").read_text())
     failures = check_thresholds(summary, thresholds)
     status = "all thresholds met" if not failures else "FAILED: " + "; ".join(failures)
     row = threshold_row(summary)
@@ -459,10 +442,10 @@ def report(results: list[dict], settings: Settings, previous: dict | None = None
             "overstate quality on unseen ones"
         )
     return (
-        "# Eval report: AI-security golden set\n\n"
+        f"# Eval report: {evals.title}\n\n"
         f"Chat model `{settings.llm_model}` ({settings.llm_provider}); judge "
         f"`{settings.eval_judge_model}` ({settings.eval_judge_provider or settings.llm_provider}) "
-        f"with rubric `{RUBRIC.relative_to(ROOT)}`. Baseline: "
+        f"with rubric `{shown(evals.rubric)}`. Baseline: "
         f"{baseline_name(settings)}. {sum(not r['answer_reused'] for r in results)} RAG and "
         f"{sum(not r['baseline_reused'] for r in results)} baseline answers of {len(results)} "
         "were asked anew; the others, and every verdict whose inputs are unchanged, are reused "
@@ -477,9 +460,16 @@ def report(results: list[dict], settings: Settings, previous: dict | None = None
         + header
         + "\n".join(rows)
         + "\n\nPer-question results, answers and judge reasons: `results.json`. "
-        f"{sum(c['needs_review'] for c in load_cases())} of {len(results)} questions are "
-        "unreviewed drafts (`needs_review: true`) generated from the indexed corpus.\n"
+        f"{sum(c['needs_review'] for c in load_cases(evals.dataset))} of {len(results)} "
+        "questions are unreviewed drafts (`needs_review: true`) generated from the indexed "
+        "corpus.\n"
     )
+
+
+def shown(path: Path) -> Path:
+    """A path as the report names it: relative to the repository, or in full outside it."""
+    path, root = path.resolve(), ROOT.resolve()
+    return path.relative_to(root) if path.is_relative_to(root) else path
 
 
 def corpus_manifest(settings: Settings) -> list[dict]:
@@ -507,8 +497,8 @@ class Offline:
         raise ModelCalled
 
 
-def load_results() -> dict[str, dict]:
-    path = DATASET / "results.json"
+def load_results(dataset: Path) -> dict[str, dict]:
+    path = dataset / "results.json"
     return {r["id"]: r for r in json.loads(path.read_text())} if path.exists() else {}
 
 
@@ -517,7 +507,8 @@ async def stale_questions(settings: Settings, kb: Retriever | None = None) -> li
     ask or judge again (a model or judge input changed, or no result yet), those whose scores the
     current code, retrieval or golden set compute differently, and results without a question."""
     kb = kb or await asyncio.to_thread(open_knowledge_base, settings)
-    saved, cases = load_results(), load_cases()
+    dataset = settings.pack.evals.dataset
+    saved, cases = load_results(dataset), load_cases(dataset)
     gate = asyncio.Semaphore(4)
     reuse_flags = {"answer_reused": None, "baseline_reused": None}
 
@@ -568,8 +559,9 @@ def indexed_versions(client: QdrantClient, collection: str) -> dict[str, str]:
             return dict(sorted(found.items()))
 
 
-def last_run() -> dict | None:
-    lines = HISTORY.read_text().splitlines() if HISTORY.exists() else []
+def last_run(dataset: Path) -> dict | None:
+    history = dataset / "history.jsonl"
+    lines = history.read_text().splitlines() if history.exists() else []
     return json.loads(lines[-1]) if lines else None
 
 
@@ -581,11 +573,11 @@ def commit() -> str:
 
 
 async def retrieval_scores(
-    kb: Retriever, split: str
+    kb: Retriever, split: str, evals: Evals
 ) -> tuple[dict[str, dict[str, float | None]], list[float]]:
     """Mean recall@k and MRR per category and `all`, and each retrieval's seconds, sorted."""
     rows = []
-    for case in load_cases():
+    for case in load_cases(evals.dataset):
         if not case["gold_ids"] or split not in ("all", case["split"]):
             continue
         start = time.perf_counter()
@@ -600,7 +592,7 @@ async def retrieval_scores(
             }
         )
     summary = {}
-    for name in [*CATEGORIES, "all"]:
+    for name in [*evals.categories, "all"]:
         if group := [r for r in rows if name in ("all", r["category"])]:
             summary[name] = {m: mean([r[m] for r in group]) for m in ("recall_at_10", "mrr")}
     return summary, sorted(r["seconds"] for r in rows)
@@ -612,17 +604,18 @@ async def retrieval_only(
     """Recall@k (k = RETRIEVAL_TOP_K), MRR and retrieval time on one split of the golden set (or
     `all`), with no LLM calls and no files written: a quick loop for tuning retrieval settings on
     dev, confirmed on test."""
-    if not any(split in ("all", case["split"]) for case in load_cases()):
+    evals = settings.pack.evals
+    if not any(split in ("all", case["split"]) for case in load_cases(evals.dataset)):
         print(f"split {split}: no questions")
         return 1
     kb = kb or await asyncio.to_thread(open_knowledge_base, settings)
     print(f"split: {split}")
-    summary, seconds = await retrieval_scores(kb, split)
+    summary, seconds = await retrieval_scores(kb, split, evals)
     for name, scores in summary.items():
         print(f"{name:14} recall@k {scores['recall_at_10']:.3f}  mrr {scores['mrr']:.3f}")
     p50, p95 = seconds[len(seconds) // 2], seconds[int(len(seconds) * 0.95)]
     print(f"retrieval p50 {p50:.2f} s, p95 {p95:.2f} s")
-    thresholds = yaml.safe_load((DATASET / "thresholds.yaml").read_text())
+    thresholds = yaml.safe_load((evals.dataset / "thresholds.yaml").read_text())
     failed = check_thresholds(
         summary, {m: thresholds[m] for m in ("recall_at_10", "mrr")}, row="all"
     )
@@ -632,18 +625,19 @@ async def retrieval_only(
 
 async def main(settings: Settings, full: bool = False, fresh_baseline: bool = False) -> int:
     run_commit = commit()  # before this run rewrites the results
-    saved = {} if full else load_results()
+    dataset = settings.pack.evals.dataset
+    saved = {} if full else load_results(dataset)
     if fresh_baseline:
         saved = {i: {**r, "baseline_key": None} for i, r in saved.items()}
     # Pinned: a refresh promoting mid-run doesn't change what the run searches.
     kb = await asyncio.to_thread(open_knowledge_base, settings, True)
     results = await run(settings, kb, saved=saved)
     manifest = corpus_manifest(settings)
-    (DATASET / "corpus").mkdir(exist_ok=True)
-    (DATASET / "corpus/manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
-    (DATASET / "results.json").write_text(json.dumps(results, indent=1, ensure_ascii=False))
-    previous = last_run()
-    (DATASET / "report.md").write_text(report(results, settings, previous))
+    (dataset / "corpus").mkdir(exist_ok=True)
+    (dataset / "corpus/manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
+    (dataset / "results.json").write_text(json.dumps(results, indent=1, ensure_ascii=False))
+    previous = last_run(dataset)
+    (dataset / "report.md").write_text(report(results, settings, previous))
     entry = {
         "date": datetime.now(UTC).isoformat(timespec="seconds"),
         "commit": run_commit,
@@ -653,9 +647,9 @@ async def main(settings: Settings, full: bool = False, fresh_baseline: bool = Fa
         "summary": summarize(results),
         "scores": {r["id"]: {m: r[m] for m in METRICS} for r in results},
     }
-    with HISTORY.open("a") as f:
+    with (dataset / "history.jsonl").open("a") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    print((DATASET / "report.md").read_text())
+    print((dataset / "report.md").read_text())
     observability.flush()
-    thresholds = yaml.safe_load((DATASET / "thresholds.yaml").read_text())
+    thresholds = yaml.safe_load((dataset / "thresholds.yaml").read_text())
     return 1 if check_thresholds(summarize(results), thresholds) else 0

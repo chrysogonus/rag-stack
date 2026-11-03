@@ -8,32 +8,17 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-import yaml
-
 from rag_stack.config import Settings
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot, finalize
-from rag_stack.ingestion.registry import SOURCES
+from rag_stack.pack import Source
 
 logger = logging.getLogger(__name__)
 
-MODULES = {
-    "atlas": "atlas",
-    "owasp-llm-2026": "owasp_llm",
-    "owasp-agentic-2026": "owasp_agentic",
-    "eu-ai-act": "eu_law",
-    "ki-mig": "gesetze_im_internet",
-    "vulns": "vulns",
-    "attack": "attack",
-    "capec": "capec",
-    "cwe": "cwe",
-    "d3fend": "d3fend",
-}
-CONFIG = Path(__file__).parents[3] / "config/sources.yaml"
 
-
-def source_module(source_id: str):
-    return importlib.import_module(f"rag_stack.ingestion.sources.{MODULES[source_id]}")
+def source_module(source: Source) -> ModuleType:
+    """The source's parser: a module with fetch() and parse()."""
+    return importlib.import_module(source.parser)
 
 
 def parser_sha(module: ModuleType) -> str:
@@ -79,8 +64,9 @@ def digest(files: dict[str, bytes]) -> str:
 
 def ingest(source_id: str, settings: Settings, fetcher: Fetcher) -> str:
     """Fetch, snapshot and parse one source. Returns a one-line status."""
-    config: dict[str, Any] = {"id": source_id, **yaml.safe_load(CONFIG.read_text())[source_id]}
-    module = source_module(source_id)
+    source = settings.pack.sources[source_id]
+    config: dict[str, Any] = {"id": source_id, **source.config}
+    module = source_module(source)
     retrieved_at = datetime.now(UTC).isoformat(timespec="seconds")
     snapshot: Snapshot = module.fetch(fetcher, config, retrieved_at)
     data = Path(settings.data_dir)
@@ -111,7 +97,7 @@ def ingest(source_id: str, settings: Settings, fetcher: Fetcher) -> str:
                 "retrieved_at": snapshot.retrieved_at,
                 "sha256": sha,
                 "urls": snapshot.urls,
-                "license": SOURCES[source_id].license,
+                "license": source.license,
             },
             indent=2,
         )
@@ -125,15 +111,41 @@ def ingest(source_id: str, settings: Settings, fetcher: Fetcher) -> str:
     return f"{source_id} {snapshot.version}: {len(chunks)} chunks, {len(edges)} edges"
 
 
+def reparse(source_id: str, settings: Settings) -> tuple[str, list[Chunk], list[Edge]]:
+    """Parse the latest raw snapshot of a source again, without network and without writing:
+    (version, chunks, edges). Shows whether a code change alters what a source turns into."""
+    data = Path(settings.data_dir)
+    raw = data / "raw" / source_id / (data / "processed" / source_id / "LATEST").read_text().strip()
+    manifest = json.loads((raw / "manifest.json").read_text())
+    names = [line.split("  ", 1)[1] for line in (raw / "SHA256SUMS").read_text().splitlines()]
+    # Parsers see files in fetch order, which the manifest's urls keep; SHA256SUMS is sorted.
+    names = [n for n in manifest["urls"] if n in names] + [
+        n for n in names if n not in manifest["urls"]
+    ]
+    snapshot = Snapshot(
+        source_id=source_id,
+        version=manifest["version"],
+        retrieved_at=manifest["retrieved_at"],
+        files={name: (raw / name).read_bytes() for name in names},
+        urls=manifest["urls"],
+    )
+    chunks, edges = source_module(settings.pack.sources[source_id]).parse(snapshot)
+    return snapshot.version, finalize(chunks, settings.max_chunk_chars), edges
+
+
 def safe(version: str) -> str:
     return "".join(c if c.isalnum() or c in ".-_@" else "_" for c in version)
 
 
 def write_processed(directory: Path, chunks: list[Chunk], edges: list[Edge], sha: str) -> None:
     directory.mkdir(parents=True, exist_ok=True)
-    (directory / "chunks.jsonl").write_text("".join(c.model_dump_json() + "\n" for c in chunks))
-    (directory / "edges.jsonl").write_text("".join(e.model_dump_json() + "\n" for e in edges))
+    (directory / "chunks.jsonl").write_text(jsonl(chunks))
+    (directory / "edges.jsonl").write_text(jsonl(edges))
     (directory / "sha256").write_text(sha)
+
+
+def jsonl(items: list[Chunk] | list[Edge]) -> str:
+    return "".join(item.model_dump_json() + "\n" for item in items)
 
 
 def load_processed(

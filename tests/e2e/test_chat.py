@@ -23,6 +23,8 @@ from rag_stack.llm.factory import create_embedder, create_reranker, create_spars
 from rag_stack.retrieval.index import ensure_collection, index_source
 from rag_stack.retrieval.retriever import KnowledgeBase
 
+SOURCES = Settings().pack.sources
+
 pytestmark = pytest.mark.e2e
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 
@@ -51,8 +53,12 @@ def knowledge_base() -> Iterator[KnowledgeBase]:
         ["consolidated_en.xhtml", "consolidated_de.xhtml", "oj_en.xhtml", "oj_de.xhtml"],
         "02024R1689-20260727",
     )
-    index_source(client, collection, "atlas", "e2e", atlas_chunks, embedder, sparse)
-    index_source(client, collection, "eu-ai-act", "e2e", act_chunks, embedder, sparse)
+    index_source(
+        client, collection, "atlas", "e2e", atlas_chunks, embedder, sparse, sources=SOURCES
+    )
+    index_source(
+        client, collection, "eu-ai-act", "e2e", act_chunks, embedder, sparse, sources=SOURCES
+    )
     try:
         yield KnowledgeBase(
             client,
@@ -63,6 +69,7 @@ def knowledge_base() -> Iterator[KnowledgeBase]:
                 settings.reranker_model, settings.reranker_provider, settings.reranker_base_url
             ),
             EdgeGraph(edges),
+            settings.pack,
             candidates=settings.retrieval_candidates,
             min_score=settings.rerank_min_score,
             rerank_chars=settings.rerank_max_chars,

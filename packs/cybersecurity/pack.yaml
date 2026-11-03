@@ -1,0 +1,209 @@
+# Cybersecurity research: attacks on AI systems, and EU and German AI law. The reference pack.
+#
+# The allowlist: `make ingest` fetches these sources and nothing else. Each `config` pins its
+# upstream release or commit. Names are shown to users and stored with every indexed chunk.
+
+sources:
+  - id: atlas
+    name: MITRE ATLAS
+    license: Apache-2.0
+    attribution: MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0
+    url: https://atlas.mitre.org
+    parser: rag_stack.ingestion.sources.atlas
+    config:
+      # A git symlink: its content names the dated release file next to it.
+      latest_url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-latest.yaml
+
+  - id: owasp-llm-2026
+    name: OWASP Top 10 for LLM Applications 2026
+    license: CC-BY-SA-4.0
+    attribution: OWASP GenAI Security Project, OWASP Top 10 for LLM Applications 2026, CC BY-SA 4.0
+    url: https://github.com/GenAI-Security-Project/GenAI-LLM-Top10
+    parser: rag_stack.ingestion.sources.owasp_llm
+    config:
+      # 2026 final release, pinned to a commit so the snapshot is reproducible.
+      repo: GenAI-Security-Project/GenAI-LLM-Top10
+      ref: 9253e38ade58e959b531c0c5c9a4842272c9cd0e
+      path: 2026/final
+      files:
+        - LLM01_PromptInjection.md
+        - LLM02_SensitiveInformationDisclosure.md
+        - LLM03_ExcessiveAgency.md
+        - LLM04_SupplyChain.md
+        - LLM05_DataModelPoisoning.md
+        - LLM06_UnboundedConsumption.md
+        - LLM07_Misinformation.md
+        - LLM08_HiddenContextExposure.md
+        - LLM09_VectorAndEmbeddingWeaknesses.md
+        - LLM10_ImproperOutputHandling.md
+        - Appendix_A_Related_Framework_Mappings.md
+
+  - id: owasp-agentic-2026
+    name: OWASP Top 10 for Agentic Applications 2026
+    license: CC-BY-SA-4.0
+    attribution: OWASP GenAI Security Project, OWASP Top 10 for Agentic Applications for 2026, CC BY-SA 4.0
+    url: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+    parser: rag_stack.ingestion.sources.owasp_agentic
+    config:
+      page_url: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+      pdf_url: https://genai.owasp.org/download/52117/
+      version: "2026 (2025-12-09)"
+
+  - id: eu-ai-act
+    name: EU AI Act (Regulation (EU) 2024/1689)
+    license: LicenseRef-EU-Decision-2011-833
+    attribution: © European Union, https://eur-lex.europa.eu
+    url: https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+    parser: rag_stack.ingestion.sources.eu_law
+    config:
+      celex: 32024R1689
+      # Consolidated versions are 0<celex minus first digit>-YYYYMMDD; the latest is found via SPARQL.
+      sparql_url: https://publications.europa.eu/webapi/rdf/sparql
+      resource_url: https://publications.europa.eu/resource/celex/
+      languages: {en: eng, de: deu}
+
+  - id: ki-mig
+    name: KI-MIG (KI-Marktüberwachungs- und Innovationsförderungsgesetz)
+    license: LicenseRef-UrhG-5
+    attribution: "Amtliches Werk (§ 5 UrhG), Quelle: https://www.gesetze-im-internet.de/ki-mig/"
+    url: https://www.gesetze-im-internet.de/ki-mig/
+    parser: rag_stack.ingestion.sources.gesetze_im_internet
+    config:
+      xml_url: https://www.gesetze-im-internet.de/ki-mig/xml.zip
+      page_url: https://www.gesetze-im-internet.de/ki-mig/
+
+  - id: vulns
+    name: Vulnerabilities (CISA KEV, GitHub Advisory Database, NVD, EPSS)
+    license: CC-BY-4.0
+    attribution: "GitHub Advisory Database (CC BY 4.0), also via OSV; NVD (public domain); CISA KEV (CC0); EPSS by FIRST"
+    url: https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+    parser: rag_stack.ingestion.sources.vulns
+    config:
+      # The whole KEV catalog; GitHub-reviewed advisories and AI-package advisories of the window.
+      window_months: 24
+      osv_url: https://api.osv.dev/v1/query
+      nvd_url: https://services.nvd.nist.gov/rest/json/cves/2.0
+      kev_url: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+      github_url: https://api.github.com/advisories
+      severities: [critical, high]
+      epss_url: https://api.first.org/data/v1/epss
+      # AI packages: every advisory of the window, whatever its severity, with its full text.
+      packages:
+        - {name: langchain, ecosystem: PyPI}
+        - {name: langchain-core, ecosystem: PyPI}
+        - {name: langchain-community, ecosystem: PyPI}
+        - {name: llama-index, ecosystem: PyPI}
+        # Most llama-index advisories are filed against its core package.
+        - {name: llama-index-core, ecosystem: PyPI}
+        - {name: vllm, ecosystem: PyPI}
+        - {name: transformers, ecosystem: PyPI}
+        - {name: github.com/ollama/ollama, ecosystem: Go, label: ollama}
+        - {name: open-webui, ecosystem: PyPI}
+        - {name: gradio, ecosystem: PyPI}
+        - {name: mlflow, ecosystem: PyPI}
+        - {name: ray, ecosystem: PyPI}
+
+  - id: attack
+    name: MITRE ATT&CK
+    license: LicenseRef-MITRE-ATTACK-Terms
+    attribution: © 2026 The MITRE Corporation. This work is reproduced and distributed with the permission of The MITRE Corporation.
+    url: https://attack.mitre.org
+    parser: rag_stack.ingestion.sources.attack
+    config:
+      # Enterprise, Mobile and ICS bundles of one release; versioned files never change.
+      base_url: https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master
+      version: "20.0"
+
+  - id: capec
+    name: MITRE CAPEC
+    license: LicenseRef-MITRE-CAPEC-Terms
+    attribution: CAPEC™, Copyright © 2007–2026, The MITRE Corporation
+    url: https://capec.mitre.org
+    parser: rag_stack.ingestion.sources.capec
+    config:
+      # One XML catalog per release; versioned files never change.
+      base_url: https://capec.mitre.org/data/xml
+      version: "3.9"
+
+  - id: cwe
+    name: MITRE CWE
+    license: LicenseRef-MITRE-CWE-Terms
+    attribution: CWE™, Copyright © 2006–2026, The MITRE Corporation
+    url: https://cwe.mitre.org
+    parser: rag_stack.ingestion.sources.cwe
+    config:
+      # One zipped XML catalog per release; versioned files never change.
+      base_url: https://cwe.mitre.org/data/xml
+      version: "4.20"
+
+  - id: d3fend
+    name: MITRE D3FEND
+    license: LicenseRef-MITRE-D3FEND-Terms
+    attribution: D3FEND™, © 2025 The MITRE Corporation
+    url: https://d3fend.mitre.org
+    parser: rag_stack.ingestion.sources.d3fend
+    config:
+      # The ontology and its inferred ATT&CK mappings, per release; versioned files never change.
+      base_url: https://d3fend.mitre.org/ontologies/d3fend
+      version: "1.6.0"
+
+prompts:
+  system: prompts/system.md
+  baseline: prompts/baseline.md
+
+labels:
+  en:
+    hint: "Try naming what you're asking about: a technique ID such as T1059.001 or AML.T0051, a weakness such as CWE-79, a CVE, an OWASP entry such as LLM01, or an AI Act article such as Article 50."
+    ai: "*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*"
+  de:
+    hint: "Nennen Sie am besten, worum es geht: eine Technik-ID wie T1059.001 oder AML.T0051, eine Schwachstellenart wie CWE-79, eine CVE, einen OWASP-Eintrag wie LLM01 oder einen Artikel der KI-VO wie Art. 50."
+    ai: "*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*"
+
+# English first: a question with as many English as German words is English.
+languages:
+  en: {extra_words: [providers, deployers]}
+  de: {extra_words: [pflichten, anbieter, betreiber]}
+
+retrieval:
+  related:
+    # Words asking how to defend (defend, defence, counter, harden; schützen, absichern, ...).
+    - &defense 'mitigat|\bcounter|defen|prevent|protect|safeguard|harden|gegenma|abwehr|schutz|schütz|minder|verteidig|absicher|härt'
+    - 'map|relat|correspond|link|connect|technique|tactic|weakness|cwe|zuordn|verwandt|bezug|zusammenh|entsprech|verknüpf|\brefer|verweis'
+  relation_filters:
+    - {when: *defense, rels: [mitigates, counters]}
+  # Neither an ID ("CWE-89") nor a singular ("what kind of weakness is it") asks for a list.
+  asked_for:
+    capec: '\bCAPEC\b(?!-\d)|attack patterns'
+    atlas: '\bATLAS\b'
+    attack: 'ATT&CK'
+    d3fend: '\bD3FEND\b'
+    cwe: '\bCWEs?\b(?!-\d)|weaknesses'
+    vulns: '\bCVEs?\b(?!-\d)|vulnerabilities|advisories'
+    owasp-agentic-2026: '\bASI\b(?!\d)|agentic'
+    owasp-llm-2026: 'LLM (Top 10|Applications)'
+  # The law a KI-MIG section refers to. `scoped` (the acts a question names) is in pack.py.
+  citation_rels: [refers_to]
+
+evals:
+  title: AI-security golden set
+  dataset: ../../evals/datasets/ai_security
+  rubric: ../../evals/rubrics/judge_v1.md
+  # freshness: content first published on or after 2026-01-01, newer than the models' training
+  # data; paraphrase: older content asked in a user's own words, without its ID; cross-source:
+  # needs units of two or more sources; relation: follows links within one source (technique →
+  # mitigation); injection: a source holds an attack payload to describe, not follow;
+  # robustness: an ID or question in an unusual form (lowercase, spaced, informal, padded, the
+  # other language).
+  categories:
+    - id-exact
+    - freshness
+    - paraphrase
+    - cross-source
+    - relation
+    - german-legal
+    - cve
+    - list
+    - abstention
+    - follow-up
+    - injection
+    - robustness

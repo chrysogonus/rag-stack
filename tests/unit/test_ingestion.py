@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import httpx
@@ -162,6 +163,72 @@ def test_ingest_snapshots_with_sha256_and_skips_unchanged_input(tmp_path, monkey
     assert "ATLAS.yaml" in (raw / "SHA256SUMS").read_text()
     sha, chunks, edges = pipeline.load_processed(settings, "atlas")  # type: ignore[misc]
     assert len(chunks) == 6 and len(edges) == 6 and len(sha) == 64
+
+
+def ingest_atlas_fixture(tmp_path: Path) -> Settings:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        if request.url.path.endswith("ATLAS-latest.yaml"):
+            return httpx.Response(200, content=b"ATLAS-2026.09.yaml")
+        return httpx.Response(200, content=(FIXTURES / "atlas/ATLAS.yaml").read_bytes())
+
+    settings = Settings(data_dir=str(tmp_path / "data"))
+    pipeline.ingest("atlas", settings, make_fetcher(handler, tmp_path))
+    return settings
+
+
+def test_reparse_rebuilds_the_latest_snapshot_offline_into_the_same_chunks_and_edges(tmp_path):
+    settings = ingest_atlas_fixture(tmp_path)
+    _, chunks, edges = pipeline.load_processed(settings, "atlas")  # type: ignore[misc]
+
+    assert pipeline.reparse("atlas", settings) == ("2026.09", chunks, edges)
+
+
+def test_reparse_hands_the_parser_its_files_in_fetch_order(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    raw = tmp_path / "data/raw/eu-ai-act/v1"
+    raw.mkdir(parents=True)
+    (tmp_path / "data/processed/eu-ai-act").mkdir(parents=True)
+    (tmp_path / "data/processed/eu-ai-act/LATEST").write_text("v1")
+    fetched = ["en.xhtml", "de.xhtml", "extra.txt"]  # extra.txt was fetched without a URL
+    for name in fetched:
+        (raw / name).write_text(name)
+    (raw / "SHA256SUMS").write_text("".join(f"0  {n}\n" for n in sorted(fetched)))
+    urls = {"en.xhtml": "https://e/en", "de.xhtml": "https://e/de"}
+    (raw / "manifest.json").write_text(
+        json.dumps({"version": "v1", "retrieved_at": "2026-01-01", "urls": urls})
+    )
+    seen = []
+
+    def parse(snapshot):
+        seen.extend(snapshot.files)
+        return [], []
+
+    monkeypatch.setattr(pipeline, "source_module", lambda _: SimpleNamespace(parse=parse))
+
+    pipeline.reparse("eu-ai-act", Settings(data_dir=str(tmp_path / "data")))
+
+    assert seen == fetched
+
+
+def test_reparse_command_prints_the_sha256_of_the_files_ingest_wrote(tmp_path, monkeypatch, capsys):
+    import hashlib
+
+    from rag_stack import cli
+
+    ingest_atlas_fixture(tmp_path)
+    monkeypatch.setenv("DATA_DIR", str(tmp_path / "data"))
+    processed = tmp_path / "data/processed/atlas/2026.09"
+
+    def sha(name: str) -> str:
+        return hashlib.sha256((processed / name).read_bytes()).hexdigest()
+
+    assert cli.main(["reparse", "atlas"]) == 0
+    assert capsys.readouterr().out == (
+        f"atlas 2026.09: 6 chunks {sha('chunks.jsonl')}, 6 edges {sha('edges.jsonl')}\n"
+    )
 
 
 def test_a_parser_is_fingerprinted_with_the_source_modules_it_borrows_from():
