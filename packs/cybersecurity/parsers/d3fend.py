@@ -3,7 +3,8 @@ from typing import Any
 
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean, overview_chunk
-from rag_stack.ingestion.registry import SOURCES
+
+from ..laws import SOURCES
 
 INFO = SOURCES["d3fend"]
 SITE = "https://d3fend.mitre.org"

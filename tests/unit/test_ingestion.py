@@ -9,8 +9,9 @@ from rag_stack.config import Settings
 from rag_stack.ingestion import pipeline
 from rag_stack.ingestion.fetch import Fetcher, FetchError
 from rag_stack.ingestion.models import finalize, first_sentence, overview_chunk, split_text
+from rag_stack.pack import Credential, Fetch, Host
 
-FIXTURES = Path(__file__).parents[1] / "fixtures"
+FIXTURES = Path(__file__).parents[2] / "packs/cybersecurity/tests/fixtures"
 
 
 class Clock:
@@ -140,6 +141,39 @@ def test_fetcher_follows_the_next_link_through_every_page_and_caches_it(tmp_path
     assert len(seen) == 2
 
 
+def test_the_fetcher_follows_the_packs_hosts_and_credentials(use_pack, monkeypatch, tmp_path):
+    token = Credential(env="EXAMPLE_TOKEN", header="Authorization", value="Bearer {}", interval=1)
+    use_pack(
+        fetch=Fetch(
+            user_agent="notes-bot/1.0",
+            hosts={
+                "api.example.org": Host(interval=10, credential=token),
+                "slow.example.org": Host(interval=5),
+            },
+        )
+    )
+    monkeypatch.setenv("EXAMPLE_TOKEN", "t")
+
+    fetcher = pipeline.make_fetcher(Settings(data_dir=str(tmp_path)))
+
+    assert fetcher.user_agent == "notes-bot/1.0"
+    assert fetcher.host_headers == {"api.example.org": {"Authorization": "Bearer t"}}
+    assert fetcher.host_intervals == {"api.example.org": 1, "slow.example.org": 5}
+
+
+def test_a_credential_can_come_from_the_env_file(monkeypatch, tmp_path):
+    (tmp_path / ".env").write_text("GITHUB_TOKEN=t\n")
+    monkeypatch.setitem(Settings.model_config, "env_file", str(tmp_path / ".env"))
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("NVD_API_KEY", raising=False)
+
+    fetcher = pipeline.make_fetcher(Settings(data_dir=str(tmp_path)))
+
+    # The cybersecurity pack: GitHub's API is faster with a token; NVD without a key is slow.
+    assert fetcher.host_headers == {"api.github.com": {"Authorization": "Bearer t"}}
+    assert fetcher.host_intervals == {"services.nvd.nist.gov": 6.5, "api.github.com": 1.0}
+
+
 def test_ingest_snapshots_with_sha256_and_skips_unchanged_input(tmp_path, monkeypatch):
     yaml_bytes = (FIXTURES / "atlas/ATLAS.yaml").read_bytes()
 
@@ -231,18 +265,22 @@ def test_reparse_command_prints_the_sha256_of_the_files_ingest_wrote(tmp_path, m
     )
 
 
-def test_a_parser_is_fingerprinted_with_the_source_modules_it_borrows_from():
+def test_a_parser_is_fingerprinted_with_the_pack_modules_it_borrows_from():
     import hashlib
 
-    from rag_stack.ingestion.sources import atlas, capec, cwe
+    from packs.cybersecurity import ids, laws
+    from packs.cybersecurity.parsers import atlas, capec, cwe, eu_law, gesetze_im_internet
 
     def sha(*modules):
         code = b"".join(Path(str(m.__file__)).read_bytes() for m in modules)
         return hashlib.sha256(code).hexdigest()
 
-    assert pipeline.parser_sha(atlas) == sha(atlas)
+    pack = "packs.cybersecurity."
+    assert pipeline.parser_sha(atlas, pack) == sha(atlas)
     # CWE uses CAPEC's text helpers: a fix there re-parses CWE too.
-    assert pipeline.parser_sha(cwe) == sha(capec, cwe)
+    assert pipeline.parser_sha(cwe, pack) == sha(capec, cwe)
+    assert pipeline.parser_sha(eu_law, pack) == sha(laws, eu_law)
+    assert pipeline.parser_sha(gesetze_im_internet, pack) == sha(ids, gesetze_im_internet)
 
 
 def test_split_text_breaks_at_paragraphs_and_never_exceeds_the_limit():

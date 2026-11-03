@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from fakes.embeddings import chunk
 
@@ -70,3 +72,15 @@ async def test_an_id_not_ranking_its_own_unit_first_fails(settings, capsys):
 
     assert await units.main(settings, 10, kb) == 1  # type: ignore[arg-type]
     assert "miss id       atlas                AML.T0001" in capsys.readouterr().out
+
+
+@pytest.mark.anyio
+async def test_a_source_without_english_units_is_asked_about_in_its_own_language(settings):
+    german = [chunk("CAPEC-1", title="Zugriff", source_id="capec", language="de")]
+    write_processed(Path(settings.data_dir) / "processed/capec/v1", german, [], "sha")
+    (Path(settings.data_dir) / "processed/capec/LATEST").write_text("v1")
+    kb = Scripted({})
+
+    await units.main(settings, 10, kb)  # type: ignore[arg-type]
+
+    assert "What is CAPEC-1?" in kb.asked

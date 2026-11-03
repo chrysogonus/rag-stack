@@ -114,7 +114,7 @@ another model family scores the answers.
 | Faithful to its sources | — | **0.96** |
 
 Per-category numbers with 95% intervals are in the
-[eval report](evals/datasets/ai_security/report.md).
+[eval report](packs/cybersecurity/evals/report.md).
 
 ## Quickstart
 
@@ -251,7 +251,7 @@ so these limits apply per user rather than per proxy.
 
 | Layer | Command | Needs |
 |-------|---------|-------|
-| Unit | `make test` | nothing (fixtures in `tests/fixtures/`, in-memory Qdrant, fake models) |
+| Unit | `make test` | nothing (fixtures in `packs/*/tests/fixtures/`, in-memory Qdrant, fake models) |
 | AI (evals) | `make eval` (paid: ~2 calls per question whose inputs changed; ~425 with `FULL=1`, ~850 with `FULL=1 FRESH=1`), then `make evals` | LLM access, an indexed knowledge base; `make evals` checks the saved results (~5 min of retrieval, 1 call) and fails if any question is stale |
 | End-to-end | `make e2e` | LLM access, embedding models (it starts Postgres and Qdrant); the rating test also `make tracing` (skipped without `LANGFUSE_*`) |
 | Web | `make web-check` | nothing |
@@ -262,17 +262,17 @@ so these limits apply per user rather than per proxy.
 
 ```
 src/rag_stack/    Python backend
+  pack.py           the domain pack contract and loader
   ingestion/        fetch, snapshot and parse each source
-  retrieval/        Qdrant index, ID detection, hybrid search, graph, rerank
+  retrieval/        Qdrant index, hybrid search, graph, rerank
   agent/            the LangGraph agent: retrieve -> generate, prompts, answer footer
   llm/              chat, embedding and reranker adapters (OpenAI, Anthropic, any compatible server; fastembed, vLLM)
   api/              FastAPI: chat over SSE, ratings, rate limits
   db/               Postgres: conversations, edge table, migrations
   evals/            golden-set harness, judge calibration, question drafting
 web/              chat UI (Vite, React, three.js)
-config/           source allowlist with pinned versions
-evals/datasets/   golden questions, thresholds, reports, run history
-tests/            unit, ai (real LLM), e2e
+packs/            domains; packs/cybersecurity: sources, parsers, ID formats, prompts, golden set
+tests/            engine tests: unit, ai (real LLM), e2e
 deploy/           systemd timer for the weekly refresh, vLLM reranker template
 ```
 

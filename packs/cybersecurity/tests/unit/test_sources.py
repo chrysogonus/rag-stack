@@ -7,9 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from rag_stack.ingestion.models import Snapshot
-from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS, SOURCES
-from rag_stack.ingestion.sources import (
+from packs.cybersecurity.laws import EU_ACTS, GERMAN_LAWS, SOURCES
+from packs.cybersecurity.parsers import (
     atlas,
     attack,
     capec,
@@ -21,6 +20,7 @@ from rag_stack.ingestion.sources import (
     owasp_llm,
     vulns,
 )
+from rag_stack.ingestion.models import Snapshot
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 WHEN = "2026-10-24T00:00:00+00:00"

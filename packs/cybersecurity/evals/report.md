@@ -1,10 +1,10 @@
 # Eval report: AI-security golden set
 
-Chat model `gpt-6-luna` (openai); judge `claude-code/claude-haiku-5-5` (openai-compatible) with rubric `evals/rubrics/judge_v1.md`. Baseline: `codex/gpt-6-luna` (openai-compatible) as a general chatbot, same questions. 5 RAG and 0 baseline answers of 212 were asked anew; the others, and every verdict whose inputs are unchanged, are reused from earlier runs (`make eval FULL=1` asks everything again, `FRESH=1` the baseline). Scores are means in [0, 1] with 95% bootstrap intervals for RAG; judge scores map 1-5 to 0-1. Recall@k counts the first 8 passages, the ones the model sees. Retrieval metrics and citation precision skip abstention questions. Settings are tuned on `dev`; `test` is the holdout.
+Chat model `gpt-6-luna` (openai); judge `claude-code/claude-haiku-5-5` (openai-compatible) with rubric `packs/cybersecurity/evals/judge_v1.md`. Baseline: `codex/gpt-6-luna` (openai-compatible) as a general chatbot, same questions. 0 RAG and 0 baseline answers of 212 were asked anew; the others, and every verdict whose inputs are unchanged, are reused from earlier runs (`make eval FULL=1` asks everything again, `FRESH=1` the baseline). Scores are means in [0, 1] with 95% bootstrap intervals for RAG; judge scores map 1-5 to 0-1. Recall@k counts the first 8 passages, the ones the model sees. Retrieval metrics and citation precision skip abstention questions. Settings are tuned on `dev`; `test` is the holdout.
 
 Thresholds (`thresholds.yaml`, on the `test` row): all thresholds met.
 
-Regressions since the run of 2026-10-28T12:22:01+00:00 (7d3e419): none.
+Regressions since the run of 2026-11-03T20:27:51+00:00 (5ae0f0e-dirty): none.
 
 | Category | n | Recall@k | MRR | Correctness (base → RAG) | Citation precision (base → RAG) | Abstention acc. (base → RAG) | Faithfulness (RAG) |
 |---|---|---|---|---|---|---|---|

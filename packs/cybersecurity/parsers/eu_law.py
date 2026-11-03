@@ -1,5 +1,5 @@
-"""EU acts from CELLAR, configured by CELEX number (config/sources.yaml) and short name
-(registry.EU_ACTS)."""
+"""EU acts from CELLAR, configured by CELEX number (pack.yaml) and short name
+(laws.EU_ACTS)."""
 
 import copy
 import json
@@ -12,7 +12,8 @@ from bs4.element import NavigableString
 
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean
-from rag_stack.ingestion.registry import EU_ACTS, SOURCES, eu_id
+
+from ..laws import EU_ACTS, SOURCES, eu_id
 
 BLOCKS = {"p", "div", "table", "tbody", "li", "ul", "ol", "br", "hr"}
 CONSOLIDATED = """\

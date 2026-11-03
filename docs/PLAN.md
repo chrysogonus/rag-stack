@@ -24,16 +24,17 @@ risk → AI Act article → CVE, and since wave 1: ATT&CK ↔ ATLAS ↔ CAPEC �
 
 | Path | What it does |
 |---|---|
-| `ingestion/fetch.py` | Polite HTTP client: User-Agent, robots.txt incl. crawl-delay, per-host rate limit, retries, on-disk cache, NVD key and GitHub token from env |
+| `pack.py` | The domain pack contract: `packs/<name>/pack.yaml`'s schema (sources, prompts, labels, languages, retrieval words, fetch hosts, eval set) and the loader behind `Settings.pack` (`RAG_PACK`) |
+| `ingestion/fetch.py` | Polite HTTP client: User-Agent, robots.txt incl. crawl-delay, per-host rate limit and credentials (from the pack's `fetch.hosts`), retries, on-disk cache |
 | `ingestion/pipeline.py` | `ingest(source)`: raw snapshot + `SHA256SUMS` + `manifest.json` under `data/raw/<source>/<version>/`, chunks and edges under `data/processed/`. Unchanged input and parser code means skip. Each source's parser is named in the pack (`Source.parser`) |
-| `ingestion/sources/*.py` | `fetch()` and `parse()` per source, or per legal system: `eu_law.py` (AI Act), `gesetze_im_internet.py` (KI-MIG) |
-| `ingestion/registry.py` | Source names and licenses (`SOURCES`, read from the pack), the EU acts and German laws with the names questions use for them (`EU_ACTS`, `GERMAN_LAWS`) |
+| `packs/cybersecurity/parsers/*.py` | `fetch()` and `parse()` per source, or per legal system: `eu_law.py` (AI Act), `gesetze_im_internet.py` (KI-MIG) |
+| `packs/cybersecurity/laws.py` | Source names and licenses (`SOURCES`, read from the pack), the EU acts and German laws with the names questions use for them (`EU_ACTS`, `GERMAN_LAWS`) |
 | `ingestion/models.py` | `Chunk` (all citation and license metadata), `Edge`, splitting of oversized units (parts keep the native ID) |
-| `db/migrations`, `db/edges.py`, `db/checkpointer.py` | Alembic migrations for `kb_edges` (0001) and its generations (0002); edge writes and the in-memory 1-hop graph; the LangGraph Postgres checkpointer for conversations |
+| `db/migrations`, `db/edges.py`, `db/checkpointer.py` | Alembic migrations for `kb_edges` (0001), its generations (0002), and knowledge bases and write order (0003: a pack's index alias, so packs can share Postgres; `seq`, the order retrieval caps neighbors in); edge writes and the in-memory 1-hop graph; the LangGraph Postgres checkpointer for conversations |
 | `llm/base.py`, `llm/factory.py`, `llm/openai_responses.py`, `llm/anthropic_messages.py`, `llm/openai_compatible.py` | The chat interface and its three adapters, picked by `LLM_PROVIDER` (`openai`, `anthropic`, `openai-compatible`) |
 | `llm/embeddings.py`, `llm/fastembed_local.py`, `llm/vllm_models.py` | Embedding, sparse and reranker interfaces; local fastembed adapters (CPU) and vLLM adapters (GPU) |
 | `retrieval/index.py` | Qdrant collection (named `dense` vector + `bm25` sparse vector with IDF), per-source replace, vector reuse per unchanged chunk |
-| `retrieval/ids.py` | Regex detection of IDs (ATLAS, ATT&CK, CAPEC, CWE, D3FEND, OWASP, CVE, and families of planned sources) and EN/DE legal references, each assigned to the act named nearest it |
+| `packs/cybersecurity/ids.py` | Regex detection of IDs (ATLAS, ATT&CK, CAPEC, CWE, D3FEND, OWASP, CVE, and families of planned sources) and EN/DE legal references, each assigned to the act named nearest it |
 | `retrieval/fusion.py`, `retrieval/language.py` | RRF fusion (k=60); the EN/DE word-list language detection |
 | `retrieval/retriever.py` | Exact IDs → dense + BM25 (20 each, fused with RRF, 20 kept), plus one search per act the question names → 1-hop graph expansion for questions about related items (up to 100 neighbors) → cross-encoder rerank of the whole pool → `RERANK_MIN_SCORE` floor, the best 12 neighbors, a place for a cross-source link of the top hits, 2 places per named act → same-language legal text; keeps the top 8 (`RETRIEVAL_TOP_K`) for the answer |
 | `retrieval/generations.py` | Index generations behind the `kb_chunks` alias: candidate, promote, rollback |
@@ -90,9 +91,9 @@ risk → AI Act article → CVE, and since wave 1: ATT&CK ↔ ATLAS ↔ CAPEC �
   recall@10 and MRR; `jina-reranker-v2-base-multilingual` was no faster at equal quality.
 - **BM25 without stemming.** The corpus mixes English and German; an English stemmer would
   mangle German terms.
-- **Eval paths follow AGENTS.md, not `eval/`.** `evals/datasets/ai_security/golden.jsonl` (JSONL,
+- **Eval paths follow AGENTS.md, not `eval/`.** `packs/cybersecurity/evals/golden.jsonl` (JSONL,
   like the earlier dataset), `thresholds.yaml`, `report.md`, `results.json`; the rubric is
-  `evals/rubrics/judge_v1.md`. `make eval` writes the report; `make evals` runs `tests/ai`, which
+  `packs/cybersecurity/evals/judge_v1.md`. `make eval` writes the report; `make evals` runs `tests/ai`, which
   asserts the thresholds with the same harness.
 - **Eval baseline: a live general chatbot, not the same model without retrieval.** RAG runs on
   the OpenAI API (`gpt-6-luna`); the baseline is the subscription gateway (formerly sub2api;
@@ -161,7 +162,7 @@ and judged again.
    **Built:** each result in `results.json` keeps `baseline_key` and `baseline_judge_key`; a run
    reuses the saved answer and verdict while they match, and the report says how many it reused.
    `make eval FRESH=1` asks the baseline again, e.g. to refresh a web-searching chatbot's answers.
-3. **Run history** (`evals/datasets/ai_security/history.jsonl`): date, commit, source versions,
+3. **Run history** (`packs/cybersecurity/evals/history.jsonl`): date, commit, source versions,
    per-question scores and the summary for every run. A regression is a paired, per-question
    change: correctness down 2 points or more, or a correct refusal that turns into an answer.
    Means alone hide it: the test split's correctness interval was 0.80-0.90 (95%, n=76; at
@@ -204,7 +205,7 @@ sources run on that one schedule: unchanged ones are skipped at ingest.
 3. Checks before building, any of which blocks: a source with no snapshot, a drop of more than
    10% in chunks or IDs (`FORCE=1` allows it), a gold ID of the golden set missing. A served
    source no longer in the pack was retired on purpose: the candidate drops it and the log says
-   `removed:`. Until then it stays served, named by its id where the registry no longer has it.
+   `removed:`. Until then it stays served, named by its id where the pack no longer lists it.
 4. Build a candidate *generation*: a Qdrant collection `kb_chunks_<generation>` and its edges in
    `kb_edges` under the same `generation` (migration 0002). Unchanged sources are copied from the
    served collection with their vectors; only changed ones are embedded. Chunks and edges move
@@ -297,17 +298,17 @@ proof of concept follows), so it stays one chunk; AI-package advisories keep the
    p95 0.98 s (135 questions), to compare after each wave.
 3. **One parser per legal system:** the AI Act parser becomes an EU-law parser configured by
    CELEX and short name (AI Act IDs unchanged), the KI-MIG parser a gesetze-im-internet parser.
-   **Built:** `sources/eu_law.py` and `sources/gesetze_im_internet.py`. The CELEX number and URLs
+   **Built:** `parsers/eu_law.py` and `parsers/gesetze_im_internet.py`. The CELEX number and URLs
    stay in the pack's `pack.yaml`; the short name and the names questions use for an act are in
-   `registry.EU_ACTS` / `GERMAN_LAWS`. Another act's IDs carry its short name throughout
+   `laws.EU_ACTS` / `GERMAN_LAWS`. Another act's IDs carry its short name throughout
    (`NIS2 Art. 21(2)`, `NIS2 Recital 5`, `CRA Annex I`); only the AI Act's recitals and annexes
    stay bare. Re-parsing the served snapshots gives identical chunks.
-4. **Act-aware ID detection** (`retrieval/ids.py`): today every `Art. N` is the AI Act's and
+4. **Act-aware ID detection** (`packs/cybersecurity/ids.py`): today every `Art. N` is the AI Act's and
    every `§ N` the KI-MIG's. Act names and aliases pick the act; a bare article expands to every
    indexed act and the reranker decides. New ID families for ATT&CK, CWE, CAPEC, D3FEND, NIST,
    OWASP and arXiv.
    **Built:** a legal reference goes to the act named nearest to it in the question, before or
-   after ("Art. 21 NIS2", "AI Act Article 50"); with none named, to every act in the registry.
+   after ("Art. 21 NIS2", "AI Act Article 50"); with none named, to every act in `laws.py`.
    An act that isn't indexed (GDPR) isn't recognized, so its articles still expand to the indexed
    ones. New families: ATT&CK `T1059.001` `TA0002` `M1038` `G0016` `S0154` `C0024` `DET0001`,
    `CWE-79`, `CAPEC-66`, `D3-MFA`, CSF `PR.AA-01`, SP 800-53 `AC-2(1)`, `SSDF PO.1.1`,
@@ -324,7 +325,7 @@ proof of concept follows), so it stays one chunk; AI-package advisories keep the
    stays `judge_v1.md`: the hand labels were checked against it. The new baseline prompt makes
    every baseline answer stale too, so the wave's paid run re-asks both sides.
 
-Per source: a parser with a fixture test, a registry entry, an allowlist entry, its license in
+Per source: a parser with a fixture test, an entry in the pack's `pack.yaml`, its license in
 `NOTICE.md`, about 5 dev and 5 test questions (`make eval-draft`, reviewed), ingest through
 `make refresh`. Abstention questions that become answerable are replaced (the AI RMF one with
 `nist-pubs`). Each wave ends with `make eval` and `make evals`, retrieval on the old questions

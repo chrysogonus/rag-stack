@@ -1,7 +1,7 @@
 """The cybersecurity pack's code: its ID formats, and the laws a question can name."""
 
-from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS
-from rag_stack.retrieval.ids import detect_ids
+from .ids import detect_ids
+from .laws import EU_ACTS, GERMAN_LAWS
 
 __all__ = ["detect_ids", "scoped"]
 

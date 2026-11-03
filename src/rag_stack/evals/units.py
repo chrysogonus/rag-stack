@@ -10,13 +10,19 @@ from collections import Counter
 from statistics import mean
 
 from rag_stack.config import Settings
+from rag_stack.ingestion.models import Chunk
 from rag_stack.ingestion.pipeline import load_processed
-from rag_stack.ingestion.registry import GERMAN_LAWS
 from rag_stack.retrieval.retriever import KnowledgeBase, open_knowledge_base
 
 # shortcut: a unit with more neighbors than fit next to it in the top 10 may rank a correct one
 # out, so only units with this few are checked; raise it with the retrieval limit.
 MAX_DEGREE = 5
+
+
+def main_language(units: list[Chunk]) -> str:
+    """The language a source's units are asked about in: English, or the source's own language
+    when it has no English units (a German law)."""
+    return "en" if any(c.language == "en" for c in units) else units[0].language if units else "en"
 
 
 async def ranked(kb: KnowledgeBase, query: str) -> list[str]:
@@ -31,13 +37,8 @@ async def main(settings: Settings, per_source: int = 50, kb: KnowledgeBase | Non
     corpus = {s: p for s in sources if (p := load_processed(settings, s))}
     indexed = {c.native_id for _, chunks, _ in corpus.values() for c in chunks}
     for source, (_, chunks, edges) in corpus.items():
-        units = [
-            c
-            for c in chunks
-            if c.chunk_index == 0
-            and c.meta.get("kind") != "overview"
-            and (c.language == "en" or source in GERMAN_LAWS)
-        ]
+        first = [c for c in chunks if c.chunk_index == 0 and c.meta.get("kind") != "overview"]
+        units = [c for c in first if c.language == main_language(first)]
         titles = Counter(c.title for c in units)
         for unit in rng.sample(units, min(per_source, len(units))):
             found = await ranked(kb, f"What is {unit.native_id}?")

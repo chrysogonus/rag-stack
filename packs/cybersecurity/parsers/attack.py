@@ -4,7 +4,8 @@ from typing import Any
 
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean, overview_chunk
-from rag_stack.ingestion.registry import SOURCES
+
+from ..laws import SOURCES
 
 INFO = SOURCES["attack"]
 # Each domain's bundle and the kill chain its techniques name their tactics in.

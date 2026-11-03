@@ -3,7 +3,7 @@
 This project ingests the sources below into a local index (`data/`, not committed) and quotes
 them in answers. Every chunk stores its license and attribution, and every answer lists the
 attribution of each cited source. Small verbatim excerpts are committed as test fixtures in
-`tests/fixtures/`, under the same terms.
+`packs/cybersecurity/tests/fixtures/`, under the same terms.
 
 | Source | License | Required notice |
 |---|---|---|

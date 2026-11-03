@@ -1,3 +1,6 @@
+import os
+
+from dotenv import dotenv_values
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -80,10 +83,14 @@ class Settings(BaseSettings):
 
     # Ingestion
     data_dir: str = "data"
-    fetch_user_agent: str = "rag-stack/0.1 (AI-security knowledge base ingest)"
     fetch_cache_ttl_hours: float = 24
-    nvd_api_key: SecretStr = SecretStr("")
-    github_token: SecretStr = SecretStr("")
+
+    def secret(self, name: str) -> str:
+        """A credential a pack names (an API key for a source), from the environment or the env
+        file, the way the fields above are read; '' when unset."""
+        env_file = self.model_config.get("env_file")
+        from_file = dotenv_values(env_file).get(name) if isinstance(env_file, str) else None
+        return os.environ.get(name) or from_file or ""
 
     # Tracing: the self-hosted Langfuse from `make tracing`. Without keys nothing is traced.
     langfuse_base_url: str = "http://localhost:3000"

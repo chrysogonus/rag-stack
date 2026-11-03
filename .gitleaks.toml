@@ -6,7 +6,8 @@ useDefault = true
 # API-key rule takes those digests for keys. Only these four fields, only as 64 hex digits.
 [[allowlists]]
 description = "sha256 digests of eval inputs in results.json"
-paths = ['''^evals/datasets/[^/]+/results\.json$''']
+# A pack's evals (packs/<name>/evals/), and evals/datasets/<name>/ in history before packs.
+paths = ['''^(packs/[^/]+/evals|evals/datasets/[^/]+)/results\.json$''']
 regexTarget = "line"
 regexes = ['''^\s*"(answer|judge|baseline|baseline_judge)_key": "[0-9a-f]{64}",?$''']
 condition = "AND"

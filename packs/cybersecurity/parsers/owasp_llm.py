@@ -3,7 +3,8 @@ from typing import Any
 
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean, overview_chunk
-from rag_stack.ingestion.registry import SOURCES
+
+from ..laws import SOURCES
 
 INFO = SOURCES["owasp-llm-2026"]
 APPENDIX = "Appendix_A_Related_Framework_Mappings.md"

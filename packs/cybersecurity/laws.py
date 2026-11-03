@@ -1,7 +1,9 @@
-from rag_stack.pack import PACKS, pack_file
+from pathlib import Path
 
-# The cybersecurity pack's sources, for its parsers: names, licenses and attribution.
-SOURCES = {s.id: s for s in pack_file(PACKS / "cybersecurity").sources}
+from rag_stack.pack import pack_file
+
+# This pack's sources, for its parsers: names, licenses and attribution.
+SOURCES = {s.id: s for s in pack_file(Path(__file__).parent).sources}
 
 # Laws by source, for their parsers and for finding references to them in questions: the short
 # name their unit IDs start with ("AI Act Art. 50(1)", "KI-MIG § 2"), then a regex of the names

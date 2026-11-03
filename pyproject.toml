@@ -21,6 +21,7 @@ dependencies = [
     "psycopg[binary,pool]>=3.3.6",
     "pydantic-settings>=2.16.1",
     "pypdf>=6.21.2",
+    "python-dotenv>=1.2.4",
     "pyyaml>=6.0.3",
     # At most one minor version from the Qdrant server in docker-compose.yml (v1.15).
     "qdrant-client>=1.16.2,<1.17",
@@ -41,7 +42,7 @@ requires = ["uv_build>=0.11,<0.14"]
 build-backend = "uv_build"
 
 [tool.pytest.ini_options]
-pythonpath = ["tests"]
+pythonpath = ["tests", "."]
 markers = [
     "ai: evals against a real LLM (needs provider API keys)",
     "e2e: full chatbot path against real services (docker compose up -d) and a real LLM",
@@ -56,6 +57,9 @@ select = ["E", "F", "I", "B", "UP", "TID", "S"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
+"packs/*/tests/**" = ["S101"]
+# A pack's modules import each other relatively, so the pack works under any packs directory.
+"packs/**" = ["TID252"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "langchain_openai".msg = "Provider SDKs live only in rag_stack.llm; use its interfaces."

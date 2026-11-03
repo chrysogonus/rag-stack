@@ -13,12 +13,11 @@ from typing import Any
 
 from rag_stack.config import Settings
 from rag_stack.evals.harness import complete, judge_model, load_cases
+from rag_stack.evals.units import main_language
 from rag_stack.ingestion.models import Chunk, Edge
 from rag_stack.ingestion.pipeline import load_processed
-from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS
 from rag_stack.llm.base import ChatModel
 
-LEGAL = {*EU_ACTS, *GERMAN_LAWS}
 # What each category asks for; the drafter sees this and the unit's text.
 KINDS = {
     "id-exact": "names the unit's id and asks what it is or says",
@@ -68,9 +67,7 @@ def covered(chunk: Chunk, used: set[str]) -> bool:
 def candidates(settings: Settings, source: str, category: str) -> list[tuple[list[Chunk], str]]:
     """Unasked units of the source that fit the category, each with a note for the drafter: one
     unit, or the two ends of an edge between sources with the relation (it's in neither text)."""
-    if (category == "german-legal" and source not in LEGAL) or (
-        category == "cve" and source != "vulns"
-    ):
+    if category == "cve" and source != "vulns":
         raise ValueError(f"{category} questions don't fit {source}")
     corpus: dict[str, list[Chunk]] = {}
     edges: list[Edge] = []
@@ -81,6 +78,8 @@ def candidates(settings: Settings, source: str, category: str) -> list[tuple[lis
                 edges = processed[2]
     if source not in corpus:
         raise ValueError(f"{source}: not ingested, run `make ingest SOURCE={source}` first")
+    if category == "german-legal" and all(c.language != "de" for c in corpus[source]):
+        raise ValueError(f"{category} questions don't fit {source}")
     used = used_ids(settings)
     if category == "cross-source":
         first = {c.native_id: c for chunks in corpus.values() for c in chunks if c.language == "en"}
@@ -94,16 +93,10 @@ def candidates(settings: Settings, source: str, category: str) -> list[tuple[lis
             and not covered(first[e.dst_id], used)
         }
         return [([first[a], first[b]], note) for (a, b), note in pairs.items()]
-    language = "de" if category == "german-legal" else None
-    return [
-        ([c], "")
-        for c in corpus[source]
-        if not covered(c, used)
-        and c.meta.get("kind") != "overview"
-        # One language per unit: German for German legal questions, otherwise the unit's own
-        # first language (German laws are German only).
-        and (c.language == language if language else c.language == "en" or source in GERMAN_LAWS)
-    ]
+    units = [c for c in corpus[source] if c.meta.get("kind") != "overview"]
+    # One language per unit: German for German legal questions, otherwise the source's own.
+    language = "de" if category == "german-legal" else main_language(units)
+    return [([c], "") for c in units if not covered(c, used) and c.language == language]
 
 
 def slug(text: str) -> str:
