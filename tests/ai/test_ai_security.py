@@ -11,7 +11,6 @@ import pytest
 import yaml
 
 from rag_stack.evals.harness import (
-    DATASET,
     check_thresholds,
     load_cases,
     missing_gold_ids,
@@ -26,7 +25,8 @@ pytestmark = [pytest.mark.ai, pytest.mark.anyio]
 async def test_golden_set_meets_thresholds(settings):
     kb = open_knowledge_base(settings)
     # `make eval` refuses such an index; a gold ID outside every ranking changes no saved result.
-    assert missing_gold_ids(kb, load_cases()) == [], "gold IDs missing from the index"
+    dataset = settings.pack.evals.dataset
+    assert missing_gold_ids(kb, load_cases(dataset)) == [], "gold IDs missing from the index"
     if stale := await stale_questions(settings, kb):
         pytest.fail(
             f"Saved eval results are stale for {len(stale)} questions ({', '.join(stale[:5])}"
@@ -34,9 +34,9 @@ async def test_golden_set_meets_thresholds(settings):
             "stale question), then `make evals`."
         )
 
-    summary = summarize(json.loads((DATASET / "results.json").read_text()))
+    summary = summarize(json.loads((dataset / "results.json").read_text()))
 
     for category, scores in summary.items():
         print(category, {k: None if v is None else round(v, 2) for k, v in scores.items()})
-    thresholds = yaml.safe_load((DATASET / "thresholds.yaml").read_text())
+    thresholds = yaml.safe_load((dataset / "thresholds.yaml").read_text())
     assert check_thresholds(summary, thresholds) == []

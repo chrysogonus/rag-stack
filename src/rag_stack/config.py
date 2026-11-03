@@ -2,10 +2,19 @@ from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from rag_stack.llm.factory import ModelHost, Provider
+from rag_stack.pack import PACKS, Pack, load_pack
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    # The domain: packs/<rag_pack>/pack.yaml (sources, prompts, labels, retrieval words, evals).
+    rag_pack: str = "cybersecurity"
+    packs_dir: str = str(PACKS)
+
+    @property
+    def pack(self) -> Pack:
+        return load_pack(self.rag_pack, self.packs_dir)
 
     # openai: OpenAI's API. anthropic: Anthropic's API. openai-compatible: any Chat Completions
     # server at llm_base_url (Ollama, vLLM, LM Studio, gateways such as the subscription gateway).

@@ -5,30 +5,9 @@ from collections.abc import Sequence
 
 from rag_stack.agent.prompts import ABSTAIN
 from rag_stack.ingestion.models import Chunk
+from rag_stack.pack import Pack
 from rag_stack.retrieval.index import catalog_label
 
-LABELS = {
-    "en": {
-        "sources": "Sources",
-        "retrieved": "Retrieved sources (none cited)",
-        "versions": "Source versions",
-        "indexed": "The knowledge base covers",
-        "hint": "Try naming what you're asking about: a technique ID such as T1059.001 or "
-        "AML.T0051, a weakness such as CWE-79, a CVE, an OWASP entry such as LLM01, or an AI Act "
-        "article such as Article 50.",
-        "ai": "*AI-generated answer (EU AI Act Art. 50(1)). Check the cited sources.*",
-    },
-    "de": {
-        "sources": "Quellen",
-        "retrieved": "Abgerufene Quellen (keine zitiert)",
-        "versions": "Quellenversionen",
-        "indexed": "Die Wissensbasis umfasst",
-        "hint": "Nennen Sie am besten, worum es geht: eine Technik-ID wie T1059.001 oder "
-        "AML.T0051, eine Schwachstellenart wie CWE-79, eine CVE, einen OWASP-Eintrag wie LLM01 "
-        "oder einen Artikel der KI-VO wie Art. 50.",
-        "ai": "*KI-generierte Antwort (Art. 50 Abs. 1 KI-VO). Bitte prüfen Sie die Quellen.*",
-    },
-}
 FOOTER_START = "\n\n---\n**"
 BRACKETED = re.compile(r"\[([^\[\]\n]{2,80})\]")
 
@@ -63,8 +42,8 @@ def is_abstention(answer: str) -> bool:
     return answer.strip().startswith(ABSTAIN)
 
 
-def footer(answer: str, sources: Sequence[Chunk], language: str) -> str:
-    labels = LABELS[language]
+def footer(answer: str, sources: Sequence[Chunk], pack: Pack, language: str) -> str:
+    text = pack.labels[language]
     by_id = {}
     for chunk in sources:
         by_id.setdefault(chunk.native_id, chunk)
@@ -75,17 +54,17 @@ def footer(answer: str, sources: Sequence[Chunk], language: str) -> str:
         + ("" if c.license in c.attribution else f" ({c.license})")
         for c in listed
     ]
-    versions = "; ".join(dict.fromkeys(catalog_label(c) for c in listed))
-    heading = labels["sources"] if cited else labels["retrieved"]
+    versions = "; ".join(dict.fromkeys(catalog_label(c, pack.sources) for c in listed))
+    heading = text["sources"] if cited else text["retrieved"]
     return (
         f"{FOOTER_START}{heading}**\n\n"
         + "\n".join(lines)
-        + f"\n\n{labels['versions']}: {versions}\n\n{labels['ai']}"
+        + f"\n\n{text['versions']}: {versions}\n\n{text['ai']}"
     )
 
 
-def abstention(catalog: Sequence[str], language: str) -> str:
+def abstention(catalog: Sequence[str], pack: Pack, language: str) -> str:
     """The refusal (exactly `ABSTAIN` first: evals key on it), a hint and the source names."""
-    labels = LABELS[language]
+    text = pack.labels[language]
     indexed = "\n".join(f"- {name}" for name in catalog)
-    return f"{ABSTAIN}\n\n{labels['hint']}\n\n{labels['indexed']}:\n\n{indexed}\n\n{labels['ai']}"
+    return f"{ABSTAIN}\n\n{text['hint']}\n\n{text['indexed']}:\n\n{indexed}\n\n{text['ai']}"

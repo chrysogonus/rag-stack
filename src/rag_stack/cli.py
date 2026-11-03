@@ -7,7 +7,6 @@ import sys
 from typing import cast
 
 from rag_stack.config import Settings
-from rag_stack.ingestion.pipeline import MODULES
 
 
 def ingest(settings: Settings, source: str) -> list[str]:
@@ -16,7 +15,7 @@ def ingest(settings: Settings, source: str) -> list[str]:
 
     fetcher = make_fetcher(settings)
     failed = []
-    for source_id in MODULES if source == "all" else [source]:
+    for source_id in settings.pack.sources if source == "all" else [source]:
         try:
             print(ingest(source_id, settings, fetcher), flush=True)
         except Exception as error:  # one unreachable source must not stop the others
@@ -24,6 +23,24 @@ def ingest(settings: Settings, source: str) -> list[str]:
             print(f"{source_id}: FAILED ({error})", flush=True)
             failed.append(source_id)
     return failed
+
+
+def reparse(settings: Settings, source: str) -> None:
+    """Print each source's chunks and edges as sha256, parsed again from its raw snapshot."""
+    import hashlib
+
+    from rag_stack.ingestion.pipeline import jsonl, reparse
+
+    for source_id in settings.pack.sources if source == "all" else [source]:
+        version, chunks, edges = reparse(source_id, settings)
+        chunks_sha, edges_sha = (
+            hashlib.sha256(jsonl(items).encode()).hexdigest() for items in (chunks, edges)
+        )
+        print(
+            f"{source_id} {version}: {len(chunks)} chunks {chunks_sha}, "
+            f"{len(edges)} edges {edges_sha}",
+            flush=True,
+        )
 
 
 def refresh(settings: Settings, command: str, force: bool) -> int:
@@ -72,12 +89,18 @@ def refresh(settings: Settings, command: str, force: bool) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    settings = Settings()
+    sources = list(settings.pack.sources)
     parser = argparse.ArgumentParser(prog="rag-stack")
     commands = parser.add_subparsers(dest="command", required=True)
     ingest_cmd = commands.add_parser("ingest", help="fetch, snapshot and chunk sources")
-    ingest_cmd.add_argument("source", choices=[*MODULES, "all"])
+    ingest_cmd.add_argument("source", choices=[*sources, "all"])
+    reparse_cmd = commands.add_parser(
+        "reparse", help="parse the latest raw snapshots again offline, print sha256 of the result"
+    )
+    reparse_cmd.add_argument("source", nargs="?", default="all", choices=[*sources, "all"])
     index_cmd = commands.add_parser("index", help="embed processed chunks into Qdrant")
-    index_cmd.add_argument("source", nargs="?", default="all", choices=[*MODULES, "all"])
+    index_cmd.add_argument("source", nargs="?", default="all", choices=[*sources, "all"])
     refresh_cmd = commands.add_parser(
         "refresh", help="ingest all sources, check and score a new index, promote it if it passes"
     )
@@ -114,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
     draft_cmd = commands.add_parser(
         "eval-draft", help="draft test questions from unasked units into drafts.jsonl for review"
     )
-    draft_cmd.add_argument("source", choices=list(MODULES))
+    draft_cmd.add_argument("source", choices=sources)
     draft_cmd.add_argument(
         "category", choices=["id-exact", "paraphrase", "german-legal", "cve", "cross-source"]
     )
@@ -131,12 +154,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 
-    settings = Settings()
     from rag_stack import observability
 
     observability.configure(settings)
     if args.command == "ingest":
         return 1 if ingest(settings, args.source) else 0
+    if args.command == "reparse":
+        reparse(settings, args.source)
+        return 0
     if args.command in ("refresh", "rollback"):
         return refresh(settings, args.command, getattr(args, "force", False))
     if args.command == "index":

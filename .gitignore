@@ -9,6 +9,7 @@ dist/
 data/raw/
 data/processed/
 data/cache/
+data/baseline/
 graphify-out/
 data/refresh.log
 data/.refresh.lock

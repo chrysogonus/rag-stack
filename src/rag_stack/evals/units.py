@@ -10,9 +10,8 @@ from collections import Counter
 from statistics import mean
 
 from rag_stack.config import Settings
-from rag_stack.ingestion.pipeline import MODULES, load_processed
+from rag_stack.ingestion.pipeline import load_processed
 from rag_stack.ingestion.registry import GERMAN_LAWS
-from rag_stack.retrieval.ids import detect_ids
 from rag_stack.retrieval.retriever import KnowledgeBase, open_knowledge_base
 
 # shortcut: a unit with more neighbors than fit next to it in the top 10 may rank a correct one
@@ -28,7 +27,8 @@ async def main(settings: Settings, per_source: int = 50, kb: KnowledgeBase | Non
     kb = kb or await asyncio.to_thread(open_knowledge_base, settings)
     rng = random.Random(0)  # noqa: S311 (sampling): the same units every run
     rows: list[tuple[str, str, str, bool]] = []
-    corpus = {s: p for s in MODULES if (p := load_processed(settings, s))}
+    sources = settings.pack.sources
+    corpus = {s: p for s in sources if (p := load_processed(settings, s))}
     indexed = {c.native_id for _, chunks, _ in corpus.values() for c in chunks}
     for source, (_, chunks, edges) in corpus.items():
         units = [
@@ -44,7 +44,7 @@ async def main(settings: Settings, per_source: int = 50, kb: KnowledgeBase | Non
             rows.append((source, "id", unit.native_id, found[:1] == [unit.native_id]))
             # A title shared by several units (an article's paragraphs) or naming an ID isn't a
             # search for this one unit.
-            if titles[unit.title] == 1 and not detect_ids(unit.title):
+            if titles[unit.title] == 1 and not settings.pack.detect_ids(unit.title):
                 found = await ranked(kb, unit.title)
                 rows.append((source, "title", unit.native_id, unit.native_id in found[:10]))
         linked = [
@@ -61,7 +61,7 @@ async def main(settings: Settings, per_source: int = 50, kb: KnowledgeBase | Non
     failed = 0
     for check in ("id", "title", "related"):
         print(f"{check}:")
-        for source in MODULES:
+        for source in sources:
             group = [ok for s, c, _, ok in rows if s == source and c == check]
             if group:
                 print(f"  {source:20} {sum(group):4} / {len(group):<4} {mean(group):.3f}")

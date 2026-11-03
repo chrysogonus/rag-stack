@@ -8,17 +8,16 @@ import asyncio
 import json
 import random
 import re
+from pathlib import Path
 from typing import Any
 
 from rag_stack.config import Settings
-from rag_stack.evals.harness import DATASET, complete, judge_model, load_cases
+from rag_stack.evals.harness import complete, judge_model, load_cases
 from rag_stack.ingestion.models import Chunk, Edge
-from rag_stack.ingestion.pipeline import MODULES, load_processed
+from rag_stack.ingestion.pipeline import load_processed
 from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS
 from rag_stack.llm.base import ChatModel
-from rag_stack.retrieval.ids import detect_ids
 
-DRAFTS = DATASET / "drafts.jsonl"
 LEGAL = {*EU_ACTS, *GERMAN_LAWS}
 # What each category asks for; the drafter sees this and the unit's text.
 KINDS = {
@@ -41,14 +40,21 @@ answer must contain. Don't invent anything the text doesn't say.
 Reply with JSON only: {{"question": "...", "key_facts": ["...", "..."]}}"""
 
 
-def used_ids() -> set[str]:
+def drafts(settings: Settings) -> Path:
+    """Where drafts go: next to the pack's golden set."""
+    return settings.pack.evals.dataset / "drafts.jsonl"
+
+
+def used_ids(settings: Settings) -> set[str]:
     """Units already asked about, in golden.jsonl or an earlier draft: gold IDs and every ID a
     question, its previous question or its key facts name (a list question names its entries)."""
-    cases = load_cases()
-    if DRAFTS.exists():
-        cases += [json.loads(line) for line in DRAFTS.read_text().splitlines() if line]
+    cases = load_cases(settings.pack.evals.dataset)
+    if (path := drafts(settings)).exists():
+        cases += [json.loads(line) for line in path.read_text().splitlines() if line]
     named = (
-        detect_ids(" ".join([c["question"], c.get("follow_up_of", ""), *c["key_facts"]]))
+        settings.pack.detect_ids(
+            " ".join([c["question"], c.get("follow_up_of", ""), *c["key_facts"]])
+        )
         for c in cases
     )
     return {g for case in cases for g in case["gold_ids"]} | {i for ids in named for i in ids}
@@ -68,14 +74,14 @@ def candidates(settings: Settings, source: str, category: str) -> list[tuple[lis
         raise ValueError(f"{category} questions don't fit {source}")
     corpus: dict[str, list[Chunk]] = {}
     edges: list[Edge] = []
-    for source_id in MODULES:
+    for source_id in settings.pack.sources:
         if processed := load_processed(settings, source_id):
             corpus[source_id] = [c for c in processed[1] if c.chunk_index == 0]
             if source_id == source:
                 edges = processed[2]
     if source not in corpus:
         raise ValueError(f"{source}: not ingested, run `make ingest SOURCE={source}` first")
-    used = used_ids()
+    used = used_ids(settings)
     if category == "cross-source":
         first = {c.native_id: c for chunks in corpus.values() for c in chunks if c.language == "en"}
         pairs = {
@@ -159,13 +165,13 @@ async def main(
     # A failed request must not discard the drafts the others already paid for.
     results = await asyncio.gather(*(one(*p) for p in picked), return_exceptions=True)
     failed = [r for r in results if isinstance(r, BaseException)]
-    drafts = [r for r in results if isinstance(r, dict)]
-    with DRAFTS.open("a") as out:
-        out.writelines(json.dumps(d, ensure_ascii=False) + "\n" for d in drafts)
+    drafted = [r for r in results if isinstance(r, dict)]
+    with drafts(settings).open("a") as out:
+        out.writelines(json.dumps(d, ensure_ascii=False) + "\n" for d in drafted)
     if failed:
         print(f"{len(failed)} of {len(picked)} requests failed, e.g. {failed[0]!r}")
     print(
-        f"{len(drafts)} of {len(picked)} drafts appended to {DRAFTS.name}: "
+        f"{len(drafted)} of {len(picked)} drafts appended to {drafts(settings).name}: "
         "review them, then move them to golden.jsonl"
     )
-    return 0 if drafts and not failed else 1
+    return 0 if drafted and not failed else 1

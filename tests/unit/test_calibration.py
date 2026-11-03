@@ -6,11 +6,13 @@ from fakes.llm import FakeChatModel
 
 from rag_stack.config import Settings
 from rag_stack.evals import calibration
-from rag_stack.evals.harness import CATEGORIES, DATASET, judge, load_cases
+from rag_stack.evals.harness import judge, load_cases
 from rag_stack.retrieval.retriever import Retrieved
 
+EVALS = Settings().pack.evals
+DATASET, CATEGORIES, RUBRIC = EVALS.dataset, EVALS.categories, EVALS.rubric.read_text()
 RESULTS = {r["id"]: r for r in json.loads((DATASET / "results.json").read_text())}
-CASES = {c["id"]: c for c in load_cases()}
+CASES = {c["id"]: c for c in load_cases(DATASET)}
 
 
 class Replay:
@@ -34,8 +36,9 @@ class Replay:
 
 @pytest.fixture
 def sheet(tmp_path, monkeypatch):
-    monkeypatch.setattr(calibration, "LABELS", tmp_path / "judge_labels.jsonl")
-    return calibration.LABELS
+    path = tmp_path / "judge_labels.jsonl"
+    monkeypatch.setattr(calibration, "sheet", lambda settings: path)
+    return path
 
 
 @pytest.mark.anyio
@@ -77,7 +80,7 @@ async def test_the_judge_gets_the_same_payload_in_calibration_as_in_the_eval():
     verdict = '{"correctness": 5, "faithfulness": 5}'
     eval_judge, sheet_judge = FakeChatModel(verdict), FakeChatModel(verdict)
 
-    await judge(eval_judge, case, "A", [c.model_dump() for c in seen])
+    await judge(eval_judge, case, "A", [c.model_dump() for c in seen], RUBRIC)
 
     class One:
         async def retrieve(self, query: str, context: str = "") -> list[Retrieved]:
@@ -87,7 +90,7 @@ async def test_the_judge_gets_the_same_payload_in_calibration_as_in_the_eval():
             return []
 
     stored = await calibration.passages(One(), case, {"id": "x", "retrieved": ["AML.T0051"]}, 8)
-    await judge(sheet_judge, case, "A", json.loads(json.dumps(stored)))
+    await judge(sheet_judge, case, "A", json.loads(json.dumps(stored)), RUBRIC)
     assert sheet_judge.calls == eval_judge.calls
 
 

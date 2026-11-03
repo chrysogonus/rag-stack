@@ -5,7 +5,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
 
 from rag_stack.agent.graph import build_graph
-from rag_stack.agent.prompts import ABSTAIN, SYSTEM_PROMPT
+from rag_stack.agent.prompts import ABSTAIN
 from rag_stack.config import Settings
 
 pytestmark = pytest.mark.anyio
@@ -42,7 +42,7 @@ async def test_answers_from_retrieved_sources_and_appends_the_footer():
     state = await graph.aget_state(config("t1"))
     assert state.values["messages"][-1] == {"role": "assistant", "content": deltas}
     call = llm.calls[0]
-    assert call["instructions"] == SYSTEM_PROMPT
+    assert call["instructions"] == Settings().pack.system_prompt
     assert call["max_output_tokens"] == 123
     prompt = call["messages"][-1]["content"]
     assert '<source n="1" id="AML.T0051" url="https://example.org/AML.T0051"' in prompt

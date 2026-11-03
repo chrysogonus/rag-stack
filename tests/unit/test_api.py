@@ -45,7 +45,7 @@ def make_client() -> Iterator:
 
 
 SOURCE = chunk("AML.T0051", "LLM Prompt Injection")
-FOOTER = footer("Hello there", [SOURCE], "en")
+FOOTER = footer("Hello there", [SOURCE], Settings().pack, "en")
 SOURCE_REF = {
     "id": "AML.T0051",
     "title": "Title of AML.T0051",

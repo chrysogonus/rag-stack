@@ -1,12 +1,12 @@
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from typing import cast
 
 from qdrant_client import QdrantClient, models
 
 from rag_stack.config import Settings
 from rag_stack.ingestion.models import Chunk
-from rag_stack.ingestion.registry import SOURCES
 from rag_stack.llm.embeddings import Embedder, SparseEmbedder
+from rag_stack.pack import Source
 
 # Points indexed before `embedding_model` was stored all came from this model.
 LEGACY_EMBEDDING = "fastembed:intfloat/multilingual-e5-large"
@@ -22,10 +22,10 @@ KEYWORD_FIELDS = (
 )
 
 
-def catalog_label(chunk: Chunk) -> str:
+def catalog_label(chunk: Chunk, sources: Mapping[str, Source]) -> str:
     """How a source and its version are named to users, e.g. 'MITRE ATLAS 2026.09'. A retired
-    source has no registry entry but stays served until the next refresh drops it."""
-    source = SOURCES.get(chunk.source_id)
+    source is no longer in the pack but stays served until the next refresh drops it."""
+    source = sources.get(chunk.source_id)
     return f"{source.name if source else chunk.source_id} {chunk.source_version}"
 
 
@@ -53,6 +53,8 @@ def index_source(
     chunks: Sequence[Chunk],
     embedder: Embedder,
     sparse: SparseEmbedder,
+    *,
+    sources: Mapping[str, Source],
     batch_size: int = 64,
     reuse_from: str | None = None,
 ) -> str:
@@ -87,7 +89,7 @@ def index_source(
                     vector=vectors[chunk.point_id],
                     payload={
                         **chunk.model_dump(),
-                        "catalog": catalog_label(chunk),
+                        "catalog": catalog_label(chunk, sources),
                         "processed_sha": sha,
                         "embedding_model": embedder.name,
                     },
@@ -126,7 +128,7 @@ def embedding_in(client: QdrantClient, collection: str) -> str | None:
 def index_all(settings: Settings, source: str = "all") -> Iterator[str]:
     """Index in place into the served generation, without the checks of `make refresh`."""
     from rag_stack.db.edges import replace_edges
-    from rag_stack.ingestion.pipeline import MODULES, load_processed
+    from rag_stack.ingestion.pipeline import load_processed
     from rag_stack.llm.factory import create_embedder, create_sparse_embedder
     from rag_stack.retrieval.generations import (
         collection_name,
@@ -152,12 +154,15 @@ def index_all(settings: Settings, source: str = "all") -> Iterator[str]:
             "`make refresh` builds a new index for a new embedding model"
         )
     generation = generation_of(alias, collection)
-    for source_id in MODULES if source == "all" else [source]:
+    sources = settings.pack.sources
+    for source_id in sources if source == "all" else [source]:
         processed = load_processed(settings, source_id)
         if processed is None:
             yield f"{source_id}: nothing to index, run `make ingest SOURCE={source_id}` first"
             continue
         sha, chunks, edges = processed
-        yield index_source(client, collection, source_id, sha, chunks, embedder, sparse)
+        yield index_source(
+            client, collection, source_id, sha, chunks, embedder, sparse, sources=sources
+        )
         replace_edges(settings.database_url, generation, source_id, edges)
         yield f"{source_id}: {len(edges)} edges"

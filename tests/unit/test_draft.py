@@ -18,7 +18,7 @@ DRAFTED = '{"question": "What does the new technique do?", "key_facts": ["It doe
 def settings(tmp_path, monkeypatch) -> Settings:
     """A processed corpus: ATLAS with one unit the golden set already asks about (AML.T0051),
     an OWASP entry mapped to a new ATLAS technique, and a German KI-MIG section."""
-    monkeypatch.setattr(draft, "DRAFTS", tmp_path / "drafts.jsonl")
+    monkeypatch.setattr(draft, "drafts", lambda settings: tmp_path / "drafts.jsonl")
     settings = Settings(data_dir=str(tmp_path))
     corpus = {
         "atlas": (
@@ -73,7 +73,7 @@ def test_units_named_by_a_golden_question_or_its_key_facts_count_as_asked(settin
         "gold_ids": ["OWASP LLM Top 10 2026"],
         "key_facts": ["LLM99:2026 A new risk"],
     }
-    monkeypatch.setattr(draft, "load_cases", lambda: [overview])
+    monkeypatch.setattr(draft, "load_cases", lambda _: [overview])
 
     # LLM99:2026 is only in a key fact; Art. 99(1) only under the named article.
     assert draft.candidates(settings, "owasp-llm-2026", "paraphrase") == []
@@ -102,7 +102,7 @@ async def test_drafts_are_appended_for_review_and_their_units_not_drafted_again(
 
     assert await draft.main(settings, "atlas", "paraphrase", 3, llm=llm) == 0
 
-    [written] = [json.loads(line) for line in draft.DRAFTS.read_text().splitlines()]
+    [written] = [json.loads(line) for line in draft.drafts(settings).read_text().splitlines()]
     assert written == {
         "id": "draft-paraphrase-aml-t9990",
         "category": "paraphrase",
@@ -126,7 +126,7 @@ async def test_unusable_drafts_are_dropped(settings):
 
     for reply in ("not json", '{"question": "Q?", "key_facts": []}', leaks_id):
         assert await draft.main(settings, "atlas", "paraphrase", 1, llm=FakeChatModel(reply)) == 1
-    assert draft.DRAFTS.read_text() == ""
+    assert draft.drafts(settings).read_text() == ""
 
 
 @pytest.mark.anyio
@@ -147,7 +147,7 @@ async def test_a_failed_request_keeps_the_other_drafts(settings, capsys):
 
     assert await draft.main(settings, "atlas", "id-exact", 2, llm=FailsOnce(DRAFTED)) == 1
 
-    assert len(draft.DRAFTS.read_text().splitlines()) == 1
+    assert len(draft.drafts(settings).read_text().splitlines()) == 1
     assert "1 of 2 requests failed, e.g. TimeoutError('provider timed out')" in (
         capsys.readouterr().out
     )

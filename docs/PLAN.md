@@ -5,7 +5,7 @@ and EU and German AI regulation. It should beat a general chatbot on three thing
 citable IDs with verbatim legal text, and joins across sources (technique → mitigation → OWASP
 risk → AI Act article → CVE, and since wave 1: ATT&CK ↔ ATLAS ↔ CAPEC ↔ CWE ↔ CVE, ATT&CK ↔ D3FEND).
 
-## Sources (allowlist: `config/sources.yaml`)
+## Sources (allowlist: `packs/cybersecurity/pack.yaml`)
 
 | id | Source | Fetched from | Units (native IDs) |
 |---|---|---|---|
@@ -25,9 +25,9 @@ risk → AI Act article → CVE, and since wave 1: ATT&CK ↔ ATLAS ↔ CAPEC �
 | Path | What it does |
 |---|---|
 | `ingestion/fetch.py` | Polite HTTP client: User-Agent, robots.txt incl. crawl-delay, per-host rate limit, retries, on-disk cache, NVD key and GitHub token from env |
-| `ingestion/pipeline.py` | `ingest(source)`: raw snapshot + `SHA256SUMS` + `manifest.json` under `data/raw/<source>/<version>/`, chunks and edges under `data/processed/`. Unchanged input and parser code means skip. `MODULES` maps each source id to its parser |
+| `ingestion/pipeline.py` | `ingest(source)`: raw snapshot + `SHA256SUMS` + `manifest.json` under `data/raw/<source>/<version>/`, chunks and edges under `data/processed/`. Unchanged input and parser code means skip. Each source's parser is named in the pack (`Source.parser`) |
 | `ingestion/sources/*.py` | `fetch()` and `parse()` per source, or per legal system: `eu_law.py` (AI Act), `gesetze_im_internet.py` (KI-MIG) |
-| `ingestion/registry.py` | Source names and licenses (`SOURCES`), the EU acts and German laws with the names questions use for them (`EU_ACTS`, `GERMAN_LAWS`) |
+| `ingestion/registry.py` | Source names and licenses (`SOURCES`, read from the pack), the EU acts and German laws with the names questions use for them (`EU_ACTS`, `GERMAN_LAWS`) |
 | `ingestion/models.py` | `Chunk` (all citation and license metadata), `Edge`, splitting of oversized units (parts keep the native ID) |
 | `db/migrations`, `db/edges.py`, `db/checkpointer.py` | Alembic migrations for `kb_edges` (0001) and its generations (0002); edge writes and the in-memory 1-hop graph; the LangGraph Postgres checkpointer for conversations |
 | `llm/base.py`, `llm/factory.py`, `llm/openai_responses.py`, `llm/anthropic_messages.py`, `llm/openai_compatible.py` | The chat interface and its three adapters, picked by `LLM_PROVIDER` (`openai`, `anthropic`, `openai-compatible`) |
@@ -144,7 +144,7 @@ and judged again.
    `make eval` re-runs only stale questions (`FULL=1` re-runs all); `make evals` fails only if a
    question is stale. Parser, prompt and graph-expansion changes need no rule of their own: they
    change the hashed inputs.
-   **Built:** each result keeps `answer_key` (model settings, `SYSTEM_PROMPT`, the source names a
+   **Built:** each result keeps `answer_key` (model settings, the pack's system prompt, the source names a
    refusal lists, and each turn's input as `model_input` in `agent/graph.py` builds it, with a
    placeholder for an earlier answer) and `judge_key`. `make eval` always retrieves and recomputes
    every score, and asks and judges only where a key changed. `make evals` runs the same eval with
@@ -156,7 +156,7 @@ and judged again.
    hashed: request parameters set inside the provider adapters (`src/rag_stack/llm/`); after
    changing those, run `make eval FULL=1`.
 2. **Cache baseline answers and their judge scores** under the same two fingerprints:
-   `BASELINE_PROMPT`, the question and its follow-up history, and the baseline model for the
+   the pack's baseline prompt, the question and its follow-up history, and the baseline model for the
    answer; the judge input, rubric and judge model for the score. A full run then costs about half.
    **Built:** each result in `results.json` keeps `baseline_key` and `baseline_judge_key`; a run
    reuses the saved answer and verdict while they match, and the report says how many it reused.
@@ -203,7 +203,7 @@ sources run on that one schedule: unchanged ones are skipped at ingest.
 2. Diff native IDs per source against what is served (payloads in Qdrant): added, removed, changed.
 3. Checks before building, any of which blocks: a source with no snapshot, a drop of more than
    10% in chunks or IDs (`FORCE=1` allows it), a gold ID of the golden set missing. A served
-   source no longer in `MODULES` was retired on purpose: the candidate drops it and the log says
+   source no longer in the pack was retired on purpose: the candidate drops it and the log says
    `removed:`. Until then it stays served, named by its id where the registry no longer has it.
 4. Build a candidate *generation*: a Qdrant collection `kb_chunks_<generation>` and its edges in
    `kb_edges` under the same `generation` (migration 0002). Unchanged sources are copied from the
@@ -264,7 +264,7 @@ SP 800-53 ↔ CSF 2.0, NIS2 → BSIG and CRA. The edges stored today to ATT&CK a
 | 3 | `bsig` | BSIG as amended by the NIS2UmsuCG (in force 6 Dec 2025), gesetze-im-internet.de XML | `BSIG § 30 Abs. 1` | § 5 UrhG |
 | 4 | `sigma` | SigmaHQ rules (core, threat hunting, emerging threats), pinned release | rule title, UUID as alias | DRL 1.1: show each rule's author |
 | 4 | `atomic-red-team` | Atomic tests per ATT&CK technique | `T1059.001 atomic 3`, GUID as alias | MIT |
-| 4 | `arxiv-cscr` | arXiv cs.CR, last 24 months, only papers whose comments or journal reference name an accepted top venue (list in `config/sources.yaml`): abstract and link | `arXiv:2601.01234` | metadata CC0 (arXiv API terms); 1 request per 3 s |
+| 4 | `arxiv-cscr` | arXiv cs.CR, last 24 months, only papers whose comments or journal reference name an accepted top venue (list in the pack's `pack.yaml`): abstract and link | `arXiv:2601.01234` | metadata CC0 (arXiv API terms); 1 request per 3 s |
 
 **Wave 1 is built** (October 2026): the five sources are ingested, served and covered by 58 new
 golden questions (212 in all; `make eval` met every threshold after it). The index holds about
@@ -298,7 +298,7 @@ proof of concept follows), so it stays one chunk; AI-package advisories keep the
 3. **One parser per legal system:** the AI Act parser becomes an EU-law parser configured by
    CELEX and short name (AI Act IDs unchanged), the KI-MIG parser a gesetze-im-internet parser.
    **Built:** `sources/eu_law.py` and `sources/gesetze_im_internet.py`. The CELEX number and URLs
-   stay in `config/sources.yaml`; the short name and the names questions use for an act are in
+   stay in the pack's `pack.yaml`; the short name and the names questions use for an act are in
    `registry.EU_ACTS` / `GERMAN_LAWS`. Another act's IDs carry its short name throughout
    (`NIS2 Art. 21(2)`, `NIS2 Recital 5`, `CRA Annex I`); only the AI Act's recitals and annexes
    stay bare. Re-parsing the served snapshots gives identical chunks.

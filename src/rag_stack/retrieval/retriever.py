@@ -1,5 +1,4 @@
 import asyncio
-import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from itertools import chain, zip_longest
@@ -11,68 +10,13 @@ from rag_stack import observability
 from rag_stack.config import Settings
 from rag_stack.db.edges import EdgeGraph
 from rag_stack.ingestion.models import Chunk, Edge
-from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS, SOURCES
 from rag_stack.llm.embeddings import Embedder, Reranker, SparseEmbedder
+from rag_stack.pack import Pack
 from rag_stack.retrieval.fusion import rrf
-from rag_stack.retrieval.ids import detect_ids
-from rag_stack.retrieval.language import detect_language
-
-# Words asking how to defend (defend, defence, counter, harden; schützen, absichern, ...).
-DEFENSE = (
-    r"mitigat|\bcounter|defen|prevent|protect|safeguard|harden|"
-    r"gegenma|abwehr|schutz|schütz|minder|verteidig|absicher|härt"
-)
-# Questions about related items get the 1-hop neighbors of the units they are about.
-RELATED = re.compile(
-    DEFENSE + r"|map|relat|correspond|link|connect|technique|tactic|weakness|cwe|"
-    r"zuordn|verwandt|bezug|zusammenh|entsprech|verknüpf|\brefer|verweis",
-    re.I,
-)
-MITIGATIONS = re.compile(DEFENSE, re.I)
-
-
-def relations(query: str) -> set[str] | None:
-    """The relations a question about related items follows: defenses only, or all."""
-    return {"mitigates", "counters"} if MITIGATIONS.search(query) else None
-
-
-# A source a question asks for by kind ("Which CAPEC patterns ..."). Neither an ID ("CWE-89") nor
-# a singular ("what kind of weakness is it") asks for a list of them.
-ASKED_FOR = {
-    source: re.compile(pattern, re.I)
-    for source, pattern in {
-        "capec": r"\bCAPEC\b(?!-\d)|attack patterns",
-        "atlas": r"\bATLAS\b",
-        "attack": r"ATT&CK",
-        "d3fend": r"\bD3FEND\b",
-        "cwe": r"\bCWEs?\b(?!-\d)|weaknesses",
-        "vulns": r"\bCVEs?\b(?!-\d)|vulnerabilities|advisories",
-        "owasp-agentic-2026": r"\bASI\b(?!\d)|agentic",
-        "owasp-llm-2026": r"LLM (Top 10|Applications)",
-    }.items()
-}
-
-
-def asked_sources(query: str) -> set[str]:
-    return {source for source, pattern in ASKED_FOR.items() if pattern.search(query)}
-
-
-# An act a question names ("under the KI-MIG"), by source. Its text can lose to another source's
-# in the search (the KI-MIG is German only, the AI Act's English articles outrank it), so a
-# question naming one is also searched within it.
-NAMED_ACTS = {
-    source: re.compile(rf"\b(?:{names})", re.I)
-    for source, (_, names) in {**EU_ACTS, **GERMAN_LAWS}.items()
-}
-
-
-def named_acts(query: str) -> set[str]:
-    return {source for source, pattern in NAMED_ACTS.items() if pattern.search(query)}
-
 
 MAX_PER_ID = 6  # parts of a named article or annex
 MAX_PER_UNIT = 3  # sections of one named unit (an OWASP entry has eight or more)
-PER_NAMED_ACT = 2  # best search hits within a named act, kept in the results
+PER_NAMED_ACT = 2  # best search hits within a named (scoped) source, kept in the results
 MAX_NEIGHBORS = 12  # related units kept, the reranker's best
 # shortcut: past this many neighbors (an ATT&CK technique has hundreds of users) the reranker sees
 # the first ones, relations taking turns; rank within a relation if joins miss the right ones.
@@ -103,7 +47,8 @@ def any_of(key: str, values: list[str]) -> models.FieldCondition:
 
 class KnowledgeBase:
     """Exact IDs first, then dense + BM25 fused with RRF, a cross-encoder rerank, 1-hop graph
-    expansion for questions about related items, and legal text in the question's language."""
+    expansion for questions about related items, and text in the question's language. The pack
+    says which IDs, questions and sources are which (`Pack.vocabulary`)."""
 
     def __init__(
         self,
@@ -113,6 +58,7 @@ class KnowledgeBase:
         sparse: SparseEmbedder,
         reranker: Reranker,
         graph: EdgeGraph,
+        pack: Pack,
         *,
         candidates: int = 50,
         limit: int = 10,
@@ -125,6 +71,8 @@ class KnowledgeBase:
         self.sparse = sparse
         self.reranker = reranker
         self.graph = graph
+        self.pack = pack
+        self.words = pack.vocabulary
         self.candidates = candidates
         self.limit = limit
         self.min_score = min_score
@@ -137,12 +85,14 @@ class KnowledgeBase:
     async def catalog(self) -> list[str]:
         facets = await asyncio.to_thread(self.client.facet, self.collection, "source_id", limit=50)
         # A retired source stays served, under its id, until the next refresh drops it.
+        sources = self.pack.sources
         return sorted(
-            s.name if (s := SOURCES.get(str(h.value))) else str(h.value) for h in facets.hits
+            s.name if (s := sources.get(str(h.value))) else str(h.value) for h in facets.hits
         )
 
     def _retrieve(self, query: str, context: str) -> list[Retrieved]:
-        language = detect_language(query)
+        language = self.pack.detect_language(query)
+        detect_ids = self.pack.detect_ids
         ids = detect_ids(query)
         search = query
         if not ids and (ids := detect_ids(context)):
@@ -157,13 +107,14 @@ class KnowledgeBase:
             hybrid = self._hybrid(search)
             # One search per act: together, the AI Act's English text outranks the KI-MIG again.
             # An act whose units the question names needs none: those units are its text.
-            acts = sorted(named_acts(query) - {c.source_id for c in exact if c.native_id in seeds})
+            scoped = self.words.scoped_sources(query)
+            acts = sorted(scoped - {c.source_id for c in exact if c.native_id in seeds})
             within = [c for act in acts for c in self._hybrid(search, [act])]
         if not seeds:
             # No IDs named: relate the best search hits, not only the first (often a near miss).
             seeds = list(dict.fromkeys(c.native_id for c in hybrid))[:3]
         with observability.stage("graph expansion"):
-            related = self._neighbors(query, seeds) if RELATED.search(query) else []
+            related = self._neighbors(query, seeds) if self.words.is_related(query) else []
 
         pool = unique([*exact, *related, *hybrid, *within])
         with observability.stage("rerank"):
@@ -197,7 +148,7 @@ class KnowledgeBase:
 
         # Asking for units of another source than the named unit's (a CWE's CAPEC patterns) asks
         # for that list: one section per named unit leaves the answer's sources to the list.
-        listed = asked_sources(query) - {c.source_id for c in named}
+        listed = self.words.asked_sources(query) - {c.source_id for c in named}
         per_unit = 1 if any(r.chunk.source_id in listed for r in neighbors) else MAX_PER_UNIT
         parts = [c for c in exact if c not in named]
         relevant = [r for r in ranked(hybrid, "hybrid") if r.score >= self.min_score]
@@ -214,10 +165,13 @@ class KnowledgeBase:
             ends: set[str] = set()
             # Only for questions about related items, as the graph expansion above.
             for seed in [s for s in seeds if s in source] if related else []:
-                for edge in self.graph.edges(seed, relations(query)):
+                for edge in self.graph.edges(seed, self.words.relations(query)):
                     other = edge.dst_id if edge.src_id == seed else edge.src_id
                     # A cited unit counts even if search missed it; else another source's hit.
-                    if edge.rel == "refers_to" or source.get(other, source[seed]) != source[seed]:
+                    if (
+                        edge.rel in self.words.citation_rels
+                        or source.get(other, source[seed]) != source[seed]
+                    ):
                         ends |= {seed, other}
             kept = {r.chunk.native_id for r in found[: self.limit]}
             # A unit the question names by its title ("Application Protocol Command Analysis")
@@ -321,7 +275,7 @@ class KnowledgeBase:
     def _neighbors(self, query: str, seeds: list[str]) -> list[Chunk]:
         """The first chunk of each unit one hop from the seeds, labeled with the relation
         (the edge is not in either unit's text, so the model needs it spelled out)."""
-        rels = relations(query)
+        rels = self.words.relations(query)
         relation: dict[str, str] = {}
         for seed in seeds[:3]:
             by_rel: dict[str, list[Edge]] = {}
@@ -339,7 +293,7 @@ class KnowledgeBase:
         chunks = [c for c in self._scroll(flt) if c.chunk_index == 0]
         # The reranker ranks by topic (a CWE's SQL injection CVEs outrank its CAPEC patterns), so a
         # question asking for one kind of unit keeps only those, if it has any, and the named units.
-        asked = asked_sources(query)
+        asked = self.words.asked_sources(query)
         if any(c.source_id in asked and c.native_id not in seeds for c in chunks):
             chunks = [c for c in chunks if c.source_id in asked or c.native_id in seeds]
         order = list(relation)
@@ -394,6 +348,7 @@ def knowledge_base(
         sparse,
         reranker,
         graph,
+        settings.pack,
         candidates=settings.retrieval_candidates,
         # Only what the answer sees, so the evals score that.
         limit=settings.retrieval_top_k,

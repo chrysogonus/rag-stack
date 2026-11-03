@@ -18,6 +18,7 @@ from rag_stack.retrieval.retriever import KnowledgeBase
 
 pytestmark = pytest.mark.anyio
 FIXTURES = Path(__file__).parents[1] / "fixtures"
+PACK = Settings().pack
 
 
 @pytest.mark.parametrize(
@@ -131,7 +132,7 @@ def test_rrf_rewards_items_ranked_high_in_several_lists():
     ],
 )
 def test_detect_language(text, language):
-    assert detect_language(text) == language
+    assert detect_language(text, PACK.languages) == language
 
 
 def test_edge_graph_neighbors_in_both_directions_and_by_relation():
@@ -169,10 +170,10 @@ def kb() -> KnowledgeBase:
     client = QdrantClient(":memory:")
     embedder, sparse = FakeEmbedder(), FakeSparseEmbedder()
     ensure_collection(client, "kb", embedder.dim)
-    index_source(client, "kb", "atlas", "sha-a", atlas_chunks, embedder, sparse)
-    index_source(client, "kb", "eu-ai-act", "sha-b", act_chunks, embedder, sparse)
+    index_source(client, "kb", "atlas", "sha-a", atlas_chunks, embedder, sparse, sources=SOURCES)
+    index_source(client, "kb", "eu-ai-act", "sha-b", act_chunks, embedder, sparse, sources=SOURCES)
     return KnowledgeBase(
-        client, "kb", embedder, sparse, FakeReranker(), EdgeGraph(atlas_edges), min_score=2.0
+        client, "kb", embedder, sparse, FakeReranker(), EdgeGraph(atlas_edges), PACK, min_score=2.0
     )
 
 
@@ -254,10 +255,10 @@ async def test_catalog_names_each_source_once_without_versions(kb):
 
 
 async def test_a_retired_source_still_served_is_named_by_its_id(kb, monkeypatch):
-    monkeypatch.delitem(SOURCES, "atlas")
+    monkeypatch.delitem(PACK.sources, "atlas")
 
     assert await kb.catalog() == ["EU AI Act (Regulation (EU) 2024/1689)", "atlas"]
-    assert catalog_label(chunk("AML.T0051")) == "atlas 2026.09"
+    assert catalog_label(chunk("AML.T0051"), PACK.sources) == "atlas 2026.09"
 
 
 def test_index_source_skips_an_unchanged_snapshot_and_replaces_a_changed_one():
@@ -266,9 +267,15 @@ def test_index_source_skips_an_unchanged_snapshot_and_replaces_a_changed_one():
     ensure_collection(client, "kb", embedder.dim)
     first = [chunk("AML.T0001"), chunk("AML.T0002")]
 
-    assert index_source(client, "kb", "atlas", "v1", first, embedder, sparse).endswith("2 chunks")
-    assert "unchanged" in index_source(client, "kb", "atlas", "v1", first, embedder, sparse)
-    index_source(client, "kb", "atlas", "v2", [chunk("AML.T0003")], embedder, sparse)
+    assert index_source(
+        client, "kb", "atlas", "v1", first, embedder, sparse, sources=SOURCES
+    ).endswith("2 chunks")
+    assert "unchanged" in index_source(
+        client, "kb", "atlas", "v1", first, embedder, sparse, sources=SOURCES
+    )
+    index_source(
+        client, "kb", "atlas", "v2", [chunk("AML.T0003")], embedder, sparse, sources=SOURCES
+    )
 
     points, _ = client.scroll("kb", limit=10)
     assert [p.payload["native_id"] for p in points if p.payload] == ["AML.T0003"]
@@ -283,8 +290,8 @@ def test_lookups_by_id_return_every_match_not_just_the_first_page():
         chunk(f"AI Act Art. 3({n})", source_id="eu-ai-act", parent_ids=["AI Act Art. 3"])
         for n in range(1, 301)
     ]
-    index_source(client, "kb", "eu-ai-act", "v1", parts, embedder, sparse)
-    kb = KnowledgeBase(client, "kb", embedder, sparse, FakeReranker(), EdgeGraph([]))
+    index_source(client, "kb", "eu-ai-act", "v1", parts, embedder, sparse, sources=SOURCES)
+    kb = KnowledgeBase(client, "kb", embedder, sparse, FakeReranker(), EdgeGraph([]), PACK)
 
     assert len(kb.by_ids(["AI Act Art. 3"])) == 300
 
@@ -340,10 +347,10 @@ async def test_a_named_unit_keeps_only_its_best_sections_so_related_units_fit(qu
     client = QdrantClient(":memory:")
     embedder, sparse = FakeEmbedder(), FakeSparseEmbedder()
     ensure_collection(client, "kb", embedder.dim)
-    index_source(client, "kb", "owasp-llm-2026", "s", sections, embedder, sparse)
-    index_source(client, "kb", "owasp-agentic-2026", "s", [asi], embedder, sparse)
+    index_source(client, "kb", "owasp-llm-2026", "s", sections, embedder, sparse, sources=SOURCES)
+    index_source(client, "kb", "owasp-agentic-2026", "s", [asi], embedder, sparse, sources=SOURCES)
     graph = EdgeGraph([Edge(src_id="LLM01:2026", rel="maps_to", dst_id="ASI01", origin="owasp")])
-    kb = KnowledgeBase(client, "kb", embedder, sparse, FakeReranker(), graph, limit=4)
+    kb = KnowledgeBase(client, "kb", embedder, sparse, FakeReranker(), graph, PACK, limit=4)
 
     found = await kb.retrieve(question)
 
@@ -356,9 +363,9 @@ def small_kb(chunks, edges, **options) -> KnowledgeBase:
     ensure_collection(client, "kb", embedder.dim)
     for source_id in {c.source_id for c in chunks}:
         own = [c for c in chunks if c.source_id == source_id]
-        index_source(client, "kb", source_id, "s", own, embedder, sparse)
+        index_source(client, "kb", source_id, "s", own, embedder, sparse, sources=SOURCES)
     return KnowledgeBase(
-        client, "kb", embedder, sparse, FakeReranker(), EdgeGraph(edges), **options
+        client, "kb", embedder, sparse, FakeReranker(), EdgeGraph(edges), PACK, **options
     )
 
 

@@ -44,7 +44,7 @@ quoted verbatim in English or German.
 
 ```mermaid
 flowchart LR
-    A["10 allowlisted sources<br/>config/sources.yaml"] -->|polite fetch| B["Snapshot<br/>sha256, data/raw/"]
+    A["10 allowlisted sources<br/>packs/cybersecurity/pack.yaml"] -->|polite fetch| B["Snapshot<br/>sha256, data/raw/"]
     B -->|one parser per source| C["Chunks<br/>one unit each:<br/>technique, article, CVE"]
     C -->|embed| D[("Qdrant<br/>dense + BM25")]
     C -->|IDs that link| E[("Postgres<br/>edge table")]
@@ -96,7 +96,7 @@ About 18,700 chunks from ten openly licensed sources:
 | KI-MIG | The German AI Act implementation law (BGBl. 2026 I Nr. 223) | gesetze-im-internet.de XML | 78 | § 5 UrhG |
 | Vulnerabilities | The whole CISA KEV catalog, GitHub-reviewed critical and high advisories and every AI-package advisory of the last 24 months, with EPSS scores | daily snapshot (KEV, GitHub Advisory Database, OSV, NVD, EPSS) | 9,795 | CC0 / CC BY 4.0 / public domain / EPSS free use |
 
-Pinned versions live in [`config/sources.yaml`](config/sources.yaml), and nothing else is
+Pinned versions live in [`packs/cybersecurity/pack.yaml`](packs/cybersecurity/pack.yaml), and nothing else is
 ingested. Attribution for every source is in [NOTICE.md](NOTICE.md).
 
 ## Does it work?

@@ -94,7 +94,7 @@ mindmap
 
 - Each source is split into its natural pieces: one attack technique, one article of a law, or
   one vulnerability per card. We call these pieces **chunks**.
-- Only sources on a fixed allowlist get in (`config/sources.yaml`), and each one is pinned to an
+- Only sources on a fixed allowlist get in (`packs/cybersecurity/pack.yaml`), and each one is pinned to an
   exact version.
 - Every chunk keeps its ID, version, link and license, so the chatbot can always cite it.
 

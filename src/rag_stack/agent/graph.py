@@ -10,11 +10,10 @@ from langgraph.graph.state import CompiledStateGraph
 
 from rag_stack import observability
 from rag_stack.agent.answer import FOOTER_START, abstention, footer, is_abstention
-from rag_stack.agent.prompts import ABSTAIN, SYSTEM_PROMPT, build_input, with_sources
+from rag_stack.agent.prompts import ABSTAIN, build_input, with_sources
 from rag_stack.config import Settings
 from rag_stack.ingestion.models import Chunk
 from rag_stack.llm.base import ChatModel, Message, TextDelta
-from rag_stack.retrieval.language import detect_language
 from rag_stack.retrieval.retriever import Retriever
 
 
@@ -89,11 +88,11 @@ def build_graph(
         """The answer with its footer, the model input and token usage (none if it abstained
         without asking the model)."""
         write = get_stream_writer()
-        language = detect_language(state["messages"][-1]["content"])
+        language = settings.pack.detect_language(state["messages"][-1]["content"])
         sources = [Chunk.model_validate(s) for s in state["sources"][: settings.retrieval_top_k]]
         if not sources:
             # Nothing relevant was found: abstain without spending tokens.
-            text = abstention(await retriever.catalog(), language)
+            text = abstention(await retriever.catalog(), settings.pack, language)
             write({"delta": text})
             return {"text": text, "input": None, "usage": None}
 
@@ -101,7 +100,9 @@ def build_graph(
         usage = 0
         prompt = model_input(state["messages"], sources, settings)
         async for event in llm.stream(
-            prompt, instructions=SYSTEM_PROMPT, max_output_tokens=settings.max_output_tokens
+            prompt,
+            instructions=settings.pack.system_prompt,
+            max_output_tokens=settings.max_output_tokens,
         ):
             if isinstance(event, TextDelta):
                 parts.append(event.text)
@@ -111,9 +112,10 @@ def build_graph(
                 write({"usage": usage})
         text = "".join(parts)
         if is_abstention(text):
-            tail = abstention(await retriever.catalog(), language).removeprefix(ABSTAIN)
+            tail = abstention(await retriever.catalog(), settings.pack, language)
+            tail = tail.removeprefix(ABSTAIN)
         else:
-            tail = footer(text, sources, language)
+            tail = footer(text, sources, settings.pack, language)
         write({"delta": tail})
         return {"text": text + tail, "input": prompt, "usage": {"total": usage}}
 

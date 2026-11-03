@@ -39,6 +39,9 @@ services:
       --quantization fp8 --kv-cache-dtype fp8 --max-model-len 2048
       --max-num-batched-tokens 4096 --enforce-eager
       --gpu-memory-utilization ${EMBEDDINGS_GPU_SHARE:-0.37}
+    environment:
+      # 1 loads the model from hf_cache without asking Hugging Face, for flaky DNS; needs a prior download.
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-0}
     ports:
       - "127.0.0.1:8001:8000"
     volumes: &hf-cache
