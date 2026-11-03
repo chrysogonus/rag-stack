@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from rag_stack.agent.prompts import ABSTAIN
 from rag_stack.config import Settings
+from rag_stack.ingestion.pipeline import source_module
 from rag_stack.pack import load_pack
 
 MINI = """\
@@ -75,6 +76,17 @@ def test_every_language_of_a_pack_needs_all_answer_labels(tmp_path):
     pack = load_pack("mini", write_pack(tmp_path / "full", spelled_out))
     assert pack.labels["fr"]["indexed"] == "La base couvre"
     assert pack.labels["en"]["sources"] == "Sources"  # core's, completed by the pack's own
+
+
+def test_a_parser_starting_with_a_dot_is_a_module_of_the_pack(tmp_path):
+    packs = write_pack(tmp_path, MINI.replace("parser: some.module", "parser: .parsers.notes"))
+    (tmp_path / "mini/parsers").mkdir()
+    (tmp_path / "mini/parsers/notes.py").write_text("from ..helpers import NAME\n")
+    (tmp_path / "mini/helpers.py").write_text("NAME = 'the notes parser'\n")
+
+    source = load_pack("mini", packs).sources["notes"]
+
+    assert source_module(source).NAME == "the notes parser"
 
 
 def test_a_pack_without_code_finds_no_ids(tmp_path):

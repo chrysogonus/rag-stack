@@ -164,5 +164,5 @@ def index_all(settings: Settings, source: str = "all") -> Iterator[str]:
         yield index_source(
             client, collection, source_id, sha, chunks, embedder, sparse, sources=sources
         )
-        replace_edges(settings.database_url, generation, source_id, edges)
+        replace_edges(settings.database_url, alias, generation, source_id, edges)
         yield f"{source_id}: {len(edges)} edges"

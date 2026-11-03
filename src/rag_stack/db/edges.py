@@ -6,41 +6,49 @@ import psycopg
 from rag_stack.ingestion.models import Edge
 
 
-def replace_edges(database_url: str, generation: str, origin: str, edges: Iterable[Edge]) -> None:
-    """Swap one source's edges within one index generation, in a single transaction."""
+def replace_edges(
+    database_url: str, kb: str, generation: str, origin: str, edges: Iterable[Edge]
+) -> None:
+    """Swap one source's edges within one index generation, in a single transaction. `kb` is
+    the knowledge base (the index alias): packs sharing the table keep their own edges."""
     with psycopg.connect(database_url) as conn, conn.cursor() as cur:
         cur.execute(
-            "DELETE FROM kb_edges WHERE generation = %s AND origin = %s", (generation, origin)
+            "DELETE FROM kb_edges WHERE kb = %s AND generation = %s AND origin = %s",
+            (kb, generation, origin),
         )
         cur.executemany(
-            "INSERT INTO kb_edges (generation, src_id, rel, dst_id, origin) "
-            "VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
-            [(generation, e.src_id, e.rel, e.dst_id, e.origin) for e in edges],
+            "INSERT INTO kb_edges (kb, generation, src_id, rel, dst_id, origin) "
+            "VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            [(kb, generation, e.src_id, e.rel, e.dst_id, e.origin) for e in edges],
         )
 
 
-def copy_edges(database_url: str, source: str, target: str) -> int:
+def copy_edges(database_url: str, kb: str, source: str, target: str) -> int:
     """Copy every edge of one generation into another; returns how many were copied."""
     with psycopg.connect(database_url) as conn, conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO kb_edges (generation, src_id, rel, dst_id, origin) "
-            "SELECT %s, src_id, rel, dst_id, origin FROM kb_edges WHERE generation = %s "
-            "ON CONFLICT DO NOTHING",
-            (target, source),
+            "INSERT INTO kb_edges (kb, generation, src_id, rel, dst_id, origin) "
+            "SELECT kb, %s, src_id, rel, dst_id, origin FROM kb_edges "
+            "WHERE kb = %s AND generation = %s ORDER BY seq ON CONFLICT DO NOTHING",
+            (target, kb, source),
         )
         return cur.rowcount
 
 
-def delete_edge_generations(database_url: str, keep: Collection[str]) -> None:
-    with psycopg.connect(database_url) as conn, conn.cursor() as cur:
-        cur.execute("DELETE FROM kb_edges WHERE generation <> ALL(%s)", (list(keep),))
-
-
-def load_edges(database_url: str, generation: str) -> list[Edge]:
+def delete_edge_generations(database_url: str, kb: str, keep: Collection[str]) -> None:
     with psycopg.connect(database_url) as conn, conn.cursor() as cur:
         cur.execute(
-            "SELECT src_id, rel, dst_id, origin FROM kb_edges WHERE generation = %s",
-            (generation,),
+            "DELETE FROM kb_edges WHERE kb = %s AND generation <> ALL(%s)", (kb, list(keep))
+        )
+
+
+def load_edges(database_url: str, kb: str, generation: str) -> list[Edge]:
+    """A generation's edges in the order they were written: retrieval caps neighbors in it."""
+    with psycopg.connect(database_url) as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT src_id, rel, dst_id, origin FROM kb_edges "
+            "WHERE kb = %s AND generation = %s ORDER BY seq",
+            (kb, generation),
         )
         return [Edge(src_id=s, rel=r, dst_id=d, origin=o) for s, r, d, o in cur.fetchall()]
 

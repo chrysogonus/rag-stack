@@ -41,8 +41,8 @@ writes an answer grounded in them.
 
 ```
 src/rag_stack/
-  ingestion/   # fetch (polite HTTP), sha256 snapshots, one parser per source or legal system in sources/
-  retrieval/   # Qdrant index, ID detection, hybrid search + RRF, graph expansion, rerank, generations
+  ingestion/   # fetch (polite HTTP), sha256 snapshots, the parser contract; parsers live in packs
+  retrieval/   # Qdrant index, hybrid search + RRF, graph expansion, rerank, generations
   agent/       # knowledge base agent: LangGraph graph, prompts, answer footer, `ask`
   llm/         # chat, embedding and reranker interfaces and adapters
   api/         # FastAPI app: chat (SSE), threads, ratings, rate limits
@@ -53,8 +53,16 @@ src/rag_stack/
                # eval-labels | eval-agreement (wrapped by make)
   refresh.py   # scheduled refresh: diff, checks, candidate index generation, promote or block
   observability.py  # Langfuse tracing and ratings; the only module that imports its SDK
-packs/<name>/           # a domain: pack.yaml (source allowlist and pinned upstream refs, prompts,
-                        # labels, languages, retrieval words, eval set) and pack.py (ID formats)
+  pack.py      # the pack contract: pack.yaml's schema and the loader (Settings.pack)
+packs/<name>/  # a domain (RAG_PACK selects one)
+  pack.yaml    # source allowlist and pinned upstream refs, prompts, labels, languages,
+               # retrieval words, fetch hosts and credentials, eval set
+  pack.py      # optional code: ID formats (detect_ids), sources a question can name (scoped)
+  parsers/     # one parser per source or legal system (`parser: .parsers.<module>`)
+  prompts/     # system and baseline prompts
+  evals/       # golden.jsonl, thresholds.yaml, the judge rubric, report.md, results.json,
+               # history.jsonl, corpus/manifest.json, judge_labels.{jsonl,md}, drafts.jsonl
+  tests/       # the pack's own unit/ and e2e/ tests, fixtures/ (verbatim source excerpts)
 data/                   # raw snapshots, processed chunks, HTTP cache (not committed)
 web/           # chat UI
 deploy/        # systemd/: timer for `make refresh` (`make schedule`); vllm/: Qwen3 reranker template
@@ -63,13 +71,9 @@ Makefile       # every command; `make` lists them
 .github/workflows/ci.yml  # CI: lint, secrets, types, unit tests, audit, build, web
 tests/
   fakes/       # fake LLM / embedder / reranker / retriever shared by unit tests
-  fixtures/    # small verbatim excerpts of each source (see NOTICE.md)
   unit/        # tight: no network, LLM/embeddings faked, Qdrant in-memory
-  ai/          # evals against a real LLM, marked @pytest.mark.ai
-  e2e/         # question -> chatbot answer, real Qdrant
-evals/datasets/<name>/  # golden.jsonl, thresholds.yaml, report.md, results.json, history.jsonl,
-                        # corpus/manifest.json, judge_labels.{jsonl,md}, review_<date>.md, drafts.jsonl
-evals/rubrics/          # versioned LLM-judge rubrics
+  ai/          # the active pack's golden set and prompt injection against a real LLM (@pytest.mark.ai)
+  e2e/         # real Postgres and Qdrant; a pack's chat e2e is in packs/<name>/tests/e2e/
 ```
 
 Only the sources in the pack's `pack.yaml` are ingested (`RAG_PACK`, default `cybersecurity`). Retrieved text is data, never instructions: the
@@ -85,9 +89,9 @@ in the background (logs in `.run/`). The underlying commands:
 uv sync
 uv run ruff check && uv run ruff format --check && uv run pyright
 uv export --frozen --no-emit-project --format requirements-txt > /tmp/req.txt && uvx pip-audit -r /tmp/req.txt --disable-pip
-uv run pytest tests/unit
+uv run pytest tests/unit packs/*/tests/unit
 uv run pytest tests/ai     # needs provider API keys in .env and an indexed knowledge base
-uv run pytest tests/e2e    # needs Postgres + Qdrant (docker compose up -d) and API keys
+uv run pytest tests/e2e packs/*/tests/e2e    # needs Postgres + Qdrant (docker compose up -d) and API keys
 uv run python -m rag_stack.cli ingest all && uv run python -m rag_stack.cli index
 uv run uvicorn rag_stack.api.app:create_app --factory --reload   # API on :8000
 
@@ -99,7 +103,7 @@ npm run dev                # chat UI on :5173, proxies /api to :8000
 Code navigation (optional): graphify is a dev-only tool (`uv tool install "graphifyy[leiden]"`,
 never a project dependency). `/graphify .` builds `graphify-out/` (gitignored); `graphify query` /
 `path` / `explain` answer structural questions. `.graphifyignore` keeps the corpus excerpts in
-`tests/fixtures/` and `evals/datasets/` out of its LLM pass.
+`packs/*/tests/fixtures/` and `packs/*/evals/` out of its LLM pass.
 
 ## Testing (required)
 
@@ -107,7 +111,7 @@ Every change to RAG or agent code ships with both test layers below:
 
 - **Unit tests**: tight and deterministic. They cover chunking, retrieval logic, prompt
   assembly, and agent control flow, with fakes standing in for the LLM, embeddings, and Qdrant.
-- **AI tests (evals)**: these run against a real LLM using golden datasets from `evals/datasets/`.
+- **AI tests (evals)**: these run against a real LLM using the pack's golden set (`packs/<name>/evals/`).
   They score retrieval (recall/precision) and answers (faithfulness, relevance,
   groundedness) against explicit thresholds, using metrics or an LLM-as-judge.
 

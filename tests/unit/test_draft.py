@@ -89,9 +89,19 @@ def test_cross_source_candidates_are_edges_between_indexed_units_with_their_rela
     assert pool[0][1] == "Relationship: LLM99:2026 maps_to AML.T9990"
 
 
+def test_a_source_without_english_units_is_drafted_in_its_own_language(settings):
+    german = [chunk("CAPEC-99", "Text.", source_id="capec", language="de")]
+    write_processed(Path(settings.data_dir) / "processed/capec/v1", german, [], "sha")
+    (Path(settings.data_dir) / "processed/capec/LATEST").write_text("v1")
+
+    assert ids(draft.candidates(settings, "capec", "paraphrase")) == [["CAPEC-99"]]
+
+
 def test_categories_that_dont_fit_the_source_are_refused(settings):
     with pytest.raises(ValueError, match="cve questions don't fit atlas"):
         draft.candidates(settings, "atlas", "cve")
+    with pytest.raises(ValueError, match="german-legal questions don't fit atlas"):
+        draft.candidates(settings, "atlas", "german-legal")
     with pytest.raises(ValueError, match="not ingested"):
         draft.candidates(settings, "vulns", "cve")
 

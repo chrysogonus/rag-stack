@@ -256,7 +256,7 @@ xychart-beta
 - The comparison uses the same AI model. The general chatbot may search the web; rag-stack uses its
   library.
 - The answers are graded by a judge model from another AI company, so the model isn't grading its
-  own homework. Details: [eval report](../evals/datasets/ai_security/report.md).
+  own homework. Details: [eval report](../packs/cybersecurity/evals/report.md).
 
 > 🎤 **Say:** "We measured it. Citations are almost twice as precise, and it nearly always
 > admits when it doesn't know, instead of guessing."
@@ -319,5 +319,5 @@ Words to know:
 
 - [README](../README.md): setup, commands and the full source table
 - [docs/PLAN.md](PLAN.md): the design and the measurements behind each choice
-- [Eval report](../evals/datasets/ai_security/report.md): all scores, by category
+- [Eval report](../packs/cybersecurity/evals/report.md): all scores, by category
 - [NOTICE.md](../NOTICE.md): attribution and licenses

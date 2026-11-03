@@ -205,7 +205,7 @@ typecheck: ## Type-check with pyright
 	uv run pyright
 
 test: ## Run unit tests
-	uv run pytest tests/unit
+	uv run pytest tests/unit packs/*/tests/unit
 
 audit: ## Audit dependencies for known vulnerabilities
 	@req=$$(mktemp); trap 'rm -f $$req' EXIT; \
@@ -224,7 +224,7 @@ evals: migrate ## AI tests: thresholds on the saved `make eval` results (fails i
 	uv run pytest tests/ai
 
 e2e: migrate ## Run end-to-end tests (real Postgres, Qdrant and LLM)
-	uv run pytest tests/e2e
+	uv run pytest tests/e2e packs/*/tests/e2e
 
 check-all: ci eval evals e2e ## CI, one paid eval run, AI tests and e2e: the definition of done
 	@echo "All checks passed"

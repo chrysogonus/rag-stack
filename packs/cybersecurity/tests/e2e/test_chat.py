@@ -13,12 +13,12 @@ import pytest
 from fastapi.testclient import TestClient
 from qdrant_client import QdrantClient
 
+from packs.cybersecurity.parsers import atlas, eu_law
 from rag_stack import observability
 from rag_stack.api.app import create_app
 from rag_stack.config import Settings
 from rag_stack.db.edges import EdgeGraph
 from rag_stack.ingestion.models import Snapshot
-from rag_stack.ingestion.sources import atlas, eu_law
 from rag_stack.llm.factory import create_embedder, create_reranker, create_sparse_embedder
 from rag_stack.retrieval.index import ensure_collection, index_source
 from rag_stack.retrieval.retriever import KnowledgeBase

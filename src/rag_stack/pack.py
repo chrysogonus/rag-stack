@@ -90,6 +90,25 @@ class Retrieval(Strict):
     citation_rels: list[str] = []
 
 
+class Credential(Strict):
+    """A key or token a host serves more requests with, sent as a header when it is set."""
+
+    env: str  # the environment variable, or `.env` entry, holding it
+    header: str
+    value: str = "{}"  # the header's value; {} stands for the credential
+    interval: float  # seconds between requests with it
+
+
+class Host(Strict):
+    interval: float  # seconds between requests (robots.txt may ask for more)
+    credential: Credential | None = None
+
+
+class Fetch(Strict):
+    user_agent: str = "rag-stack/0.1 (knowledge base ingest)"
+    hosts: dict[str, Host] = {}  # other hosts get one request per second
+
+
 class Evals(Strict):
     title: str
     dataset: Path  # golden.jsonl, thresholds.yaml, results.json, report.md, history.jsonl
@@ -103,6 +122,7 @@ class PackFile(Strict):
     labels: dict[str, dict[str, str]]  # per language: `hint`, `ai` and any of LABELS's
     languages: dict[str, Language] = {"en": Language()}  # the first wins a tie
     retrieval: Retrieval = Retrieval()
+    fetch: Fetch = Fetch()
     evals: Evals
 
 
@@ -141,6 +161,7 @@ class Pack:
     labels: dict[str, dict[str, str]]
     languages: dict[str, list[str]]
     vocabulary: Vocabulary
+    fetch: Fetch
     evals: Evals
     detect_ids: Callable[[str], list[str]]
 
@@ -172,10 +193,17 @@ def load_pack(name: str, packs_dir: str) -> Pack:
         if missing := sorted(LABEL_NAMES - named.keys()):
             raise ValueError(f"pack {name}: labels for {code} miss {', '.join(missing)}")
     words = spec.retrieval
+    # A parser starting with a dot is one of the pack's modules: ".parsers.atlas".
+    sources = {
+        s.id: s.model_copy(update={"parser": package(root) + s.parser})
+        if s.parser.startswith(".")
+        else s
+        for s in spec.sources
+    }
     return Pack(
         name=name,
         root=root,
-        sources={s.id: s for s in spec.sources},
+        sources=sources,
         system_prompt=prompt(spec.prompts.system),
         baseline_prompt=prompt(spec.prompts.baseline),
         labels=labels,
@@ -189,6 +217,7 @@ def load_pack(name: str, packs_dir: str) -> Pack:
             },
             citation_rels=frozenset(words.citation_rels),
         ),
+        fetch=spec.fetch,
         evals=spec.evals.model_copy(
             update={"dataset": root / spec.evals.dataset, "rubric": root / spec.evals.rubric}
         ),
@@ -196,15 +225,20 @@ def load_pack(name: str, packs_dir: str) -> Pack:
     )
 
 
-def pack_code(root: Path) -> ModuleType | None:
-    """The pack's pack.py, imported as `<packs dir>.<name>.pack` so its modules import theirs."""
-    path = root / "pack.py"
-    if not path.exists():
-        return None
+def package(root: Path) -> str:
+    """The pack's modules' package, `<packs dir>.<name>`, so they can import each other."""
     parent = str(root.parent.parent)
     if parent not in sys.path:
         sys.path.append(parent)
-    module = importlib.import_module(f"{root.parent.name}.{root.name}.pack")
+    return f"{root.parent.name}.{root.name}"
+
+
+def pack_code(root: Path) -> ModuleType | None:
+    """The pack's pack.py."""
+    path = root / "pack.py"
+    if not path.exists():
+        return None
+    module = importlib.import_module(f"{package(root)}.pack")
     if Path(str(module.__file__)).resolve() != path.resolve():
         raise ImportError(f"{module.__name__} is {module.__file__}, not {path}")
     return module

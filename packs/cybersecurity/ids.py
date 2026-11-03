@@ -2,7 +2,7 @@
 
 import re
 
-from rag_stack.ingestion.registry import EU_ACTS, GERMAN_LAWS, eu_id
+from .laws import EU_ACTS, GERMAN_LAWS, eu_id
 
 GERMAN_NAMES = "|".join(names for _, names in GERMAN_LAWS.values())
 PATTERNS: list[tuple[re.Pattern[str], str]] = [

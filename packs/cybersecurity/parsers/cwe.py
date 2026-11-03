@@ -7,8 +7,9 @@ from bs4 import BeautifulSoup, Tag
 
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot
-from rag_stack.ingestion.registry import SOURCES
-from rag_stack.ingestion.sources.capec import consequence, listed, text
+
+from ..laws import SOURCES
+from .capec import consequence, listed, text
 
 INFO = SOURCES["cwe"]
 SITE = "https://cwe.mitre.org/data/definitions"

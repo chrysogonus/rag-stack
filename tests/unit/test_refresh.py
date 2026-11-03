@@ -80,7 +80,7 @@ def env(tmp_path, monkeypatch):
         FakeSparseEmbedder(),
         sources=SOURCES,
     )
-    store.rows[""] = [EDGE]
+    store.rows["kb", ""] = [EDGE]
     embedder.embedded = 0
 
     return SimpleNamespace(
@@ -147,8 +147,8 @@ async def test_the_first_refresh_adopts_the_old_collection_without_embedding_any
     assert code == 0 and " NO CHANGE | adopted kb as kb_" in line
     served = gens.serving(env.client, "kb")
     assert served and served.startswith("kb_") and env.client.count(served).count == 11
-    assert list(env.store.rows) == [gens.generation_of("kb", served)]
-    assert env.store.rows[gens.generation_of("kb", served)] == [EDGE]
+    assert list(env.store.rows) == [("kb", gens.generation_of("kb", served))]
+    assert env.store.rows["kb", gens.generation_of("kb", served)] == [EDGE]
 
     code, line = await refresh.refresh(env.settings, env.client, [], no_models)
     assert line.endswith(" - NO CHANGE") and gens.serving(env.client, "kb") == served
@@ -172,7 +172,7 @@ async def test_a_changed_source_is_embedded_and_the_rest_copied_then_promoted(en
     assert served and candidate and candidate != served
     assert gens.previous(env.client, "kb") == served
     assert env.client.count(candidate).count == 12
-    assert set(env.store.rows) == {gens.generation_of("kb", c) for c in (served, candidate)}
+    assert set(env.store.rows) == {("kb", gens.generation_of("kb", c)) for c in (served, candidate)}
 
     assert refresh.rollback(env.settings, env.client)[0] == 0
     assert gens.serving(env.client, "kb") == served

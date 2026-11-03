@@ -1,5 +1,5 @@
 # Verbatim corpus excerpts (prompt-injection payloads by design): keep out of the semantic pass.
-tests/fixtures/
-evals/datasets/
+packs/*/tests/fixtures/
+packs/*/evals/
 # In case nested .gitignore files are not honored.
 web/node_modules/

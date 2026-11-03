@@ -379,5 +379,5 @@ def open_knowledge_base(settings: Settings, pinned: bool = False) -> KnowledgeBa
         create_reranker(
             settings.reranker_model, settings.reranker_provider, settings.reranker_base_url
         ),
-        EdgeGraph(load_edges(settings.database_url, generation_of(alias, served))),
+        EdgeGraph(load_edges(settings.database_url, alias, generation_of(alias, served))),
     )

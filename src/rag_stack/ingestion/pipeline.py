@@ -11,7 +11,7 @@ from typing import Any
 from rag_stack.config import Settings
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot, finalize
-from rag_stack.pack import Source
+from rag_stack.pack import Source, package
 
 logger = logging.getLogger(__name__)
 
@@ -21,37 +21,32 @@ def source_module(source: Source) -> ModuleType:
     return importlib.import_module(source.parser)
 
 
-def parser_sha(module: ModuleType) -> str:
-    """sha256 of a parser's code: its module, the other sources' modules it borrows from and the
-    ID detection that finds its references."""
-    borrowed = (f"{__package__}.sources.", "rag_stack.retrieval.ids")
+def parser_sha(module: ModuleType, pack: str) -> str:
+    """sha256 of a parser's code: its module and the modules of the pack (package prefix `pack`)
+    it borrows functions from, such as another parser's helpers or the pack's ID detection."""
     names = {module.__name__} | {
         f.__module__
         for f in vars(module).values()
-        if callable(f) and getattr(f, "__module__", "").startswith(borrowed)
+        if callable(f) and getattr(f, "__module__", "").startswith(pack)
     }
     code = b"".join(Path(str(sys.modules[n].__file__)).read_bytes() for n in sorted(names))
     return hashlib.sha256(code).hexdigest()
 
 
 def make_fetcher(settings: Settings) -> Fetcher:
-    nvd_key = settings.nvd_api_key.get_secret_value()
-    github_token = settings.github_token.get_secret_value()
-    headers = {}
-    if nvd_key:
-        headers["services.nvd.nist.gov"] = {"apiKey": nvd_key}
-    if github_token:
-        headers["api.github.com"] = {"Authorization": f"Bearer {github_token}"}
+    """A fetcher with the pack's user agent and per-host pacing and credentials."""
+    fetch = settings.pack.fetch
+    intervals, headers = {}, {}
+    for host, rules in fetch.hosts.items():
+        intervals[host] = rules.interval
+        if (credential := rules.credential) and (value := settings.secret(credential.env)):
+            intervals[host] = credential.interval
+            headers[host] = {credential.header: credential.value.format(value)}
     return Fetcher(
-        settings.fetch_user_agent,
+        fetch.user_agent,
         Path(settings.data_dir) / "cache",
         settings.fetch_cache_ttl_hours,
-        # NVD allows 5 requests per 30 s without a key and 50 with one; GitHub's API 60 an hour
-        # without a token and 5,000 with one.
-        host_intervals={
-            "services.nvd.nist.gov": 0.7 if nvd_key else 6.5,
-            "api.github.com": 1.0 if github_token else 61.0,
-        },
+        host_intervals=intervals,
         headers=headers,
     )
 
@@ -74,7 +69,7 @@ def ingest(source_id: str, settings: Settings, fetcher: Fetcher) -> str:
     processed = data / "processed" / source_id / safe(snapshot.version)
     sha = digest(snapshot.files)
     # Unchanged input and unchanged parser code: nothing to do. A parser fix re-parses.
-    parser = parser_sha(module)
+    parser = parser_sha(module, package(settings.pack.root) + ".")
     manifest = raw / "manifest.json"
     if manifest.exists() and json.loads(manifest.read_text())["sha256"] == sha:
         done = processed / "parser.sha256"

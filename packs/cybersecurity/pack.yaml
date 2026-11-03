@@ -9,7 +9,7 @@ sources:
     license: Apache-2.0
     attribution: MITRE ATLAS™, Copyright 2021-2026 MITRE, Apache-2.0
     url: https://atlas.mitre.org
-    parser: rag_stack.ingestion.sources.atlas
+    parser: .parsers.atlas
     config:
       # A git symlink: its content names the dated release file next to it.
       latest_url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-latest.yaml
@@ -19,7 +19,7 @@ sources:
     license: CC-BY-SA-4.0
     attribution: OWASP GenAI Security Project, OWASP Top 10 for LLM Applications 2026, CC BY-SA 4.0
     url: https://github.com/GenAI-Security-Project/GenAI-LLM-Top10
-    parser: rag_stack.ingestion.sources.owasp_llm
+    parser: .parsers.owasp_llm
     config:
       # 2026 final release, pinned to a commit so the snapshot is reproducible.
       repo: GenAI-Security-Project/GenAI-LLM-Top10
@@ -43,7 +43,7 @@ sources:
     license: CC-BY-SA-4.0
     attribution: OWASP GenAI Security Project, OWASP Top 10 for Agentic Applications for 2026, CC BY-SA 4.0
     url: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
-    parser: rag_stack.ingestion.sources.owasp_agentic
+    parser: .parsers.owasp_agentic
     config:
       page_url: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
       pdf_url: https://genai.owasp.org/download/52117/
@@ -54,7 +54,7 @@ sources:
     license: LicenseRef-EU-Decision-2011-833
     attribution: © European Union, https://eur-lex.europa.eu
     url: https://eur-lex.europa.eu/eli/reg/2024/1689/oj
-    parser: rag_stack.ingestion.sources.eu_law
+    parser: .parsers.eu_law
     config:
       celex: 32024R1689
       # Consolidated versions are 0<celex minus first digit>-YYYYMMDD; the latest is found via SPARQL.
@@ -67,7 +67,7 @@ sources:
     license: LicenseRef-UrhG-5
     attribution: "Amtliches Werk (§ 5 UrhG), Quelle: https://www.gesetze-im-internet.de/ki-mig/"
     url: https://www.gesetze-im-internet.de/ki-mig/
-    parser: rag_stack.ingestion.sources.gesetze_im_internet
+    parser: .parsers.gesetze_im_internet
     config:
       xml_url: https://www.gesetze-im-internet.de/ki-mig/xml.zip
       page_url: https://www.gesetze-im-internet.de/ki-mig/
@@ -77,7 +77,7 @@ sources:
     license: CC-BY-4.0
     attribution: "GitHub Advisory Database (CC BY 4.0), also via OSV; NVD (public domain); CISA KEV (CC0); EPSS by FIRST"
     url: https://www.cisa.gov/known-exploited-vulnerabilities-catalog
-    parser: rag_stack.ingestion.sources.vulns
+    parser: .parsers.vulns
     config:
       # The whole KEV catalog; GitHub-reviewed advisories and AI-package advisories of the window.
       window_months: 24
@@ -108,7 +108,7 @@ sources:
     license: LicenseRef-MITRE-ATTACK-Terms
     attribution: © 2026 The MITRE Corporation. This work is reproduced and distributed with the permission of The MITRE Corporation.
     url: https://attack.mitre.org
-    parser: rag_stack.ingestion.sources.attack
+    parser: .parsers.attack
     config:
       # Enterprise, Mobile and ICS bundles of one release; versioned files never change.
       base_url: https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master
@@ -119,7 +119,7 @@ sources:
     license: LicenseRef-MITRE-CAPEC-Terms
     attribution: CAPEC™, Copyright © 2007–2026, The MITRE Corporation
     url: https://capec.mitre.org
-    parser: rag_stack.ingestion.sources.capec
+    parser: .parsers.capec
     config:
       # One XML catalog per release; versioned files never change.
       base_url: https://capec.mitre.org/data/xml
@@ -130,7 +130,7 @@ sources:
     license: LicenseRef-MITRE-CWE-Terms
     attribution: CWE™, Copyright © 2006–2026, The MITRE Corporation
     url: https://cwe.mitre.org
-    parser: rag_stack.ingestion.sources.cwe
+    parser: .parsers.cwe
     config:
       # One zipped XML catalog per release; versioned files never change.
       base_url: https://cwe.mitre.org/data/xml
@@ -141,7 +141,7 @@ sources:
     license: LicenseRef-MITRE-D3FEND-Terms
     attribution: D3FEND™, © 2025 The MITRE Corporation
     url: https://d3fend.mitre.org
-    parser: rag_stack.ingestion.sources.d3fend
+    parser: .parsers.d3fend
     config:
       # The ontology and its inferred ATT&CK mappings, per release; versioned files never change.
       base_url: https://d3fend.mitre.org/ontologies/d3fend
@@ -184,10 +184,22 @@ retrieval:
   # The law a KI-MIG section refers to. `scoped` (the acts a question names) is in pack.py.
   citation_rels: [refers_to]
 
+fetch:
+  user_agent: rag-stack/0.1 (AI-security knowledge base ingest)
+  hosts:
+    # NVD allows 5 requests per 30 s without a key and 50 with one.
+    services.nvd.nist.gov:
+      interval: 6.5
+      credential: {env: NVD_API_KEY, header: apiKey, interval: 0.7}
+    # GitHub's API allows 60 requests an hour without a token and 5,000 with one.
+    api.github.com:
+      interval: 61.0
+      credential: {env: GITHUB_TOKEN, header: Authorization, value: "Bearer {}", interval: 1.0}
+
 evals:
   title: AI-security golden set
-  dataset: ../../evals/datasets/ai_security
-  rubric: ../../evals/rubrics/judge_v1.md
+  dataset: evals
+  rubric: evals/judge_v1.md
   # freshness: content first published on or after 2026-01-01, newer than the models' training
   # data; paraphrase: older content asked in a user's own words, without its ID; cross-source:
   # needs units of two or more sources; relation: follows links within one source (technique →

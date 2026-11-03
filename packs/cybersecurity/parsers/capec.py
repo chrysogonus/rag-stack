@@ -7,7 +7,8 @@ from bs4.element import Comment, NavigableString
 
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean
-from rag_stack.ingestion.registry import SOURCES
+
+from ..laws import SOURCES
 
 INFO = SOURCES["capec"]
 SITE = "https://capec.mitre.org/data/definitions"

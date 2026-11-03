@@ -117,10 +117,10 @@ def adopt_legacy(client: QdrantClient, alias: str, database_url: str) -> str | N
         if client.count(target, exact=True).count != client.count(alias, exact=True).count:
             client.delete_collection(target)
             raise RuntimeError(f"copying {alias} into {target} lost points; {alias} is untouched")
-        edge_store.copy_edges(database_url, "", generation)
+        edge_store.copy_edges(database_url, alias, "", generation)
         client.delete_collection(alias)
         gens.promote(client, alias, target)
-        edge_store.delete_edge_generations(database_url, [generation])
+        edge_store.delete_edge_generations(database_url, alias, [generation])
         return f"adopted {alias} as {target}"
     return None
 
@@ -161,7 +161,9 @@ def tidy(client: QdrantClient, alias: str, database_url: str, *keep: str | None)
     """Delete every generation except the served, the previous and the given ones."""
     kept = {c for c in (gens.serving(client, alias), gens.previous(client, alias), *keep) if c}
     gens.prune(client, alias, kept)
-    edge_store.delete_edge_generations(database_url, [gens.generation_of(alias, c) for c in kept])
+    edge_store.delete_edge_generations(
+        database_url, alias, [gens.generation_of(alias, c) for c in kept]
+    )
 
 
 async def refresh(
@@ -234,7 +236,7 @@ async def refresh(
             settings.pack.sources,
         )
         for source_id, (_, _, edges) in processed.items():
-            edge_store.replace_edges(db, generation, source_id, edges)
+            edge_store.replace_edges(db, alias, generation, source_id, edges)
         if (points := client.count(candidate, exact=True).count) != expected:
             tidy(client, alias, db, candidate)
             return log(
@@ -242,7 +244,9 @@ async def refresh(
             )
 
         async def scores(collection: str, queries: Embedder) -> dict[str, float | None]:
-            graph = EdgeGraph(edge_store.load_edges(db, gens.generation_of(alias, collection)))
+            graph = EdgeGraph(
+                edge_store.load_edges(db, alias, gens.generation_of(alias, collection))
+            )
             kb = knowledge_base(settings, client, collection, queries, sparse, reranker, graph)
             return (await harness.retrieval_scores(kb, "all", settings.pack.evals))[0]["all"]
 

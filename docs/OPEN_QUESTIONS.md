@@ -82,7 +82,7 @@ Things the MVP could not settle, with what was done instead.
 
 - **Golden set review.** On 2026-10-28 Claude (Opus 5.5), acting as a domain expert, reviewed all
   212 questions against the indexed text and edges: 122 stood, 90 were fixed, none dropped
-  (`evals/datasets/ai_security/review_2026-10-28.md` has each verdict and the source checked).
+  (`packs/cybersecurity/evals/review_2026-10-28.md` has each verdict and the source checked).
   Most fixes split compound key facts, which the judge scores all-or-nothing, or dropped facts
   the question doesn't ask for; a few corrected legal and CVE claims. All questions now carry
   `needs_review: false`, but no person has reviewed them: spot-check the log before thresholds

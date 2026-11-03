@@ -5,7 +5,8 @@ from typing import Any
 
 from rag_stack.ingestion.fetch import Fetcher, FetchError
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean
-from rag_stack.ingestion.registry import SOURCES
+
+from ..laws import SOURCES
 
 INFO = SOURCES["vulns"]
 logger = logging.getLogger(__name__)

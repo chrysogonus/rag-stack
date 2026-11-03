@@ -1,4 +1,4 @@
-"""German federal laws from gesetze-im-internet.de, by short name (registry.GERMAN_LAWS)."""
+"""German federal laws from gesetze-im-internet.de, by short name (laws.GERMAN_LAWS)."""
 
 import io
 import re
@@ -10,8 +10,9 @@ from bs4.element import NavigableString
 
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot, clean
-from rag_stack.ingestion.registry import GERMAN_LAWS, SOURCES
-from rag_stack.retrieval.ids import detect_ids
+
+from ..ids import detect_ids
+from ..laws import GERMAN_LAWS, SOURCES
 
 # "Artikel 30 Absatz 2 der Verordnung (EU) 2024/1689", "des Anhangs III Nummer 2 der Verordnung ..."
 AI_ACT_CITATION = re.compile(
