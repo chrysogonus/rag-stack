@@ -2,21 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type Keyb
 import { Answer } from './Answer'
 import { Musing } from './Musing'
 import { MotionSwitch } from './MotionSwitch'
-import { getMessages, RefusedError, sendFeedback, sendMessage, stopped, type Message, type SourceRef } from './api'
+import { getMessages, RefusedError, sendFeedback, sendMessage, stopped, type Config, type Message, type SourceRef } from './api'
 import { rememberChat, type Chat } from './chats'
-import { SOURCES } from './sky/layout'
 import type { SkyRenderer } from './sky/renderer'
 import { Sky } from './sky/Sky'
 
-const MAX_CHARS = 4000 // matches the server's MAX_INPUT_CHARS default
 const THREAD_KEY = 'rag-stack:thread'
 const CHATS_KEY = 'rag-stack:chats'
-
-const STARTERS = [
-  { question: 'Which D3FEND techniques counter T1110.001?', source: 'd3fend' },
-  { question: 'What is AML.T0051?', source: 'atlas' },
-  { question: 'What does Article 50 of the EU AI Act require?', source: 'eu-ai-act' },
-]
 
 type Turn = Message & { sources?: SourceRef[] }
 
@@ -67,7 +59,7 @@ function centre(el: Element | null) {
   return rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null
 }
 
-export default function App() {
+export default function App({ config }: { config: Config }) {
   const [threadId, setThreadId] = useState(storedThread)
   const [chats, setChats] = useState(storedChats)
   const [messages, setMessages] = useState<Turn[]>([])
@@ -133,8 +125,8 @@ export default function App() {
   // Tabs and browser history tell chats apart by their first question.
   const title = chats.find((chat) => chat.id === threadId)?.title
   useEffect(() => {
-    document.title = title ? `${title} · Knowledge base` : 'Knowledge base'
-  }, [title])
+    document.title = title ? `${title} · ${config.title}` : config.title
+  }, [title, config.title])
   // Another tab saved a chat: adopt its list, so this tab's next save doesn't drop it.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => e.key === CHATS_KEY && setChats(storedChats())
@@ -292,16 +284,16 @@ export default function App() {
   }
 
   const empty = !loading && !loadError && messages.length === 0
-  const showCount = draft.length > MAX_CHARS * 0.8
+  const showCount = draft.length > config.max_input_chars * 0.8
 
   return (
     <div className={['shell', intro && 'intro', messages.length && 'chatting'].filter(Boolean).join(' ')}>
       <a className="skip" href="#question">
         Skip to question
       </a>
-      <Sky rendererRef={skyRef} />
+      <Sky rendererRef={skyRef} sources={config.sources} />
       <header className="masthead" ref={mastheadRef}>
-        <span className="wordmark">Knowledge base</span>
+        <span className="wordmark">{config.title}</span>
         <div className="actions">
           {chats.length > 0 && (
             <button type="button" className="quiet" popoverTarget="chats">
@@ -349,32 +341,31 @@ export default function App() {
         )}
         {empty && (
           <section className="welcome">
-            <h1>What do you want to know about cybersecurity?</h1>
-            <p>
-              Each constellation is one source. When you ask, the passages behind the answer light up. Answers come
-              from an AI model and can be wrong, so check anything important.
-            </p>
+            <h1>{config.heading}</h1>
+            <p>{config.intro}</p>
             <ul className="visually-hidden" aria-label="Sources">
-              {SOURCES.map((s) => (
+              {config.sources.map((s) => (
                 <li key={s.id}>{s.label}</li>
               ))}
             </ul>
-            <ul className="starters" aria-label="Example questions">
-              {STARTERS.map(({ question, source }) => (
-                <li key={question}>
-                  <button
-                    type="button"
-                    onClick={() => void send(question)}
-                    onMouseEnter={() => skyRef.current?.highlight(source)}
-                    onMouseLeave={() => skyRef.current?.highlight(null)}
-                    onFocus={() => skyRef.current?.highlight(source)}
-                    onBlur={() => skyRef.current?.highlight(null)}
-                  >
-                    {question}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {config.starters.length > 0 && (
+              <ul className="starters" aria-label="Example questions">
+                {config.starters.map(({ question, source }) => (
+                  <li key={question}>
+                    <button
+                      type="button"
+                      onClick={() => void send(question)}
+                      onMouseEnter={() => skyRef.current?.highlight(source)}
+                      onMouseLeave={() => skyRef.current?.highlight(null)}
+                      onFocus={() => skyRef.current?.highlight(source)}
+                      onBlur={() => skyRef.current?.highlight(null)}
+                    >
+                      {question}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         )}
         {messages.map((message, i) =>
@@ -389,6 +380,7 @@ export default function App() {
               index={i}
               content={message.content}
               sources={message.sources}
+              catalog={config.sources}
               live={streaming && i === messages.length - 1}
               sky={skyRef}
               onFeedback={(helpful) => sendFeedback(threadId, i, helpful)}
@@ -421,9 +413,9 @@ export default function App() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
-            maxLength={MAX_CHARS}
+            maxLength={config.max_input_chars}
             rows={1}
-            placeholder="Ask about cybersecurity"
+            placeholder={config.placeholder}
             aria-describedby={showCount ? 'count' : undefined}
             autoFocus
           />
@@ -441,10 +433,10 @@ export default function App() {
           <p>
             {showCount ? (
               <span id="count">
-                {draft.length.toLocaleString()} of {MAX_CHARS.toLocaleString()} characters
+                {draft.length.toLocaleString()} of {config.max_input_chars.toLocaleString()} characters
               </span>
             ) : streaming ? (
-              <Musing />
+              <Musing phrases={config.musings} />
             ) : (
               <>
                 <span className="keys">Enter to send, Shift+Enter for a new line. </span>

@@ -232,6 +232,7 @@ The chat UI uses three endpoints. The client picks the thread ID, a UUID.
 
 | Endpoint | What it does |
 |---|---|
+| `GET /api/config` | What the chat page shows, from the active pack: its name and copy, the sources, starter questions and input limit |
 | `GET /api/threads/{id}/messages` | The thread's messages |
 | `POST /api/threads/{id}/messages` with `{"content": "..."}` | Streams the answer as server-sent events: `sources`, then `delta` chunks, then `done` (or `error`) |
 | `POST /api/threads/{id}/feedback` with `{"message": n, "helpful": true}` | Rates an answer (204) |

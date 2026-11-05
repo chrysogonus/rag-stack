@@ -232,3 +232,46 @@ evals:
     cve:
       ask: "asks about the vulnerability by its CVE id: affected package, impact or fixed version"
       sources: [vulns]
+
+ui:
+  heading: What do you want to know about cybersecurity?
+  placeholder: Ask about cybersecurity
+  # Attacks and weaknesses on the left of the reading column, defenses, guidance and law on the
+  # right; on narrow screens the long labels sit in the rows of three.
+  sources:
+    - {id: atlas, label: MITRE ATLAS, short: ATLAS}
+    - {id: attack, label: MITRE ATT&CK, short: ATT&CK}
+    - {id: capec, label: MITRE CAPEC, short: CAPEC}
+    - {id: cwe, label: MITRE CWE, short: CWE}
+    - {id: vulns, label: Vulnerabilities, short: CVEs}
+    - {id: d3fend, label: MITRE D3FEND, short: D3FEND}
+    - {id: owasp-llm-2026, label: OWASP LLM Top 10, short: OWASP LLM}
+    - {id: owasp-agentic-2026, label: OWASP Agentic Top 10, short: OWASP Agentic}
+    - {id: eu-ai-act, label: EU AI Act, short: AI Act}
+    - {id: ki-mig, label: KI-MIG, short: KI-MIG}
+  starters:
+    - question: Which D3FEND techniques counter T1110.001?
+      source: d3fend
+    - question: What is AML.T0051?
+      source: atlas
+    - question: What does Article 50 of the EU AI Act require?
+      source: eu-ai-act
+  musings:
+    - Salting the hashes
+    - Asking Bobby Tables to sit down
+    - Encrypting with double ROT13
+    - Ignoring injected instructions
+    - Waiting for Patch Tuesday
+    - Rotating the API keys
+    - Feeding the honeypot
+    - Looking for the S in IoT
+    - Changing password to Password2
+    - Escalating privileges, legally
+    - Hunting for a zero-day
+    - Phishing for context
+    - Red-teaming the punchline
+    - Deserializing untrusted vibes
+    - Waiting for the CISO to reply
+    - Reading the CVE fine print
+    - Unplugging the smart kettle
+    - Checking under the sticky notes

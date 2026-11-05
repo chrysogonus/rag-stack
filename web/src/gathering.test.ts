@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import type { SourceRef } from './api'
-import { gatheringLine } from './gathering'
+import { gatheringLine as line } from './gathering'
 
-const ref = (source: string, used = true, id = `${source}-${Math.random()}`): SourceRef => ({
+const CATALOG = [
+  { id: 'atlas', label: 'MITRE ATLAS', short: 'ATLAS' },
+  { id: 'attack', label: 'MITRE ATT&CK', short: 'ATT&CK' },
+  { id: 'capec', label: 'MITRE CAPEC', short: 'CAPEC' },
+  { id: 'cwe', label: 'MITRE CWE', short: 'CWE' },
+  { id: 'vulns', label: 'Vulnerabilities', short: 'CVEs' },
+  { id: 'd3fend', label: 'MITRE D3FEND', short: 'D3FEND' },
+]
+const gatheringLine = (sources: SourceRef[] | undefined) => line(sources, CATALOG)
+
+const ref =(source: string, used = true, id = `${source}-${Math.random()}`): SourceRef => ({
   id,
   title: id,
   source,

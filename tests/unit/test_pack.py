@@ -152,3 +152,44 @@ def test_a_parser_named_by_type_is_one_of_the_engines_generic_sources(tmp_path):
     packs = write_pack(tmp_path, MINI.replace("parser: some.module", "parser: files"))
 
     assert source_module(load_pack("mini", packs).sources["notes"]) is files
+
+
+def test_a_pack_without_a_ui_section_gets_a_constellation_per_source_and_neutral_copy(tmp_path):
+    ui = load_pack("mini", write_pack(tmp_path)).ui
+
+    assert [s.model_dump() for s in ui.sources] == [
+        {"id": "notes", "label": "Team notes", "short": "Team notes", "side": None}
+    ]
+    assert ui.title == "Knowledge base"
+    assert ui.heading == "What do you want to know?"
+    assert ui.starters == []
+    assert ui.musings
+
+
+def test_a_pack_names_its_own_ui_copy_constellations_and_starters(tmp_path):
+    ui = """\
+ui:
+  heading: What about the notes?
+  sources: [{id: notes, label: The notes, short: Notes}]
+  starters: [{question: "What is in the notes?", source: notes}]
+"""
+    pack = load_pack("mini", write_pack(tmp_path, MINI + ui))
+
+    assert pack.ui.heading == "What about the notes?"
+    assert pack.ui.sources[0].short == "Notes"
+    assert pack.ui.starters[0].source == "notes"
+    assert pack.ui.placeholder == "Ask a question"
+
+
+def test_a_constellation_can_name_its_side_of_the_reading_column(tmp_path):
+    constellation = "ui: {sources: [{id: notes, label: Notes, short: Notes, side: %s}]}\n"
+
+    pack = load_pack("mini", write_pack(tmp_path, MINI + constellation % "right"))
+    assert pack.ui.sources[0].side == "right"
+    with pytest.raises(ValidationError):
+        load_pack("other", write_pack(tmp_path, MINI + constellation % "above", "other"))
+
+
+def test_a_pack_cant_leave_the_status_line_without_phrases(tmp_path):
+    with pytest.raises(ValidationError, match="at least 1 item"):
+        load_pack("mini", write_pack(tmp_path, MINI + "ui: {musings: []}\n"))

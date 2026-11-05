@@ -60,7 +60,7 @@ src/rag_stack/
 packs/<name>/  # a domain (RAG_PACK selects one): cybersecurity, the reference; starter, the
                # sample to copy (a fictional handbook: a docs/ folder and a glossary.csv)
   pack.yaml    # domain, source allowlist and pinned upstream refs, prompts, labels, languages,
-               # retrieval words, fetch hosts and credentials, storage, eval set
+               # retrieval words, fetch hosts and credentials, storage, chat page (`ui`), eval set
   pack.py      # optional code: ID formats (detect_ids), sources a question can name (scoped)
   parsers/     # one parser per source or legal system (`parser: .parsers.<module>`); a
                # generic source is named by type instead (`parser: files`)
@@ -70,7 +70,7 @@ packs/<name>/  # a domain (RAG_PACK selects one): cybersecurity, the reference; 
   tests/       # the pack's own unit/ and e2e/ tests, fixtures/ (verbatim source excerpts)
 data/          # raw snapshots, processed chunks, HTTP cache (not committed); data/<pack>/ for
                # packs other than cybersecurity, whose index is kb_<pack> (`storage` in pack.yaml)
-web/           # chat UI
+web/           # chat UI; what it shows comes from the pack, through GET /api/config
 deploy/        # systemd/: timer for `make refresh` (`make schedule`); vllm/: Qwen3 reranker template
 docker-compose.yml  # Postgres, Qdrant; profiles `gpu` (vLLM) and `tracing` (Langfuse)
 Makefile       # every command; `make` lists them

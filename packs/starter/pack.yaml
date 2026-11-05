@@ -70,3 +70,16 @@ evals:
   dataset: evals
   rubric: evals/judge.md
   categories: [id-exact, paraphrase, cross-source, relation, abstention, follow-up]
+
+# What the chat page shows. Without `sources` the sky has one constellation per source, named
+# after it; without `musings` the status line uses the engine's neutral phrases.
+ui:
+  heading: What do you want to know about the team handbook?
+  placeholder: Ask about the handbook
+  starters:
+    - question: How much can I spend on a hotel night in Paris?
+      source: handbook
+    - question: I left my laptop on the train. What now?
+      source: handbook
+    - question: Which glossary terms are related to Expense report?
+      source: glossary

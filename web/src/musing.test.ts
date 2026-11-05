@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PHRASES, scramble } from './musing'
-
-describe('PHRASES', () => {
-  it('has at least a dozen distinct phrases', () => {
-    expect(new Set(PHRASES).size).toBe(PHRASES.length)
-    expect(PHRASES.length).toBeGreaterThanOrEqual(12)
-  })
-})
+import { scramble } from './musing'
 
 describe('scramble', () => {
   it('keeps the revealed prefix and the spaces, and replaces the rest with hex', () => {

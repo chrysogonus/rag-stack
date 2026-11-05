@@ -1,5 +1,7 @@
 // The sky's geometry: pure and deterministic, so a passage lights up in the same place every visit.
 
+import type { CatalogSource } from '../api'
+
 export interface Point {
   x: number
   y: number
@@ -29,22 +31,6 @@ export interface Sky {
   regions: Map<string, Region>
   wide: boolean
 }
-
-// Order matters: wide screens put the first half left of the column (attacks and weaknesses),
-// the rest right (defenses, guidance and law); narrow ones fill rows of four, then three, so the
-// long labels sit in the rows of three.
-export const SOURCES: { id: string; label: string; short: string }[] = [
-  { id: 'atlas', label: 'MITRE ATLAS', short: 'ATLAS' },
-  { id: 'attack', label: 'MITRE ATT&CK', short: 'ATT&CK' },
-  { id: 'capec', label: 'MITRE CAPEC', short: 'CAPEC' },
-  { id: 'cwe', label: 'MITRE CWE', short: 'CWE' },
-  { id: 'vulns', label: 'Vulnerabilities', short: 'CVEs' },
-  { id: 'd3fend', label: 'MITRE D3FEND', short: 'D3FEND' },
-  { id: 'owasp-llm-2026', label: 'OWASP LLM Top 10', short: 'OWASP LLM' },
-  { id: 'owasp-agentic-2026', label: 'OWASP Agentic Top 10', short: 'OWASP Agentic' },
-  { id: 'eu-ai-act', label: 'EU AI Act', short: 'AI Act' },
-  { id: 'ki-mig', label: 'KI-MIG', short: 'KI-MIG' },
-]
 
 /** FNV-1a: a stable 32-bit seed from a string. */
 export function hash(text: string): number {
@@ -95,8 +81,6 @@ export function constellation(source: string, label: string, short: string): Con
   return { source, label, short, stars, edges }
 }
 
-export const CONSTELLATIONS = SOURCES.map((s) => constellation(s.id, s.label, s.short))
-
 /** Where a retrieved passage sits, as an offset from its region's centre in units of the radius. */
 export function passageOffset(source: string, id: string): Point {
   return inDisc(random(hash(`passage:${source}:${id}`)), 0.95)
@@ -114,27 +98,33 @@ export function backgroundStars(count: number): BackgroundStar[] {
 const COLUMN = 704 // the reading column (42rem + gutters) in CSS pixels
 const WIDE = 1100
 
-/** Places the constellations around the reading column: in its margins when wide, above it when not. */
-export function fitSky(width: number, height: number): Sky {
+/**
+ * Places the constellations around the reading column: in its margins when wide, above it when not. Order matters:
+ * wide screens put the first half left of the column unless a source names its side, narrow ones fill rows of four,
+ * then three.
+ */
+export function fitSky(sources: CatalogSource[], width: number, height: number): Sky {
   const regions = new Map<string, Region>()
   const wide = width >= WIDE
   if (wide) {
-    // Half on each side, in rows spread around the middle; the right side sits a little lower.
+    // Each side in rows spread around the middle; the right side sits a little lower.
     const margin = (width - COLUMN) / 2
-    const half = Math.ceil(SOURCES.length / 2)
-    const step = 0.81 / half
-    const radius = Math.min(margin * 0.36, height * (0.3 / half))
-    SOURCES.forEach((s, i) => {
-      const left = i < half
-      const row = i % half
-      const x = left ? margin * 0.5 : width - margin * 0.5
-      const y = height * (0.49 - (step * (half - 1)) / 2 + row * step) + (left ? 0 : height * 0.04)
-      regions.set(s.id, { centre: { x, y }, radius })
-    })
+    const half = Math.ceil(sources.length / 2)
+    const onLeft = sources.filter((s, i) => (s.side ?? (i < half ? 'left' : 'right')) === 'left')
+    const onRight = sources.filter((s) => !onLeft.includes(s))
+    const rows = Math.max(onLeft.length, onRight.length)
+    const step = 0.81 / rows
+    const radius = Math.min(margin * 0.36, height * (0.3 / rows))
+    for (const [column, left] of [[onLeft, true], [onRight, false]] as const)
+      column.forEach((s, row) => {
+        const x = left ? margin * 0.5 : width - margin * 0.5
+        const y = height * (0.49 - (step * (rows - 1)) / 2 + row * step) + (left ? 0 : height * 0.04)
+        regions.set(s.id, { centre: { x, y }, radius })
+      })
   } else {
     // Keep in step with the band in index.css (min(28vh, 260px)).
     const band = Math.min(height * 0.28, 260)
-    const rows = narrowRows(SOURCES.length)
+    const rows = narrowRows(sources.length)
     const radius = Math.min(width / (3 * rows[0]), band / (3.5 * rows.length))
     // The last row stays above the darker band behind the column (at 0.72 of the band).
     const first = 0.5 / (rows.length + 0.3)
@@ -144,7 +134,7 @@ export function fitSky(width: number, height: number): Sky {
       for (let col = 0; col < count; col++, i++) {
         const x = width * ((col + 0.5) / count) + (row % 2 ? width * 0.03 : 0)
         const y = 64 + band * (first + row * step)
-        regions.set(SOURCES[i].id, { centre: { x, y }, radius })
+        regions.set(sources[i].id, { centre: { x, y }, radius })
       }
     })
   }

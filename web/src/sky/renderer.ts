@@ -1,4 +1,5 @@
-import { backgroundStars, CONSTELLATIONS, fitSky, passagePoint, type Point, type Sky } from './layout'
+import type { CatalogSource } from '../api'
+import { backgroundStars, constellation, fitSky, passagePoint, type Constellation, type Point, type Sky } from './layout'
 
 export interface LitSource {
   id: string
@@ -81,7 +82,7 @@ export class SkyRenderer {
   private width = 0
   private height = 0
   private dpr = 1
-  private sky: Sky = fitSky(1, 1)
+  private sky: Sky
   private colors = { star: [0, 0, 0] as Rgb, ember: [0, 0, 0] as Rgb, glint: [0, 0, 0] as Rgb }
   private introStart = -Infinity
   private pulses: { origin: Point; start: number }[] = []
@@ -104,11 +105,16 @@ export class SkyRenderer {
 
   private readonly canvas: HTMLCanvasElement
   private readonly overlay: HTMLCanvasElement
+  private readonly sources: CatalogSource[]
+  private readonly figures: Constellation[]
   still: boolean
 
-  constructor(canvas: HTMLCanvasElement, overlay: HTMLCanvasElement, still: boolean) {
+  constructor(canvas: HTMLCanvasElement, overlay: HTMLCanvasElement, sources: CatalogSource[], still: boolean) {
     this.canvas = canvas
     this.overlay = overlay
+    this.sources = sources
+    this.figures = sources.map((s) => constellation(s.id, s.label, s.short))
+    this.sky = fitSky(sources, 1, 1)
     this.still = still
     this.ctx = canvas.getContext('2d')!
     this.fx = overlay.getContext('2d')!
@@ -133,7 +139,7 @@ export class SkyRenderer {
       c.width = Math.round(this.width * this.dpr)
       c.height = Math.round(this.height * this.dpr)
     }
-    this.sky = fitSky(this.width, this.height)
+    this.sky = fitSky(this.sources, this.width, this.height)
     for (const [key, lit] of this.lit) {
       const [source, ...id] = key.split('\u0000')
       lit.at = passagePoint(this.sky, this.width, this.height, source, id.join('\u0000'))
@@ -384,7 +390,7 @@ export class SkyRenderer {
     ctx.font = LABEL_FONT
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
-    CONSTELLATIONS.forEach((figure, i) => {
+    this.figures.forEach((figure, i) => {
       const region = this.sky.regions.get(figure.source)!
       const target = this.highlighted === figure.source ? 1 : glowing.has(figure.source) ? 0.6 : 0
       const current = this.lift.get(figure.source) ?? 0

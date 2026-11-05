@@ -12,6 +12,28 @@ export interface SourceRef {
   used: boolean
 }
 
+export interface CatalogSource {
+  id: string
+  label: string
+  /** For narrow screens, where up to four constellations share a row. */
+  short: string
+  /** Of the reading column, on wide screens; without one, the first half goes left. */
+  side?: 'left' | 'right' | null
+}
+
+/** What the page shows, from the active pack (`GET /api/config`). */
+export interface Config {
+  title: string
+  heading: string
+  intro: string
+  placeholder: string
+  max_input_chars: number
+  /** One constellation each; their order places them in the sky. */
+  sources: CatalogSource[]
+  starters: { question: string; source: string }[]
+  musings: string[]
+}
+
 export interface SseEvent {
   event: string
   data: string
@@ -53,7 +75,7 @@ export function createSseParser(onEvent: (event: SseEvent) => void): (chunk: str
 
 const threadUrl = (threadId: string) => `/api/threads/${threadId}/messages`
 
-const UNAVAILABLE = 'The assistant is unavailable right now. Try again in a moment.'
+export const UNAVAILABLE = 'The assistant is unavailable right now. Try again in a moment.'
 
 async function refusal(response: Response): Promise<string> {
   if (response.status === 422) return 'Your message is empty or too long. Shorten it and send again.'
@@ -66,6 +88,12 @@ async function refusal(response: Response): Promise<string> {
     // fall through to the generic message
   }
   return UNAVAILABLE
+}
+
+export async function getConfig(): Promise<Config> {
+  const response = await fetch('/api/config')
+  if (!response.ok) throw new Error(await refusal(response))
+  return response.json()
 }
 
 export async function getMessages(threadId: string, signal?: AbortSignal): Promise<Message[]> {
