@@ -1,4 +1,8 @@
-# Plan: AI-security knowledge base
+# Plan: the cybersecurity pack
+
+rag-stack is a blueprint: an engine with no domain knowledge, and packs that bring the domain
+(`docs/BUILD_YOUR_OWN.md`). This plan covers the engine's design and its reference pack,
+`packs/cybersecurity`, whose measurements drove it; set `RAG_PACK=cybersecurity` to reproduce them.
 
 A self-hosted RAG chatbot on cybersecurity research, specializing in attacks against AI systems
 and EU and German AI regulation. It should beat a general chatbot on three things: freshness (content newer than model training data), exact

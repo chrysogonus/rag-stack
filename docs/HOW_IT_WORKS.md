@@ -2,7 +2,8 @@
 
 A plain-language tour of rag-stack, written as the outline for a 5-minute talk. Each section
 covers one slide: a headline, a picture, a few bullets, and a **🎤 Say** line you can read aloud.
-For setup and commands, see the [README](../README.md).
+The examples use the cybersecurity pack; the engine works the same for any pack. For setup and
+commands, see the [README](../README.md).
 
 ## The 5-minute plan
 

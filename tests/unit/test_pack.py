@@ -1,10 +1,14 @@
+import ast
+import shutil
+
 import pytest
 from pydantic import ValidationError
 
+from rag_stack import cli
 from rag_stack.agent.prompts import ABSTAIN
 from rag_stack.config import Settings
 from rag_stack.ingestion.pipeline import source_module
-from rag_stack.pack import load_pack
+from rag_stack.pack import PACKS, load_pack, new_pack
 
 MINI = """\
 domain: the team's notes
@@ -116,7 +120,11 @@ def test_a_question_is_in_the_pack_language_with_most_of_its_words_a_tie_going_t
     assert detect_language("Wie ist das?", {"en": []}) == "en"  # one language: always it
 
 
-def test_the_cybersecurity_pack_is_the_default():
+def test_the_starter_pack_is_the_default():
+    assert Settings.model_fields["rag_pack"].default == "starter"
+
+
+def test_the_unit_tests_run_on_the_cybersecurity_pack_whatever_the_default():
     pack = Settings().pack
 
     assert pack.name == "cybersecurity"
@@ -193,3 +201,72 @@ def test_a_constellation_can_name_its_side_of_the_reading_column(tmp_path):
 def test_a_pack_cant_leave_the_status_line_without_phrases(tmp_path):
     with pytest.raises(ValidationError, match="at least 1 item"):
         load_pack("mini", write_pack(tmp_path, MINI + "ui: {musings: []}\n"))
+
+
+def test_a_new_pack_is_a_copy_of_the_starter_under_its_own_name(tmp_path):
+    root = new_pack("demo", str(tmp_path))
+
+    pack = load_pack("demo", str(tmp_path))
+    assert (pack.collection, pack.data_dir) == ("kb_demo", "data/demo")
+    assert pack.sources["handbook"].url.endswith("/packs/demo/docs")
+    assert "starters:" in (root / "pack.yaml").read_text()  # the word, not the pack's name
+    assert 'rag_pack="demo"' in (root / "tests/e2e/test_demo_e2e.py").read_text()
+    assert not (root / "tests/e2e/test_starter.py").exists()
+
+
+@pytest.mark.parametrize("name", ["class", "ask", "starter_copy"])
+def test_a_new_packs_e2e_test_stays_valid_whatever_the_packs_name(tmp_path, name):
+    source = (new_pack(name, str(tmp_path)) / f"tests/e2e/test_{name}_e2e.py").read_text()
+
+    functions = [n.name for n in ast.parse(source).body if isinstance(n, ast.FunctionDef)]
+    assert len(functions) == len(set(functions))
+    assert f'rag_pack="{name}"' in source
+
+
+@pytest.mark.parametrize("name", ["chat", "starter_two", "cybersecurity_two"])
+def test_a_new_packs_e2e_test_file_doesnt_share_its_name_with_another_packs(tmp_path, name):
+    created = {p.name for p in (new_pack(name, str(tmp_path)) / "tests/e2e").iterdir()}
+
+    assert created == {f"test_{name}_e2e.py"}
+    assert not created & {p.name for p in PACKS.glob("*/tests/e2e/*.py")}
+
+
+def test_a_new_pack_keeps_the_sample_eval_set_but_not_the_starters_results(tmp_path):
+    evals = new_pack("demo", str(tmp_path)) / "evals"
+
+    assert sorted(p.name for p in evals.iterdir()) == [
+        "golden.jsonl",
+        "judge.md",
+        "thresholds.yaml",
+    ]
+
+
+def test_a_new_pack_never_overwrites_an_existing_one(tmp_path):
+    (tmp_path / "demo").mkdir()
+    (tmp_path / "demo" / "mine.md").write_text("my work")
+
+    with pytest.raises(FileExistsError):
+        new_pack("demo", str(tmp_path))
+    assert (tmp_path / "demo" / "mine.md").read_text() == "my work"
+
+
+@pytest.mark.parametrize("name", ["../outside", "a/b", "Demo", "with space", "1st", "a-b", ""])
+def test_a_new_packs_name_must_make_a_package_inside_the_packs_directory(tmp_path, name):
+    packs = tmp_path / "packs"
+    packs.mkdir()
+
+    with pytest.raises(ValueError, match="pack name"):
+        new_pack(name, str(packs))
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["packs"]
+    assert list(packs.iterdir()) == []
+
+
+def test_the_cli_creates_a_new_pack_in_the_packs_directory(tmp_path, monkeypatch, capsys):
+    shutil.copytree(PACKS / "starter", tmp_path / "starter")
+    monkeypatch.setenv("PACKS_DIR", str(tmp_path))
+    monkeypatch.setenv("RAG_PACK", "starter")
+
+    assert cli.main(["new-pack", "demo"]) == 0
+
+    assert load_pack("demo", str(tmp_path)).name == "demo"
+    assert "RAG_PACK=demo" in capsys.readouterr().out

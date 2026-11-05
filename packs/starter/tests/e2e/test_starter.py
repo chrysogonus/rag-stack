@@ -1,4 +1,4 @@
-"""The starter pack end to end: its sample documents and glossary, indexed into a throwaway
+"""A pack end to end: its sample documents and glossary, indexed into a throwaway
 collection, asked through the API against real Qdrant, Postgres, models and LLM."""
 
 import json
@@ -23,7 +23,7 @@ pytestmark = pytest.mark.e2e
 
 
 @pytest.fixture(scope="module")
-def starter(tmp_path_factory) -> Iterator[tuple[Settings, KnowledgeBase]]:
+def served(tmp_path_factory) -> Iterator[tuple[Settings, KnowledgeBase]]:
     settings = Settings(rag_pack="starter")
     pack = settings.pack
     client = QdrantClient(url=settings.qdrant_url)
@@ -81,8 +81,8 @@ def ask(settings: Settings, kb: KnowledgeBase, question: str) -> tuple[str, list
     return events[-1][1]["message"]["content"], sources
 
 
-def test_a_handbook_question_is_answered_from_its_section_and_cites_it(starter):
-    settings, kb = starter
+def test_a_handbook_question_is_answered_from_its_section_and_cites_it(served):
+    settings, kb = served
     answer, sources = ask(settings, kb, "How much can I spend on a hotel night in Paris?")
 
     assert any(s["id"] == "travel-and-expenses.md#hotels" and s["used"] for s in sources)
@@ -91,16 +91,16 @@ def test_a_handbook_question_is_answered_from_its_section_and_cites_it(starter):
     assert answer.endswith("*AI-generated answer. Check the cited sources.*")
 
 
-def test_a_question_about_related_terms_follows_the_glossary_links(starter):
-    settings, kb = starter
+def test_a_question_about_related_terms_follows_the_glossary_links(served):
+    settings, kb = served
     answer, sources = ask(settings, kb, "Which glossary terms are related to Expense report?")
 
     assert any(s["id"] == "Travel desk" for s in sources)
     assert "Travel desk" in answer
 
 
-def test_a_question_the_handbook_doesnt_answer_is_declined_with_the_packs_hint(starter):
-    settings, kb = starter
+def test_a_question_the_handbook_doesnt_answer_is_declined_with_the_packs_hint(served):
+    settings, kb = served
     answer, _ = ask(settings, kb, "What is the capital of France?")
 
     assert answer.startswith("I can't answer that from the indexed sources.")
@@ -108,8 +108,8 @@ def test_a_question_the_handbook_doesnt_answer_is_declined_with_the_packs_hint(s
     assert "- Team glossary\n- Team handbook\n" in answer
 
 
-def test_the_page_config_starts_a_question_answered_from_the_source_it_lights_up(starter):
-    settings, kb = starter
+def test_the_page_config_starts_a_question_answered_from_the_source_it_lights_up(served):
+    settings, kb = served
     with TestClient(create_app(settings, retriever=kb)) as client:
         config = client.get("/api/config").json()
     first = config["starters"][0]

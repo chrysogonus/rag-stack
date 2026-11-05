@@ -8,6 +8,7 @@ loads it."""
 
 import importlib
 import re
+import shutil
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -305,6 +306,22 @@ def load_pack(name: str, packs_dir: str) -> Pack:
         ),
         detect_ids=getattr(hooks, "detect_ids", None) or (lambda text: []),
     )
+
+
+def new_pack(name: str, packs_dir: str) -> Path:
+    """Copy the starter pack to `<packs_dir>/<name>` under that name, without its eval results.
+    The name also names a Python package and an index, so it can't leave the packs directory."""
+    if not re.fullmatch(r"[a-z][a-z0-9_]*", name):
+        raise ValueError(f"pack name {name!r}: use lowercase letters, digits and underscores")
+    root = Path(packs_dir) / name
+    generated = ("results.json", "report.md", "history.jsonl", "corpus", "__pycache__")
+    shutil.copytree(PACKS / "starter", root, ignore=shutil.ignore_patterns(*generated))
+    manifest = root / "pack.yaml"
+    manifest.write_text(re.sub(r"\bstarter\b", name, manifest.read_text()))
+    # pytest needs test file names unique across packs: a pack named chat can't have test_chat.py.
+    test = (root / "tests/e2e/test_starter.py").rename(root / f"tests/e2e/test_{name}_e2e.py")
+    test.write_text(test.read_text().replace('rag_pack="starter"', f'rag_pack="{name}"'))
+    return root
 
 
 def parser(root: Path, name: str) -> str:

@@ -88,6 +88,18 @@ def refresh(settings: Settings, command: str, force: bool) -> int:
     return code
 
 
+def create_pack(settings: Settings, name: str) -> int:
+    from rag_stack.pack import new_pack
+
+    try:
+        root = new_pack(name, settings.packs_dir)
+    except (ValueError, FileExistsError) as error:
+        print(error, file=sys.stderr)
+        return 1
+    print(f"Created {root}. Set RAG_PACK={name} in .env; next: docs/BUILD_YOUR_OWN.md")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     settings = Settings()
     sources = list(settings.pack.sources)
@@ -108,6 +120,10 @@ def main(argv: list[str] | None = None) -> int:
         "--force", action="store_true", help="build even if a source shrank by more than 10%%"
     )
     commands.add_parser("rollback", help="serve the previous index generation again")
+    new_pack_cmd = commands.add_parser(
+        "new-pack", help="copy the starter pack to begin your own: packs/<name>"
+    )
+    new_pack_cmd.add_argument("name")
     ask_cmd = commands.add_parser("ask", help="answer one question from the knowledge base")
     ask_cmd.add_argument("question")
     run_eval = commands.add_parser(
@@ -150,6 +166,8 @@ def main(argv: list[str] | None = None) -> int:
         "eval-agreement", help="judge the labeled answers again and compare with the labels"
     )
     args = parser.parse_args(argv)
+    if args.command == "new-pack":
+        return create_pack(settings, args.name)
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 
     from rag_stack import observability
