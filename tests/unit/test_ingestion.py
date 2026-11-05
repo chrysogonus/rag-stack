@@ -283,6 +283,46 @@ def test_a_parser_is_fingerprinted_with_the_pack_modules_it_borrows_from():
     assert pipeline.parser_sha(gesetze_im_internet, pack) == sha(ids, gesetze_im_internet)
 
 
+def test_a_generic_source_is_fingerprinted_with_the_sectioning_it_shares():
+    import hashlib
+
+    from rag_stack.ingestion.generic import chunking, files
+
+    code = b"".join(Path(str(m.__file__)).read_bytes() for m in (chunking, files))
+
+    assert pipeline.parser_sha(files, "packs.mini.") == hashlib.sha256(code).hexdigest()
+
+
+def test_a_generic_source_is_ingested_from_the_pack_with_its_license(tmp_path, use_pack):
+    from rag_stack.pack import Source
+
+    (tmp_path / "mini/docs/guides").mkdir(parents=True)
+    (tmp_path / "mini/docs/guides/travel.md").write_text("# Travel\n\nBook early.\n")
+    docs = Source(
+        id="docs",
+        name="Team docs",
+        license="CC0-1.0",
+        attribution="The team, CC0",
+        url="https://example.org/docs",
+        parser="rag_stack.ingestion.generic.files",
+    )
+    use_pack(root=tmp_path / "mini", sources={"docs": docs})
+    settings = Settings(data_dir=str(tmp_path / "data"))
+
+    status = pipeline.ingest(
+        "docs", settings, make_fetcher(lambda r: httpx.Response(404), tmp_path)
+    )
+
+    assert status.endswith(": 1 chunks, 0 edges")
+    _, (chunk,), _ = pipeline.load_processed(settings, "docs")  # type: ignore[misc]
+    assert (chunk.native_id, chunk.license, chunk.url) == (
+        "guides/travel.md#travel",
+        "CC0-1.0",
+        "https://example.org/docs",
+    )
+    assert pipeline.reparse("docs", settings)[1] == [chunk]
+
+
 def test_split_text_breaks_at_paragraphs_and_never_exceeds_the_limit():
     text = "\n\n".join(["a" * 40, "b" * 40, "c" * 40])
 

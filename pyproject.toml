@@ -21,6 +21,7 @@ dependencies = [
     "psycopg[binary,pool]>=3.3.6",
     "pydantic-settings>=2.16.1",
     "pypdf>=6.21.2",
+    "python-docx>=1.2",
     "python-dotenv>=1.2.4",
     "pyyaml>=6.0.3",
     # At most one minor version from the Qdrant server in docker-compose.yml (v1.15).

@@ -138,9 +138,7 @@ def main(argv: list[str] | None = None) -> int:
         "eval-draft", help="draft test questions from unasked units into drafts.jsonl for review"
     )
     draft_cmd.add_argument("source", choices=sources)
-    draft_cmd.add_argument(
-        "category", choices=["id-exact", "paraphrase", "german-legal", "cve", "cross-source"]
-    )
+    draft_cmd.add_argument("category", choices=list(settings.pack.evals.draft_kinds))
     draft_cmd.add_argument("-n", type=int, default=5, help="how many drafts (default 5)")
     draft_cmd.add_argument("--seed", type=int, default=0, help="which units are sampled")
     units_cmd = commands.add_parser(

@@ -161,3 +161,31 @@ async def test_a_failed_request_keeps_the_other_drafts(settings, capsys):
     assert "1 of 2 requests failed, e.g. TimeoutError('provider timed out')" in (
         capsys.readouterr().out
     )
+
+
+@pytest.mark.anyio
+async def test_a_pack_brings_its_domain_and_its_own_kinds_of_question(settings, use_pack):
+    from rag_stack.pack import DraftKind
+
+    kinds = {"budget": DraftKind(ask="asks how much may be spent", sources=["atlas"])}
+    use_pack(
+        domain="the team's travel rules",
+        evals=Settings().pack.evals.model_copy(update={"draft_kinds": kinds}),
+    )
+    llm = FakeChatModel(DRAFTED)
+
+    assert await draft.main(settings, "atlas", "budget", 1, llm=llm) == 0
+
+    assert "a knowledge base on the team's travel rules." in llm.calls[0]["instructions"]
+    assert "It asks how much may be spent." in llm.calls[0]["instructions"]
+    with pytest.raises(ValueError, match="budget questions don't fit ki-mig"):
+        draft.candidates(settings, "ki-mig", "budget")
+
+
+def test_the_draft_command_offers_the_packs_kinds_of_question(capsys):
+    from rag_stack import cli
+
+    with pytest.raises(SystemExit):
+        cli.main(["eval-draft", "atlas", "--help"])
+
+    assert "{id-exact,paraphrase,cross-source,german-legal,cve}" in capsys.readouterr().out

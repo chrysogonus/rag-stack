@@ -11,7 +11,7 @@ from typing import Any
 from rag_stack.config import Settings
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk, Edge, Snapshot, finalize
-from rag_stack.pack import Source, package
+from rag_stack.pack import GENERIC, Pack, Source, package
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +22,13 @@ def source_module(source: Source) -> ModuleType:
 
 
 def parser_sha(module: ModuleType, pack: str) -> str:
-    """sha256 of a parser's code: its module and the modules of the pack (package prefix `pack`)
-    it borrows functions from, such as another parser's helpers or the pack's ID detection."""
+    """sha256 of a parser's code: its module and the modules it borrows functions from among
+    the pack's (package prefix `pack`), such as another parser's helpers or the pack's ID
+    detection, and the generic sources' (their sectioning)."""
     names = {module.__name__} | {
         f.__module__
         for f in vars(module).values()
-        if callable(f) and getattr(f, "__module__", "").startswith(pack)
+        if callable(f) and getattr(f, "__module__", "").startswith((pack, GENERIC))
     }
     code = b"".join(Path(str(sys.modules[n].__file__)).read_bytes() for n in sorted(names))
     return hashlib.sha256(code).hexdigest()
@@ -57,10 +58,23 @@ def digest(files: dict[str, bytes]) -> str:
     ).hexdigest()
 
 
+def source_config(source: Source, pack: Pack) -> dict[str, Any]:
+    """What a parser's fetch() gets: the source's config, plus what generic sources stamp
+    their units with (license, attribution, url) and resolve paths against (the pack)."""
+    return {
+        "id": source.id,
+        "license": source.license,
+        "attribution": source.attribution,
+        "source_url": source.url,
+        "pack_root": str(pack.root),
+        **source.config,
+    }
+
+
 def ingest(source_id: str, settings: Settings, fetcher: Fetcher) -> str:
     """Fetch, snapshot and parse one source. Returns a one-line status."""
     source = settings.pack.sources[source_id]
-    config: dict[str, Any] = {"id": source_id, **source.config}
+    config = source_config(source, settings.pack)
     module = source_module(source)
     retrieved_at = datetime.now(UTC).isoformat(timespec="seconds")
     snapshot: Snapshot = module.fetch(fetcher, config, retrieved_at)
@@ -78,6 +92,7 @@ def ingest(source_id: str, settings: Settings, fetcher: Fetcher) -> str:
 
     raw.mkdir(parents=True, exist_ok=True)
     for name, content in snapshot.files.items():
+        (raw / name).parent.mkdir(parents=True, exist_ok=True)  # a folder source's subfolders
         (raw / name).write_bytes(content)
     (raw / "SHA256SUMS").write_text(
         "".join(

@@ -7,6 +7,7 @@ from rag_stack.ingestion.pipeline import source_module
 from rag_stack.pack import load_pack
 
 MINI = """\
+domain: the team's notes
 sources:
   - id: notes
     name: Team notes
@@ -121,3 +122,33 @@ def test_the_cybersecurity_pack_is_the_default():
     assert pack.name == "cybersecurity"
     assert len(pack.sources) == 10
     assert pack.detect_ids("What is AML.T0051?") == ["AML.T0051"]
+
+
+def test_a_pack_gets_its_own_index_and_data_directory(tmp_path):
+    packs = write_pack(tmp_path)
+
+    settings = Settings(rag_pack="mini", packs_dir=packs)
+
+    # Another pack's refresh can't swap this one's index or overwrite its snapshots.
+    assert (settings.qdrant_collection, settings.data_dir) == ("kb_mini", "data/mini")
+
+
+def test_set_storage_settings_win_over_the_packs(tmp_path, monkeypatch):
+    monkeypatch.setenv("QDRANT_COLLECTION", "kb_other")
+    settings = Settings(rag_pack="mini", packs_dir=write_pack(tmp_path), data_dir="d")
+
+    assert (settings.qdrant_collection, settings.data_dir) == ("kb_other", "d")
+
+
+def test_the_cybersecurity_pack_keeps_the_index_and_data_it_always_had():
+    settings = Settings()
+
+    assert (settings.qdrant_collection, settings.data_dir) == ("kb_chunks", "data")
+
+
+def test_a_parser_named_by_type_is_one_of_the_engines_generic_sources(tmp_path):
+    from rag_stack.ingestion.generic import files
+
+    packs = write_pack(tmp_path, MINI.replace("parser: some.module", "parser: files"))
+
+    assert source_module(load_pack("mini", packs).sources["notes"]) is files

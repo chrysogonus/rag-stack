@@ -3,6 +3,8 @@
 # The allowlist: `make ingest` fetches these sources and nothing else. Each `config` pins its
 # upstream release or commit. Names are shown to users and stored with every indexed chunk.
 
+domain: cybersecurity research, specializing in attacks on AI systems and EU and German regulation
+
 sources:
   - id: atlas
     name: MITRE ATLAS
@@ -196,6 +198,9 @@ fetch:
       interval: 61.0
       credential: {env: GITHUB_TOKEN, header: Authorization, value: "Bearer {}", interval: 1.0}
 
+# The index and data this pack had before packs existed.
+storage: {collection: kb_chunks, data_dir: data}
+
 evals:
   title: AI-security golden set
   dataset: evals
@@ -219,3 +224,11 @@ evals:
     - follow-up
     - injection
     - robustness
+  # What `make eval-draft` can write besides id-exact, paraphrase and cross-source questions.
+  draft_kinds:
+    german-legal:
+      ask: is in German and asks for the exact wording of the provision, naming it
+      language: de
+    cve:
+      ask: "asks about the vulnerability by its CVE id: affected package, impact or fixed version"
+      sources: [vulns]

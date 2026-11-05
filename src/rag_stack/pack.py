@@ -22,6 +22,7 @@ from rag_stack.agent.prompts import ABSTAIN
 from rag_stack.retrieval.language import detect_language
 
 PACKS = Path(__file__).parents[2] / "packs"
+GENERIC = "rag_stack.ingestion.generic."
 # The answer footer's and the refusal's labels. A pack adds `hint` (what a refusal suggests
 # asking) and `ai` (the AI disclosure), and brings all six for a language other than these.
 LABELS = {
@@ -47,8 +48,10 @@ class Strict(BaseModel):
 
 
 class Source(Strict):
-    """An allowlisted source: nothing else is ingested. `parser` is an importable module with
-    `fetch(fetcher, config, retrieved_at) -> Snapshot` and `parse(snapshot) -> (chunks, edges)`."""
+    """An allowlisted source: nothing else is ingested. `parser` is one of the engine's generic
+    sources by type (`files`, `web`, `structured`, configured by `config`), a module of the pack
+    (`.parsers.atlas`) or any importable module, with `fetch(fetcher, config, retrieved_at) ->
+    Snapshot` and `parse(snapshot) -> (chunks, edges)`."""
 
     id: str
     name: str
@@ -109,20 +112,48 @@ class Fetch(Strict):
     hosts: dict[str, Host] = {}  # other hosts get one request per second
 
 
+class Storage(Strict):
+    collection: str | None = None  # the Qdrant alias it is served under; default kb_<pack>
+    data_dir: str | None = None  # snapshots and caches; default data/<pack>
+
+
+class DraftKind(Strict):
+    """A kind of question `make eval-draft` writes, beyond id-exact, paraphrase, cross-source."""
+
+    ask: str  # what the question does: "asks about the vulnerability by its CVE id"
+    language: str | None = None  # it is in this language (default: the source's main one)
+    sources: list[str] | None = None  # only these sources' units fit it (default: all)
+
+
+# What each kind of drafted question does; the drafter sees this and the unit's text.
+DRAFT_KINDS = {
+    "id-exact": DraftKind(ask="names the unit's id and asks what it is or says"),
+    "paraphrase": DraftKind(
+        ask="asks about the unit's content in a user's own words, without naming its id"
+    ),
+    "cross-source": DraftKind(
+        ask="asks how the two units relate, naming one of them, so answering needs both"
+    ),
+}
+
+
 class Evals(Strict):
     title: str
     dataset: Path  # golden.jsonl, thresholds.yaml, results.json, report.md, history.jsonl
     rubric: Path
     categories: list[str]  # in report order; `abstention` cases expect a refusal
+    draft_kinds: dict[str, DraftKind] = {}  # the pack's own; loaded, DRAFT_KINDS's too
 
 
 class PackFile(Strict):
+    domain: str  # what the knowledge base is about, in a phrase: "the team's handbook"
     sources: list[Source]
     prompts: Prompts
     labels: dict[str, dict[str, str]]  # per language: `hint`, `ai` and any of LABELS's
     languages: dict[str, Language] = {"en": Language()}  # the first wins a tie
     retrieval: Retrieval = Retrieval()
     fetch: Fetch = Fetch()
+    storage: Storage = Storage()
     evals: Evals
 
 
@@ -155,6 +186,7 @@ class Vocabulary:
 class Pack:
     name: str
     root: Path
+    domain: str
     sources: dict[str, Source]
     system_prompt: str
     baseline_prompt: str
@@ -162,6 +194,8 @@ class Pack:
     languages: dict[str, list[str]]
     vocabulary: Vocabulary
     fetch: Fetch
+    collection: str
+    data_dir: str
     evals: Evals
     detect_ids: Callable[[str], list[str]]
 
@@ -193,16 +227,11 @@ def load_pack(name: str, packs_dir: str) -> Pack:
         if missing := sorted(LABEL_NAMES - named.keys()):
             raise ValueError(f"pack {name}: labels for {code} miss {', '.join(missing)}")
     words = spec.retrieval
-    # A parser starting with a dot is one of the pack's modules: ".parsers.atlas".
-    sources = {
-        s.id: s.model_copy(update={"parser": package(root) + s.parser})
-        if s.parser.startswith(".")
-        else s
-        for s in spec.sources
-    }
+    sources = {s.id: s.model_copy(update={"parser": parser(root, s.parser)}) for s in spec.sources}
     return Pack(
         name=name,
         root=root,
+        domain=spec.domain,
         sources=sources,
         system_prompt=prompt(spec.prompts.system),
         baseline_prompt=prompt(spec.prompts.baseline),
@@ -218,11 +247,25 @@ def load_pack(name: str, packs_dir: str) -> Pack:
             citation_rels=frozenset(words.citation_rels),
         ),
         fetch=spec.fetch,
+        collection=spec.storage.collection or f"kb_{name}",
+        data_dir=spec.storage.data_dir or f"data/{name}",
         evals=spec.evals.model_copy(
-            update={"dataset": root / spec.evals.dataset, "rubric": root / spec.evals.rubric}
+            update={
+                "dataset": root / spec.evals.dataset,
+                "rubric": root / spec.evals.rubric,
+                "draft_kinds": {**DRAFT_KINDS, **spec.evals.draft_kinds},
+            }
         ),
         detect_ids=getattr(hooks, "detect_ids", None) or (lambda text: []),
     )
+
+
+def parser(root: Path, name: str) -> str:
+    """The module a source's `parser` names: a generic source by its type ("files"), one of the
+    pack's modules when it starts with a dot (".parsers.atlas"), or the module itself."""
+    if name.startswith("."):
+        return package(root) + name
+    return name if "." in name else GENERIC + name
 
 
 def package(root: Path) -> str:

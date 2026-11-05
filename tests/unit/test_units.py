@@ -84,3 +84,19 @@ async def test_a_source_without_english_units_is_asked_about_in_its_own_language
     await units.main(settings, 10, kb)  # type: ignore[arg-type]
 
     assert "What is CAPEC-1?" in kb.asked
+
+
+@pytest.mark.anyio
+async def test_units_are_asked_about_in_the_packs_first_language(settings, use_pack):
+    both = [
+        chunk("CAPEC-1", title="Access", source_id="capec"),
+        chunk("CAPEC-2", title="Zugriff", source_id="capec", language="de"),
+    ]
+    write_processed(Path(settings.data_dir) / "processed/capec/v1", both, [], "sha")
+    (Path(settings.data_dir) / "processed/capec/LATEST").write_text("v1")
+    use_pack(languages={"de": [], "en": []})
+    kb = Scripted({})
+
+    await units.main(settings, 10, kb)  # type: ignore[arg-type]
+
+    assert "What is CAPEC-2?" in kb.asked and "What is CAPEC-1?" not in kb.asked

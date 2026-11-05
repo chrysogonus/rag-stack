@@ -17,21 +17,16 @@ from rag_stack.evals.units import main_language
 from rag_stack.ingestion.models import Chunk, Edge
 from rag_stack.ingestion.pipeline import load_processed
 from rag_stack.llm.base import ChatModel
+from rag_stack.pack import Pack
 
-# What each category asks for; the drafter sees this and the unit's text.
-KINDS = {
-    "id-exact": "names the unit's id and asks what it is or says",
-    "paraphrase": "asks about the unit's content in a user's own words, without naming its id",
-    "german-legal": "is in German and asks for the exact wording of the provision, naming it",
-    "cve": "asks about the vulnerability by its CVE id: affected package, impact or fixed version",
-    "cross-source": "asks how the two units relate, naming one of them, so answering needs both",
-}
+# shortcut: other languages are named by their code, which models understand; name them here
+# when a pack's drafts come out in the wrong language.
+LANGUAGES = {"en": "English", "de": "German"}
 
 PROMPT = """\
 You write one evaluation question for a chatbot that answers only from a knowledge base on \
-cybersecurity research, specializing in attacks on AI systems and EU and German regulation. \
-The question must be answerable from the source text below alone, and the way a real user would \
-ask it. It {kind}. Write it in {language}.
+{domain}. The question must be answerable from the source text below alone, and the way a real \
+user would ask it. It {kind}. Write it in {language}.
 
 Also list two or three key facts: short statements, taken from the source text, that a correct \
 answer must contain. Don't invent anything the text doesn't say.
@@ -67,7 +62,8 @@ def covered(chunk: Chunk, used: set[str]) -> bool:
 def candidates(settings: Settings, source: str, category: str) -> list[tuple[list[Chunk], str]]:
     """Unasked units of the source that fit the category, each with a note for the drafter: one
     unit, or the two ends of an edge between sources with the relation (it's in neither text)."""
-    if category == "cve" and source != "vulns":
+    kind = settings.pack.evals.draft_kinds[category]
+    if kind.sources is not None and source not in kind.sources:
         raise ValueError(f"{category} questions don't fit {source}")
     corpus: dict[str, list[Chunk]] = {}
     edges: list[Edge] = []
@@ -78,7 +74,7 @@ def candidates(settings: Settings, source: str, category: str) -> list[tuple[lis
                 edges = processed[2]
     if source not in corpus:
         raise ValueError(f"{source}: not ingested, run `make ingest SOURCE={source}` first")
-    if category == "german-legal" and all(c.language != "de" for c in corpus[source]):
+    if kind.language and all(c.language != kind.language for c in corpus[source]):
         raise ValueError(f"{category} questions don't fit {source}")
     used = used_ids(settings)
     if category == "cross-source":
@@ -94,8 +90,8 @@ def candidates(settings: Settings, source: str, category: str) -> list[tuple[lis
         }
         return [([first[a], first[b]], note) for (a, b), note in pairs.items()]
     units = [c for c in corpus[source] if c.meta.get("kind") != "overview"]
-    # One language per unit: German for German legal questions, otherwise the source's own.
-    language = "de" if category == "german-legal" else main_language(units)
+    # One language per unit: the kind's (German legal questions), otherwise the source's own.
+    language = kind.language or main_language(units, next(iter(settings.pack.languages)))
     return [([c], "") for c in units if not covered(c, used) and c.language == language]
 
 
@@ -104,14 +100,18 @@ def slug(text: str) -> str:
 
 
 async def draft_one(
-    llm: ChatModel, category: str, units: list[Chunk], note: str
+    llm: ChatModel, pack: Pack, category: str, units: list[Chunk], note: str
 ) -> dict[str, Any] | None:
     language = units[0].language
     sources = "\n\n".join(f"Source {u.native_id} ({u.title}):\n{u.text[:3000]}" for u in units)
     reply = await complete(
         llm,
         [{"role": "user", "content": f"{sources}\n\n{note}".strip()}],
-        PROMPT.format(kind=KINDS[category], language="German" if language == "de" else "English"),
+        PROMPT.format(
+            domain=pack.domain,
+            kind=pack.evals.draft_kinds[category].ask,
+            language=LANGUAGES.get(language, language),
+        ),
     )
     found = re.search(r"\{.*\}", reply, re.DOTALL)
     try:
@@ -153,7 +153,7 @@ async def main(
 
     async def one(units: list[Chunk], note: str) -> dict[str, Any] | None:
         async with gate:
-            return await draft_one(llm, category, units, note)
+            return await draft_one(llm, settings.pack, category, units, note)
 
     # A failed request must not discard the drafts the others already paid for.
     results = await asyncio.gather(*(one(*p) for p in picked), return_exceptions=True)

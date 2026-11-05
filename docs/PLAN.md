@@ -24,9 +24,10 @@ risk → AI Act article → CVE, and since wave 1: ATT&CK ↔ ATLAS ↔ CAPEC �
 
 | Path | What it does |
 |---|---|
-| `pack.py` | The domain pack contract: `packs/<name>/pack.yaml`'s schema (sources, prompts, labels, languages, retrieval words, fetch hosts, eval set) and the loader behind `Settings.pack` (`RAG_PACK`) |
+| `pack.py` | The domain pack contract: `packs/<name>/pack.yaml`'s schema (domain, sources, prompts, labels, languages, retrieval words, fetch hosts, storage, eval set and question kinds) and the loader behind `Settings.pack` (`RAG_PACK`). A pack's index and data are its own (`kb_<pack>`, `data/<pack>`) unless it pins them, as the cybersecurity pack does (`kb_chunks`, `data`) |
 | `ingestion/fetch.py` | Polite HTTP client: User-Agent, robots.txt incl. crawl-delay, per-host rate limit and credentials (from the pack's `fetch.hosts`), retries, on-disk cache |
 | `ingestion/pipeline.py` | `ingest(source)`: raw snapshot + `SHA256SUMS` + `manifest.json` under `data/raw/<source>/<version>/`, chunks and edges under `data/processed/`. Unchanged input and parser code means skip. Each source's parser is named in the pack (`Source.parser`) |
+| `ingestion/generic/*.py` | Sources a pack configures without code (`parser: files`, `web`, `structured`): a folder of Markdown, text, HTML, PDF and Word files in the pack, web pages from URLs or a sitemap, CSV/JSON records with relation fields as edges. `chunking.py` splits documents at headings of levels 1-3 into units `<path>#<anchor>` and stamps the source's config into the snapshot, so `reparse` needs nothing else |
 | `packs/cybersecurity/parsers/*.py` | `fetch()` and `parse()` per source, or per legal system: `eu_law.py` (AI Act), `gesetze_im_internet.py` (KI-MIG) |
 | `packs/cybersecurity/laws.py` | Source names and licenses (`SOURCES`, read from the pack), the EU acts and German laws with the names questions use for them (`EU_ACTS`, `GERMAN_LAWS`) |
 | `ingestion/models.py` | `Chunk` (all citation and license metadata), `Edge`, splitting of oversized units (parts keep the native ID) |

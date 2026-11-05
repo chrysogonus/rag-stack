@@ -1,0 +1,72 @@
+# The starter pack: a small knowledge base to copy for your own domain. Replace the sample
+# content with yours, and keep what the schema asks of every source: its license, attribution
+# and url, shown with every answer that cites it.
+#
+# The sample is a fictional company's team handbook, written for rag-stack and dedicated to the
+# public domain (CC0 1.0). It uses two of the engine's generic sources, with a third, web pages,
+# as a commented-out example; a pack can also bring its own parsers (see packs/cybersecurity).
+
+domain: a fictional company's team handbook
+
+sources:
+  # A folder of documents in this pack: Markdown, text, HTML, PDF and Word files, one unit per
+  # section (headings of levels 1-3), named `<path>#<heading>`: travel-and-expenses.md#hotels.
+  - id: handbook
+    name: Team handbook
+    license: CC0-1.0
+    attribution: Sample team handbook written for rag-stack, CC0 1.0
+    url: https://github.com/chrysogonus/rag-stack/tree/main/packs/starter/docs
+    parser: files
+    config:
+      path: docs
+      url_template: https://github.com/chrysogonus/rag-stack/blob/main/packs/starter/docs/{path}
+
+  # The rows of a CSV or JSON file, one unit each; a column naming other rows becomes links in
+  # the knowledge graph, which questions about related items follow.
+  - id: glossary
+    name: Team glossary
+    license: CC0-1.0
+    attribution: Sample team glossary written for rag-stack, CC0 1.0
+    url: https://github.com/chrysogonus/rag-stack/blob/main/packs/starter/glossary.csv
+    parser: structured
+    config:
+      path: glossary.csv
+      fields: {id: term, text: definition}
+      relations: [{field: see_also, rel: related_to, split: ";"}]
+
+  # Web pages from a list of URLs or a sitemap, fetched politely (robots.txt, paced per host).
+  # - id: product-docs
+  #   name: Product documentation
+  #   license: LicenseRef-Example-Terms
+  #   attribution: © Example, used with permission
+  #   url: https://example.org/docs
+  #   parser: web
+  #   config:
+  #     sitemap: https://example.org/sitemap.xml
+  #     include: [https://example.org/docs/]
+  #     max_pages: 100
+
+prompts:
+  system: prompts/system.md
+  baseline: prompts/baseline.md
+
+labels:
+  en:
+    hint: "Try naming the topic you're asking about, such as hotel costs, vacation days or a lost laptop."
+    ai: "*AI-generated answer. Check the cited sources.*"
+
+languages:
+  en: {}
+
+retrieval:
+  # A question about related items: it gets the graph neighbors of the units it is about.
+  related: ['\brelat', 'see also', 'connect']
+  # A source asked for by kind: its units lead among those neighbors.
+  asked_for:
+    glossary: '\bglossary\b'
+
+evals:
+  title: Starter handbook golden set
+  dataset: evals
+  rubric: evals/judge.md
+  categories: [id-exact, paraphrase, cross-source, relation, abstention, follow-up]

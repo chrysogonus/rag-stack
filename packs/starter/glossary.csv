@@ -1,0 +1,9 @@
+term,definition,see_also
+Buddy,A colleague who answers a new team member's questions during their first month.,Onboarding week
+Core hours,"10:00 to 15:00 on working days, when everyone is available.",Remote work
+Remote work,"Working from home, up to three days a week, or from abroad for up to 20 working days a year with the manager's approval.",Core hours
+Expense report,"A request to be paid back for business costs, with a photo of every receipt, due within 30 days of a trip.",Travel desk
+Travel desk,"The team that books trains, flights and hotels, at least 14 days ahead.",Expense report
+IT desk,The team that hands out laptops and accounts and locks lost devices.,Two-factor authentication
+Two-factor authentication,"A second sign-in step with the authenticator app, required for email, chat and the code host.",IT desk
+Onboarding week,"A new team member's first week: meeting the team, setting up and shipping one small change.",Buddy
