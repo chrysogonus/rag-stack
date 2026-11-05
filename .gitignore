@@ -6,10 +6,6 @@ __pycache__/
 .env
 .run/
 dist/
-data/raw/
-data/processed/
-data/cache/
-data/baseline/
+# Snapshots, chunks, caches and refresh logs: data/ for the cybersecurity pack, data/<pack>/ for others.
+data/
 graphify-out/
-data/refresh.log
-data/.refresh.lock

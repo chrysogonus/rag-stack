@@ -1,7 +1,8 @@
 import os
+from typing import Self
 
 from dotenv import dotenv_values
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from rag_stack.llm.factory import ModelHost, Provider
@@ -51,7 +52,8 @@ class Settings(BaseSettings):
 
     # Knowledge base: Qdrant for chunks, open-weights models run locally via fastembed.
     qdrant_url: str = "http://127.0.0.1:6333"
-    qdrant_collection: str = "kb_chunks"
+    # Unset: the pack's (`storage` in pack.yaml), so packs don't share an index.
+    qdrant_collection: str = ""
     embedding_model: str = "intfloat/multilingual-e5-large"
     sparse_model: str = "Qdrant/bm25"
     # int8 build of bge-reranker-v2-m3: near-identical rankings to the full model at a fraction
@@ -82,8 +84,14 @@ class Settings(BaseSettings):
     max_chunk_chars: int = 2500
 
     # Ingestion
-    data_dir: str = "data"
+    data_dir: str = ""  # unset: the pack's, like qdrant_collection
     fetch_cache_ttl_hours: float = 24
+
+    @model_validator(mode="after")
+    def pack_storage(self) -> Self:
+        self.qdrant_collection = self.qdrant_collection or self.pack.collection
+        self.data_dir = self.data_dir or self.pack.data_dir
+        return self
 
     def secret(self, name: str) -> str:
         """A credential a pack names (an API key for a source), from the environment or the env

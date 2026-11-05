@@ -19,10 +19,10 @@ from rag_stack.retrieval.retriever import KnowledgeBase, open_knowledge_base
 MAX_DEGREE = 5
 
 
-def main_language(units: list[Chunk]) -> str:
-    """The language a source's units are asked about in: English, or the source's own language
-    when it has no English units (a German law)."""
-    return "en" if any(c.language == "en" for c in units) else units[0].language if units else "en"
+def main_language(units: list[Chunk], first: str) -> str:
+    """The language a source's units are asked about in: the pack's first language, or the
+    source's own when it has no units in that one (a German law in an English-first pack)."""
+    return first if any(c.language == first for c in units) or not units else units[0].language
 
 
 async def ranked(kb: KnowledgeBase, query: str) -> list[str]:
@@ -38,7 +38,8 @@ async def main(settings: Settings, per_source: int = 50, kb: KnowledgeBase | Non
     indexed = {c.native_id for _, chunks, _ in corpus.values() for c in chunks}
     for source, (_, chunks, edges) in corpus.items():
         first = [c for c in chunks if c.chunk_index == 0 and c.meta.get("kind") != "overview"]
-        units = [c for c in first if c.language == main_language(first)]
+        language = main_language(first, next(iter(settings.pack.languages)))
+        units = [c for c in first if c.language == language]
         titles = Counter(c.title for c in units)
         for unit in rng.sample(units, min(per_source, len(units))):
             found = await ranked(kb, f"What is {unit.native_id}?")

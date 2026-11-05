@@ -204,8 +204,8 @@ secrets: ## Scan the git history for secrets
 typecheck: ## Type-check with pyright
 	uv run pyright
 
-test: ## Run unit tests
-	uv run pytest tests/unit packs/*/tests/unit
+test: ## Run unit tests and the contract every pack keeps
+	uv run pytest tests/unit tests/contract packs/*/tests/unit
 
 audit: ## Audit dependencies for known vulnerabilities
 	@req=$$(mktemp); trap 'rm -f $$req' EXIT; \

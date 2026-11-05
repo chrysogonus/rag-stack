@@ -41,7 +41,10 @@ writes an answer grounded in them.
 
 ```
 src/rag_stack/
-  ingestion/   # fetch (polite HTTP), sha256 snapshots, the parser contract; parsers live in packs
+  ingestion/   # fetch (polite HTTP), sha256 snapshots, the parser contract; a pack's own parsers
+               # live in the pack
+    generic/   # sources a pack configures without code: files (Markdown, text, HTML, PDF, Word),
+               # web (URLs or a sitemap), structured (CSV/JSON records); chunking.py sections them
   retrieval/   # Qdrant index, hybrid search + RRF, graph expansion, rerank, generations
   agent/       # knowledge base agent: LangGraph graph, prompts, answer footer, `ask`
   llm/         # chat, embedding and reranker interfaces and adapters
@@ -54,16 +57,19 @@ src/rag_stack/
   refresh.py   # scheduled refresh: diff, checks, candidate index generation, promote or block
   observability.py  # Langfuse tracing and ratings; the only module that imports its SDK
   pack.py      # the pack contract: pack.yaml's schema and the loader (Settings.pack)
-packs/<name>/  # a domain (RAG_PACK selects one)
-  pack.yaml    # source allowlist and pinned upstream refs, prompts, labels, languages,
-               # retrieval words, fetch hosts and credentials, eval set
+packs/<name>/  # a domain (RAG_PACK selects one): cybersecurity, the reference; starter, the
+               # sample to copy (a fictional handbook: a docs/ folder and a glossary.csv)
+  pack.yaml    # domain, source allowlist and pinned upstream refs, prompts, labels, languages,
+               # retrieval words, fetch hosts and credentials, storage, eval set
   pack.py      # optional code: ID formats (detect_ids), sources a question can name (scoped)
-  parsers/     # one parser per source or legal system (`parser: .parsers.<module>`)
+  parsers/     # one parser per source or legal system (`parser: .parsers.<module>`); a
+               # generic source is named by type instead (`parser: files`)
   prompts/     # system and baseline prompts
   evals/       # golden.jsonl, thresholds.yaml, the judge rubric, report.md, results.json,
                # history.jsonl, corpus/manifest.json, judge_labels.{jsonl,md}, drafts.jsonl
   tests/       # the pack's own unit/ and e2e/ tests, fixtures/ (verbatim source excerpts)
-data/                   # raw snapshots, processed chunks, HTTP cache (not committed)
+data/          # raw snapshots, processed chunks, HTTP cache (not committed); data/<pack>/ for
+               # packs other than cybersecurity, whose index is kb_<pack> (`storage` in pack.yaml)
 web/           # chat UI
 deploy/        # systemd/: timer for `make refresh` (`make schedule`); vllm/: Qwen3 reranker template
 docker-compose.yml  # Postgres, Qdrant; profiles `gpu` (vLLM) and `tracing` (Langfuse)
@@ -72,6 +78,7 @@ Makefile       # every command; `make` lists them
 tests/
   fakes/       # fake LLM / embedder / reranker / retriever shared by unit tests
   unit/        # tight: no network, LLM/embeddings faked, Qdrant in-memory
+  contract/    # what every pack keeps (licenses, parsers, prompts, eval set), run per pack
   ai/          # the active pack's golden set and prompt injection against a real LLM (@pytest.mark.ai)
   e2e/         # real Postgres and Qdrant; a pack's chat e2e is in packs/<name>/tests/e2e/
 ```
@@ -89,7 +96,7 @@ in the background (logs in `.run/`). The underlying commands:
 uv sync
 uv run ruff check && uv run ruff format --check && uv run pyright
 uv export --frozen --no-emit-project --format requirements-txt > /tmp/req.txt && uvx pip-audit -r /tmp/req.txt --disable-pip
-uv run pytest tests/unit packs/*/tests/unit
+uv run pytest tests/unit tests/contract packs/*/tests/unit
 uv run pytest tests/ai     # needs provider API keys in .env and an indexed knowledge base
 uv run pytest tests/e2e packs/*/tests/e2e    # needs Postgres + Qdrant (docker compose up -d) and API keys
 uv run python -m rag_stack.cli ingest all && uv run python -m rag_stack.cli index
