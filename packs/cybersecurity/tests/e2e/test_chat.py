@@ -189,6 +189,18 @@ def test_an_answer_cut_off_by_the_client_is_kept_and_the_chat_goes_on(knowledge_
         assert [m["role"] for m in client.get(thread_url).json()] == ["user", "assistant"] * 2
 
 
+def test_the_page_config_starts_a_question_answered_from_the_source_it_lights_up(knowledge_base):
+    with TestClient(create_app(retriever=knowledge_base)) as client:
+        config = client.get("/api/config").json()
+        starter = next(s for s in config["starters"] if s["source"] == "atlas")
+        assert config["heading"] == "What do you want to know about cybersecurity?"
+
+        _, sources = ask(client, f"/api/threads/{uuid.uuid4()}/messages", starter["question"])
+
+    assert "atlas" in {s["source"] for s in sources if s["used"]}
+    assert {s["source"] for s in sources} <= {s["id"] for s in config["sources"]}
+
+
 def test_a_rated_answer_reaches_langfuse_as_one_trace_with_its_score(knowledge_base):
     settings = Settings()
     if not settings.langfuse_public_key:

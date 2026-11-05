@@ -1,9 +1,10 @@
 """A domain pack: what turns the engine into a knowledge base about one domain.
 
 `packs/<name>/pack.yaml` declares the sources with their licenses, the prompts, the answer
-labels, the languages, the retrieval vocabulary and the eval set. An optional `pack.py` next to
-it adds code: `detect_ids(text)` for the domain's ID formats and `scoped` (source → regex) for
-sources a question can name. `RAG_PACK` selects the pack; `Settings.pack` loads it."""
+labels, the languages, the retrieval vocabulary, the chat page and the eval set. An optional
+`pack.py` next to it adds code: `detect_ids(text)` for the domain's ID formats and `scoped`
+(source → regex) for sources a question can name. `RAG_PACK` selects the pack; `Settings.pack`
+loads it."""
 
 import importlib
 import re
@@ -13,10 +14,10 @@ from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import Annotated, Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from rag_stack.agent.prompts import ABSTAIN
 from rag_stack.retrieval.language import detect_language
@@ -145,6 +146,44 @@ class Evals(Strict):
     draft_kinds: dict[str, DraftKind] = {}  # the pack's own; loaded, DRAFT_KINDS's too
 
 
+class UiSource(Strict):
+    id: str
+    label: str
+    short: str  # for narrow screens, where up to four constellations share a row
+    side: Literal["left", "right"] | None = None  # of the reading column, on wide screens
+
+
+class Starter(Strict):
+    question: str
+    source: str  # its constellation lights up while the question is pointed at
+
+
+class Ui(Strict):
+    """What the chat page shows; neutral unless the pack says otherwise."""
+
+    title: str = "Knowledge base"
+    heading: str = "What do you want to know?"
+    intro: str = (
+        "Each constellation is one source. When you ask, the passages behind the answer light up. "
+        "Answers come from an AI model and can be wrong, so check anything important."
+    )
+    placeholder: str = "Ask a question"
+    # One constellation each, default one per source. Order places them: wide screens put the
+    # first half left of the reading column unless a source names its `side`, narrow ones fill
+    # rows of four, then three.
+    sources: list[UiSource] = []
+    starters: list[Starter] = []
+    # The status line while an answer is written.
+    musings: Annotated[list[str], Field(min_length=1)] = [
+        "Turning the pages",
+        "Checking the footnotes",
+        "Following the references",
+        "Comparing the passages",
+        "Reading the fine print",
+        "Asking the librarian",
+    ]
+
+
 class PackFile(Strict):
     domain: str  # what the knowledge base is about, in a phrase: "the team's handbook"
     sources: list[Source]
@@ -154,6 +193,7 @@ class PackFile(Strict):
     retrieval: Retrieval = Retrieval()
     fetch: Fetch = Fetch()
     storage: Storage = Storage()
+    ui: Ui = Ui()
     evals: Evals
 
 
@@ -196,6 +236,7 @@ class Pack:
     fetch: Fetch
     collection: str
     data_dir: str
+    ui: Ui
     evals: Evals
     detect_ids: Callable[[str], list[str]]
 
@@ -249,6 +290,12 @@ def load_pack(name: str, packs_dir: str) -> Pack:
         fetch=spec.fetch,
         collection=spec.storage.collection or f"kb_{name}",
         data_dir=spec.storage.data_dir or f"data/{name}",
+        ui=spec.ui.model_copy(
+            update={
+                "sources": spec.ui.sources
+                or [UiSource(id=s.id, label=s.name, short=s.name) for s in spec.sources]
+            }
+        ),
         evals=spec.evals.model_copy(
             update={
                 "dataset": root / spec.evals.dataset,

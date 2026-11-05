@@ -2,7 +2,7 @@ import { createContext, Fragment, use, useMemo, useState, type ComponentProps, t
 import Markdown, { type Components, type Options } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CITE, groupEntries, linkCitations, splitFooter, splitNotes } from './answer'
-import { STOPPED, type SourceRef } from './api'
+import { STOPPED, type CatalogSource, type SourceRef } from './api'
 import { rehypeWords } from './condense'
 import { Galaxy } from './Galaxy'
 import { gatheringLine } from './gathering'
@@ -13,6 +13,8 @@ interface Props {
   content: string
   /** The passages retrieved for this answer; only known while the page that asked it is open. */
   sources?: SourceRef[]
+  /** The pack's sources, which name the ones being read. */
+  catalog: CatalogSource[]
   /** Distinguishes this answer's footer anchors from other answers citing the same source. */
   index: number
   live: boolean
@@ -83,9 +85,9 @@ const components: Components = {
  * happening, and a star for each passage the answer will draw on. The caret sits at the galaxy's core, so the
  * light the sky sends to the caret pours into it.
  */
-function Nascent({ sources }: { sources?: SourceRef[] }) {
+function Nascent({ sources, catalog }: { sources?: SourceRef[]; catalog: CatalogSource[] }) {
   const used = sources?.filter((s) => s.used) ?? []
-  const line = gatheringLine(sources)
+  const line = gatheringLine(sources, catalog)
   return (
     <div className="nascent" aria-hidden="true">
       <span className="nucleus">
@@ -144,7 +146,7 @@ function Feedback({ send }: { send: (helpful: boolean) => Promise<void> }) {
   )
 }
 
-export function Answer({ content, sources, index, live, sky, onFeedback }: Props) {
+export function Answer({ content, sources, catalog, index, live, sky, onFeedback }: Props) {
   const [active, setActive] = useState<string | null>(null)
   const { body, footer } = useMemo(() => splitFooter(content), [content])
   const notes = footer?.notes ? splitNotes(footer.notes) : null
@@ -187,7 +189,7 @@ export function Answer({ content, sources, index, live, sky, onFeedback }: Props
             {linkCitations(body, ids)}
           </Markdown>
         </CitingContext>
-        {live && !content && <Nascent sources={sources} />}
+        {live && !content && <Nascent sources={sources} catalog={catalog} />}
         {live && content && <span className="caret" aria-hidden="true" />}
       </div>
       {footer && (

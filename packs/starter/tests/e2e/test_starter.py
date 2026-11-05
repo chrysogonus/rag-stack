@@ -106,3 +106,16 @@ def test_a_question_the_handbook_doesnt_answer_is_declined_with_the_packs_hint(s
     assert answer.startswith("I can't answer that from the indexed sources.")
     assert "such as hotel costs, vacation days or a lost laptop" in answer
     assert "- Team glossary\n- Team handbook\n" in answer
+
+
+def test_the_page_config_starts_a_question_answered_from_the_source_it_lights_up(starter):
+    settings, kb = starter
+    with TestClient(create_app(settings, retriever=kb)) as client:
+        config = client.get("/api/config").json()
+    first = config["starters"][0]
+    assert config["heading"] == "What do you want to know about the team handbook?"
+
+    _, sources = ask(settings, kb, first["question"])
+
+    assert first["source"] in {s["source"] for s in sources if s["used"]}
+    assert {s["source"] for s in sources} <= {s["id"] for s in config["sources"]}

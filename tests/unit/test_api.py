@@ -283,3 +283,22 @@ async def test_a_stopped_answer_is_never_stored_after_a_newer_question():
         "role": "assistant",
         "content": "Partial\n\n_Stopped._",
     }
+
+
+def test_config_gives_the_ui_the_packs_copy_and_the_servers_input_limit(make_client):
+    response = make_client(rag_pack="starter", max_input_chars=123).get("/api/config")
+
+    assert response.status_code == 200
+    config = response.json()
+    pack = Settings(rag_pack="starter").pack
+    assert config == {"max_input_chars": 123, **pack.ui.model_dump()}
+    assert set(config) == {
+        "max_input_chars",
+        "title",
+        "heading",
+        "intro",
+        "placeholder",
+        "sources",
+        "starters",
+        "musings",
+    }

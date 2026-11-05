@@ -102,3 +102,9 @@ def test_gold_ids_are_units_of_the_pack_when_all_its_sources_live_in_it(pack):
     cases = [json.loads(line) for line in (pack.evals.dataset / "golden.jsonl").open()]
     for case in cases:
         assert set(case["gold_ids"]) <= known, (case["id"], set(case["gold_ids"]) - known)
+
+
+def test_the_ui_shows_every_source_once_and_its_starters_name_them(pack):
+    shown = [s.id for s in pack.ui.sources]
+    assert sorted(shown) == sorted(pack.sources)
+    assert {s.source for s in pack.ui.starters} <= set(pack.sources)

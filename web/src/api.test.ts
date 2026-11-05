@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createSseParser, RefusedError, sendFeedback, sendMessage, stopped, STOPPED, type SseEvent } from './api'
+import { createSseParser, getConfig, RefusedError, sendFeedback, sendMessage, stopped, STOPPED, type SseEvent } from './api'
 
 function parseAll(chunks: string[]): SseEvent[] {
   const events: SseEvent[] = []
@@ -91,6 +91,24 @@ describe('stopped', () => {
   it('marks a cut-off answer the way the server stores it', () => {
     expect(stopped('Partial')).toBe(`Partial\n\n${STOPPED}`)
     expect(stopped('  ')).toBe(STOPPED)
+  })
+})
+
+describe('getConfig', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('loads what the page shows from the server', async () => {
+    const fetch = vi.fn(async () => Response.json({ title: 'Notes', max_input_chars: 100 }))
+    vi.stubGlobal('fetch', fetch)
+
+    await expect(getConfig()).resolves.toEqual({ title: 'Notes', max_input_chars: 100 })
+    expect(fetch).toHaveBeenCalledWith('/api/config')
+  })
+
+  it('fails when the server has no config to give', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 500 })))
+
+    await expect(getConfig()).rejects.toThrow('unavailable')
   })
 })
 

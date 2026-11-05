@@ -129,6 +129,12 @@ def create_app(
             raise HTTPException(429, refusal)
         return Turn(client, len(messages) + 1)
 
+    page = {"max_input_chars": settings.max_input_chars, **settings.pack.ui.model_dump()}
+
+    @app.get("/api/config")
+    async def get_config() -> dict[str, Any]:
+        return page
+
     @app.get("/api/threads/{thread_id}/messages")
     async def get_messages(thread_id: UUID, graph: Graph) -> list[Message]:
         state = await graph.aget_state(thread_config(thread_id))

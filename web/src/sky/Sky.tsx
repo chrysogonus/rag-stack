@@ -1,4 +1,5 @@
 import { Component, lazy, Suspense, useEffect, useRef, type ReactNode, type RefObject } from 'react'
+import type { CatalogSource } from '../api'
 import { isStill, subscribeMotion } from '../motion'
 import { LABEL_FONT, SkyRenderer } from './renderer'
 
@@ -21,13 +22,13 @@ class Optional extends Component<{ children: ReactNode }, { failed: boolean }> {
 const darkQuery = '(prefers-color-scheme: dark)'
 
 /** The decorative sky behind the page. `rendererRef` gives the app its animation calls. */
-export function Sky({ rendererRef }: { rendererRef: RefObject<SkyRenderer | null> }) {
+export function Sky({ rendererRef, sources }: { rendererRef: RefObject<SkyRenderer | null>; sources: CatalogSource[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const overlayRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     const dark = matchMedia(darkQuery)
-    const sky = new SkyRenderer(canvasRef.current!, overlayRef.current!, isStill())
+    const sky = new SkyRenderer(canvasRef.current!, overlayRef.current!, sources, isStill())
     rendererRef.current = sky
     sky.intro()
 
@@ -56,7 +57,7 @@ export function Sky({ rendererRef }: { rendererRef: RefObject<SkyRenderer | null
       sky.destroy()
       rendererRef.current = null
     }
-  }, [rendererRef])
+  }, [rendererRef, sources])
 
   return (
     <>
