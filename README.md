@@ -2,41 +2,90 @@
 
 [![CI](https://github.com/chrysogonus/rag-stack/actions/workflows/ci.yml/badge.svg)](https://github.com/chrysogonus/rag-stack/actions/workflows/ci.yml)
 ![Python 3.13](https://img.shields.io/badge/python-3.13-3776ab)
-![Sources](https://img.shields.io/badge/sources-10%20openly%20licensed-c9a45c)
 ![Self-hosted](https://img.shields.io/badge/self--hosted-yes-0e1a33)
 
-**A self-hosted chatbot for cybersecurity research that answers only from sources it can cite.**
-It specializes in attacks against AI systems and in EU and German AI law. Every claim carries its
-exact ID (an ATT&CK technique, a CWE weakness, an AI Act article, a CVE), and legal text is
-quoted verbatim in English or German.
+**A blueprint for self-hosted chatbots that answer only from sources they can cite.** Bring your
+documents as a *domain pack*, and you get hybrid search, a knowledge graph, verifiable citations, a
+gated weekly refresh, an eval harness and a chat UI, without touching the engine.
+
+Two packs ship with it: [`starter`](packs/starter), a small sample to copy, and
+[`cybersecurity`](#showcase-the-cybersecurity-pack), a real knowledge base on ten sources that shows
+what the blueprint can do.
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/images/welcome-light.webp">
-  <img src="docs/images/welcome-dark.webp" alt="The chat UI: each constellation in the sky is one source">
+  <img src="docs/images/welcome-dark.webp" alt="The chat UI with the cybersecurity pack: each constellation in the sky is one source">
 </picture>
 
 ## Why use it instead of a general chatbot?
 
-- 🗓️ **Fresh.** Sources are re-fetched every week (`make schedule`). New CVEs, ATLAS releases and amended laws are
-  in the index, even when they are newer than the model's training data.
-- 🔖 **Citable.** Answers name exact IDs and link to them. Legal text is quoted word for word,
-  never paraphrased from memory. When the sources don't cover a question, the chatbot says so
-  rather than guessing.
-- 🔗 **Connected.** The chatbot follows links between sources. For example, it can go from an
-  ATT&CK technique to the D3FEND countermeasures against it, or from a CWE weakness to its CAPEC
-  attack patterns and to the CVEs that exploit it.
+- 🔖 **Citable.** Answers name the exact passage and link to it, with its license and version. When
+  the sources don't cover a question, the chatbot says so rather than guessing.
+- 🗓️ **Fresh.** Sources are re-fetched on a schedule (`make schedule`). A new index is served only if
+  its checks pass and its retrieval scores don't drop.
+- 🔗 **Connected.** The chatbot follows links between sources, so it can answer questions that no
+  single document answers.
+- 📏 **Measured.** Each pack has a golden set, scored against a general chatbot, with thresholds a
+  change has to meet.
 
 ![An answer: cited IDs, the passages lit up in the sky, the sources with their licenses](docs/images/answer.webp)
 
-### Try asking
+## Quickstart
 
-| Question | What it shows |
+**You need:** Linux or WSL2, Docker, [uv](https://docs.astral.sh/uv/), Node.js 22, and an LLM.
+The LLM can be the OpenAI or Anthropic API, a local Ollama or vLLM, or any Chat Completions
+server. An NVIDIA GPU is optional.
+
+This runs the starter pack: a fictional company's handbook and glossary, 24 chunks read from local
+files. The first `make index` also downloads the embedding models.
+
+```bash
+make install                 # 1. Python and web dependencies; creates .env
+$EDITOR .env                 # 2. pick your LLM provider (see below)
+make services                # 3. start Postgres and Qdrant
+make ingest SOURCE=all       # 4. read and chunk the sources ...
+make index                   #    ... and embed them
+make up                      # 5. API on :8000 and the chat UI at http://localhost:5173
+```
+
+**Choosing the LLM.** `.env` starts out pointing at a personal subscription gateway on
+`127.0.0.1:11435`. Unless you run one, switch the active block to one of the others listed in
+the file:
+
+- **OpenAI:** `LLM_PROVIDER=openai`, `LLM_MODEL=gpt-6-luna`, `LLM_API_KEY=sk-...`
+- **Anthropic:** `LLM_PROVIDER=anthropic`, `LLM_MODEL=claude-sonnet-5-5`, `LLM_API_KEY=sk-ant-...`
+- **Ollama:** `LLM_PROVIDER=openai-compatible`, `LLM_BASE_URL=http://127.0.0.1:11434/v1`, `LLM_MODEL=llama3.3`
+
+Replace all five lines of the block, so that no `LLM_BASE_URL` is left over from the old one.
+
+Try it from the terminal with `make ask Q="How much can I spend on a hotel night in Paris?"`, and
+stop everything with `make down`. Stored conversations and the index are kept.
+
+## Build your own
+
+```bash
+make new-pack NAME=recipes   # copy the starter to packs/recipes
+```
+
+Set `RAG_PACK=recipes` in `.env`, replace the sample documents with yours, and run
+`make ingest SOURCE=all` and `make index`. Then start the app with `make up`. If it is already
+running, run `make restart-api` instead, so the API loads the new pack, and reload the page.
+
+Three kinds of source need no code: a folder of Markdown, text, HTML, PDF and Word files, web
+pages from URLs or a sitemap, and CSV or JSON records.
+
+A pack holds everything specific to its domain:
+
+| In `packs/<name>/` | What it sets |
 |---|---|
-| What is AML.T0051? | Exact ID lookup (MITRE ATLAS) |
-| Which D3FEND techniques counter T1110.001? | A join from ATT&CK to D3FEND |
-| Which CAPEC attack patterns relate to CWE-89 SQL injection? | A join from CWE to CAPEC |
-| What does Article 50 of the EU AI Act require? | Verbatim legal text |
-| Wofür ist die BaFin nach § 2 Abs. 3 KI-MIG zuständig? | German law, answered in German |
+| `pack.yaml` | The sources with their licenses, labels, languages, retrieval vocabulary, the chat page's text and sky, storage, and the eval set |
+| `prompts/` | The chatbot's instructions, and the general chatbot's it is compared with |
+| `evals/` | The golden set, thresholds, judge rubric and results |
+| `pack.py`, `parsers/` | Optional code: your ID formats, and parsers for formats the generic sources can't read |
+| `tests/` | The pack's own tests |
+
+**[docs/BUILD_YOUR_OWN.md](docs/BUILD_YOUR_OWN.md)** walks through it step by step, from the first
+copy to your own evals. A contract test checks every pack, so it also works as a checklist.
 
 ## How it works
 
@@ -44,8 +93,8 @@ quoted verbatim in English or German.
 
 ```mermaid
 flowchart LR
-    A["10 allowlisted sources<br/>packs/cybersecurity/pack.yaml"] -->|polite fetch| B["Snapshot<br/>sha256, data/raw/"]
-    B -->|one parser per source| C["Chunks<br/>one unit each:<br/>technique, article, CVE"]
+    A["Allowlisted sources<br/>packs/&lt;name&gt;/pack.yaml"] -->|polite fetch| B["Snapshot<br/>sha256, data/raw/"]
+    B -->|one parser per source| C["Chunks<br/>one citable unit each"]
     C -->|embed| D[("Qdrant<br/>dense + BM25")]
     C -->|IDs that link| E[("Postgres<br/>edge table")]
     D & E --> F{"Checks and<br/>retrieval score"}
@@ -53,16 +102,15 @@ flowchart LR
     F -->|fail| H["Blocked;<br/>old index stays"]
 ```
 
-Each source is snapshotted and split into its native units, so a chunk is exactly one technique,
-one paragraph of a law or one advisory. Links between IDs (a technique and its mitigations, a CWE
-and its CAPEC patterns) go into a graph table. A new index is served only if its checks pass and its
-retrieval scores don't drop below the old index's.
+Each source is snapshotted and split into its native units, so a chunk is exactly one section, one
+paragraph of a law or one record. Links between units go into a graph table. A new index is served
+only if its checks pass and its retrieval scores don't drop below the old index's.
 
 **2. Answering a question:**
 
 ```mermaid
 flowchart LR
-    Q(["Question"]) --> I["Find IDs it names<br/>AML.T0051, Art. 50"]
+    Q(["Question"]) --> I["Find IDs it names"]
     Q --> S["Hybrid search<br/>dense + BM25, fused"]
     I & S --> G["Follow graph links<br/>for related items"]
     G --> R["Rerank<br/>cross-encoder"]
@@ -75,11 +123,45 @@ The question's IDs are looked up directly. Keyword and semantic search find the 
 links add related items when the question asks for them. A reranker keeps the 8 best passages.
 The model answers only from those passages, and retrieved text is treated as data, never as
 instructions. Each answer ends with its sources, their licenses and versions, and an
-AI-generated label (EU AI Act Art. 50(1)).
+AI-generated label.
 
 <img src="docs/images/waiting.webp" alt="While an answer is prepared: a spinning galaxy, the passages being read, the sky warping" width="720">
 
-## What's inside
+## Showcase: the cybersecurity pack
+
+[`packs/cybersecurity`](packs/cybersecurity) is a chatbot for cybersecurity research, specializing in
+attacks against AI systems and in EU and German AI law. Every claim carries its exact ID (an ATT&CK
+technique, a CWE weakness, an AI Act article, a CVE), and legal text is quoted verbatim in English or
+German.
+
+### Does it work?
+
+It is scored on 212 reviewed questions: 152 held out for testing, 60 for tuning. The comparison is a
+general chatbot on the same model that can search the web. An LLM judge from another model family
+scores the answers.
+
+| Held-out test set (n=152) | General chatbot | rag-stack |
+|---|---|---|
+| Correctness | 0.70 | **0.89** |
+| Citation precision | 0.48 | **0.86** |
+| Says "I can't answer" when it should | 0.86 | **0.99** |
+| Right passage among the 8 retrieved (recall) | — | **0.98** |
+| Faithful to its sources | — | **0.96** |
+
+Per-category numbers with 95% intervals are in the
+[eval report](packs/cybersecurity/evals/report.md).
+
+### Try asking
+
+| Question | What it shows |
+|---|---|
+| What is AML.T0051? | Exact ID lookup (MITRE ATLAS) |
+| Which D3FEND techniques counter T1110.001? | A join from ATT&CK to D3FEND |
+| Which CAPEC attack patterns relate to CWE-89 SQL injection? | A join from CWE to CAPEC |
+| What does Article 50 of the EU AI Act require? | Verbatim legal text |
+| Wofür ist die BaFin nach § 2 Abs. 3 KI-MIG zuständig? | German law, answered in German |
+
+### What's inside
 
 About 18,700 chunks from ten openly licensed sources:
 
@@ -99,47 +181,10 @@ About 18,700 chunks from ten openly licensed sources:
 Pinned versions live in [`packs/cybersecurity/pack.yaml`](packs/cybersecurity/pack.yaml), and nothing else is
 ingested. Attribution for every source is in [NOTICE.md](NOTICE.md).
 
-## Does it work?
+### Run it
 
-The chatbot is scored on 212 reviewed questions: 152 held out for testing, 60 for tuning. The
-comparison is a general chatbot on the same model that can search the web. An LLM judge from
-another model family scores the answers.
-
-| Held-out test set (n=152) | General chatbot | rag-stack |
-|---|---|---|
-| Correctness | 0.70 | **0.89** |
-| Citation precision | 0.48 | **0.86** |
-| Says "I can't answer" when it should | 0.86 | **0.99** |
-| Right passage among the 8 retrieved (recall) | — | **0.98** |
-| Faithful to its sources | — | **0.96** |
-
-Per-category numbers with 95% intervals are in the
-[eval report](packs/cybersecurity/evals/report.md).
-
-## Quickstart
-
-**You need:** Linux or WSL2, Docker, [uv](https://docs.astral.sh/uv/), Node.js 22, and an LLM.
-The LLM can be the OpenAI or Anthropic API, a local Ollama or vLLM, or any Chat Completions
-server. An NVIDIA GPU is optional.
-
-```bash
-make install                 # 1. Python and web dependencies; creates .env
-$EDITOR .env                 # 2. pick your LLM provider (see below)
-make services                # 3. start Postgres and Qdrant
-make ingest SOURCE=all       # 4. fetch and chunk the sources ...
-make index                   #    ... and embed them (models download once)
-make up                      # 5. API on :8000 and the chat UI at http://localhost:5173
-```
-
-**Choosing the LLM.** `.env` starts out pointing at a personal subscription gateway on
-`127.0.0.1:11435`. Unless you run one, switch the active block to one of the others listed in
-the file:
-
-- **OpenAI:** `LLM_PROVIDER=openai`, `LLM_MODEL=gpt-6-luna`, `LLM_API_KEY=sk-...`
-- **Anthropic:** `LLM_PROVIDER=anthropic`, `LLM_MODEL=claude-sonnet-5-5`, `LLM_API_KEY=sk-ant-...`
-- **Ollama:** `LLM_PROVIDER=openai-compatible`, `LLM_BASE_URL=http://127.0.0.1:11434/v1`, `LLM_MODEL=llama3.3`
-
-Replace all five lines of the block, so that no `LLM_BASE_URL` is left over from the old one.
+Set `RAG_PACK=cybersecurity` in `.env`, then follow the quickstart from step 3. If the app is
+already running, finish with `make restart-api` instead of `make up`, and reload the page.
 
 **The first ingest is slow without tokens.** The `vulns` source makes about 130 requests to
 GitHub's advisory API and one NVD request per AI-package CVE. Without `GITHUB_TOKEN` in `.env`,
@@ -147,8 +192,7 @@ GitHub allows 60 requests an hour, so the first ingest takes over two hours. Wit
 `NVD_API_KEY`, NVD allows 5 requests per 30 seconds. Responses are cached for a day. Both
 are free.
 
-Try it from the terminal with `make ask Q="Which ATLAS mitigations address AML.T0051?"`, and stop
-everything with `make down`. Stored conversations and the index are kept.
+## Reference
 
 <details>
 <summary><b>Everyday commands</b></summary>
@@ -157,8 +201,9 @@ everything with `make down`. Stored conversations and the index are kept.
 
 ```bash
 make refresh      # ingest, check, build and score a new index; serve it if it passes [FORCE=1]
-make schedule     # run `make refresh` weekly (systemd user timer, Sunday 03:00); `make unschedule`
+make schedule     # run `make refresh` weekly for the active pack (systemd user timer, Sunday 03:00); `make unschedule`
 make rollback     # serve the previous index again (a second rollback undoes it)
+make new-pack     # copy the starter pack to begin your own: NAME=<name>
 make status       # what is running, the last refresh and the next one
 make logs         # follow the API and web UI logs (.run/)
 make restart      # stop everything and start it again; `make restart-api` for the API only
@@ -177,11 +222,12 @@ make eval                # paid: asks and judges only the questions whose inputs
 make evals               # free check of the saved results against thresholds.yaml (fails if any are stale)
 make eval-retrieval      # retrieval only, no LLM: tune on the dev split, confirm with SPLIT=test
 make eval-units          # retrieval checks generated from the corpus: IDs, titles, edges (N=50 per source)
-make eval-draft SOURCE=atlas CATEGORY=paraphrase N=5   # draft new questions for review -> drafts.jsonl
+make eval-draft SOURCE=handbook CATEGORY=paraphrase N=5   # draft new questions for review -> drafts.jsonl
 make eval-labels         # sample 40 answers to label yourself; then `make eval-agreement` scores the judge
 ```
 
-`make eval FULL=1` asks every question again, and `FRESH=1` asks the baseline again too.
+These all use the active pack's set. `make eval FULL=1` asks every question again, and `FRESH=1` asks
+the baseline again too.
 
 The eval needs a judge and, optionally, a baseline chatbot: see `EVAL_JUDGE_*` and
 `EVAL_BASELINE_*` in `.env.example`. The judge should come from another model family than the
@@ -228,7 +274,7 @@ those traces. Without tracing, ratings are refused (503).
 <details>
 <summary><b>API</b></summary>
 
-The chat UI uses three endpoints. The client picks the thread ID, a UUID.
+The chat UI uses four endpoints. The client picks the thread ID, a UUID.
 
 | Endpoint | What it does |
 |---|---|
@@ -253,7 +299,7 @@ so these limits apply per user rather than per proxy.
 | Layer | Command | Needs |
 |-------|---------|-------|
 | Unit | `make test` | nothing (fixtures in `packs/*/tests/fixtures/`, in-memory Qdrant, fake models); also checks every pack against the pack contract (`tests/contract/`) |
-| AI (evals) | `make eval` (paid: ~2 calls per question whose inputs changed; ~425 with `FULL=1`, ~850 with `FULL=1 FRESH=1`), then `make evals` | LLM access, an indexed knowledge base; `make evals` checks the saved results (~5 min of retrieval, 1 call) and fails if any question is stale |
+| AI (evals) | `make eval` (paid: ~2 calls per question whose inputs changed; for the cybersecurity pack ~425 with `FULL=1`, ~850 with `FULL=1 FRESH=1`), then `make evals` | LLM access, the active pack's indexed knowledge base; `make evals` checks the saved results (retrieval, 1 call) and fails if any question is stale |
 | End-to-end | `make e2e` | LLM access, embedding models (it starts Postgres and Qdrant); the rating test also `make tracing` (skipped without `LANGFUSE_*`) |
 | Web | `make web-check` | nothing |
 
@@ -262,28 +308,29 @@ so these limits apply per user rather than per proxy.
 ## Project map
 
 ```
-src/rag_stack/    Python backend
+src/rag_stack/    Python backend: the engine, with no domain knowledge
   pack.py           the domain pack contract and loader
   ingestion/        fetch, snapshot and parse each source; generic/: folders, web pages, CSV/JSON
   retrieval/        Qdrant index, hybrid search, graph, rerank
   agent/            the LangGraph agent: retrieve -> generate, prompts, answer footer
   llm/              chat, embedding and reranker adapters (OpenAI, Anthropic, any compatible server; fastembed, vLLM)
-  api/              FastAPI: chat over SSE, ratings, rate limits
+  api/              FastAPI: the page's config, chat over SSE, ratings, rate limits
   db/               Postgres: conversations, edge table, migrations
   evals/            golden-set harness, judge calibration, question drafting
-web/              chat UI (Vite, React, three.js)
-packs/            domains; packs/cybersecurity: sources, parsers, ID formats, prompts, golden set;
-                    packs/starter: a sample handbook to copy for your own domain (no code)
+web/              chat UI (Vite, React, three.js), showing what the active pack says
+packs/            domains; starter: a sample handbook to copy (the default, no code);
+                    cybersecurity: the reference, with sources, parsers, ID formats, prompts, golden set
 tests/            engine tests: unit, contract (every pack), ai (real LLM), e2e
 deploy/           systemd timer for the weekly refresh, vLLM reranker template
 ```
 
 **Read next:**
 
+- [docs/BUILD_YOUR_OWN.md](docs/BUILD_YOUR_OWN.md): build a knowledge base on your own domain.
 - [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md): a plain-language tour in pictures, also usable
   as the outline for a 5-minute talk.
 - [docs/PLAN.md](docs/PLAN.md): the design, the measurements behind each choice, and the
-  roadmap toward general cybersecurity research.
+  cybersecurity pack's roadmap.
 - [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md): what is still unresolved.
 - [AGENTS.md](AGENTS.md): guidelines for contributors and coding agents.
 - [NOTICE.md](NOTICE.md): attribution and licenses.

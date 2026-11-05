@@ -9,9 +9,10 @@ WEB_URL := http://127.0.0.1:5173/
 API_CMD := exec uv run uvicorn rag_stack.api.app:create_app --factory --reload --host 127.0.0.1 --port 8000
 # Where the CLI writes the refresh log: DATA_DIR from .env or its default (read only when used).
 REFRESH_LOG = $(shell uv run python -c 'from rag_stack.config import Settings; print(Settings().data_dir)')/refresh.log
+ACTIVE_PACK = $(shell uv run python -c 'from rag_stack.config import Settings; print(Settings().rag_pack)')
 UNITS := $(HOME)/.config/systemd/user
 
-.PHONY: help install format up down restart restart-api status logs services tracing migrate ingest reparse index refresh rollback schedule unschedule ask \
+.PHONY: help install format up down restart restart-api status logs services tracing migrate ingest reparse index refresh rollback schedule unschedule new-pack ask \
 	eval eval-retrieval eval-units eval-draft eval-labels eval-agreement \
 	ci lockfile lint secrets typecheck test audit build web-check evals e2e check-all
 
@@ -152,7 +153,7 @@ rollback: ## Serve the previous index generation again (a second rollback undoes
 
 schedule: ## Refresh weekly (Sunday 03:00, or at the next start if missed) with a systemd user timer
 	@mkdir -p $(UNITS)
-	sed -e 's|@REPO@|$(CURDIR)|' -e "s|@PATH@|$$PATH|" deploy/systemd/rag-stack-refresh.service > $(UNITS)/rag-stack-refresh.service
+	sed -e 's|@REPO@|$(CURDIR)|' -e "s|@PATH@|$$PATH|" -e 's|@PACK@|$(ACTIVE_PACK)|' deploy/systemd/rag-stack-refresh.service > $(UNITS)/rag-stack-refresh.service
 	cp deploy/systemd/rag-stack-refresh.timer $(UNITS)/
 	systemctl --user daemon-reload
 	systemctl --user enable --now rag-stack-refresh.timer
@@ -163,6 +164,9 @@ unschedule: ## Stop the weekly refresh
 	-systemctl --user disable --now rag-stack-refresh.timer
 	rm -f $(UNITS)/rag-stack-refresh.service $(UNITS)/rag-stack-refresh.timer
 	systemctl --user daemon-reload
+
+new-pack: ## Copy the starter pack to begin your own domain: make new-pack NAME=<name>
+	$(CLI) new-pack $(NAME)
 
 ask: ## Answer one question from the knowledge base: make ask Q="What is AML.T0051?"
 	@[ -n "$(Q)" ] || { echo 'Usage: make ask Q="your question"' >&2; exit 1; }

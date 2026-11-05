@@ -1,4 +1,4 @@
-# Installed by `make schedule`, which fills in @REPO@ and @PATH@.
+# Installed by `make schedule`, which fills in @REPO@, @PATH@ and @PACK@ (the active pack).
 [Unit]
 Description=Refresh the rag-stack knowledge base
 
@@ -6,6 +6,7 @@ Description=Refresh the rag-stack knowledge base
 Type=oneshot
 WorkingDirectory=@REPO@
 Environment="PATH=@PATH@"
+Environment="RAG_PACK=@PACK@"
 ExecStart=/usr/bin/make refresh
 # The API restarted after a promotion must outlive this unit.
 KillMode=process

@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # The domain: packs/<rag_pack>/pack.yaml (sources, prompts, labels, retrieval words, evals).
-    rag_pack: str = "cybersecurity"
+    rag_pack: str = "starter"
     packs_dir: str = str(PACKS)
 
     @property

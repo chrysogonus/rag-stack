@@ -13,17 +13,22 @@ import yaml
 from rag_stack.ingestion.fetch import Fetcher
 from rag_stack.ingestion.models import Chunk
 from rag_stack.ingestion.pipeline import source_config, source_module
-from rag_stack.pack import GENERIC, PACKS, Pack, load_pack
+from rag_stack.pack import GENERIC, PACKS, Pack, load_pack, new_pack
 
 NAMES = sorted(p.parent.name for p in PACKS.glob("*/pack.yaml"))
+NEW = "what make new-pack creates"
 # SPDX identifiers, or LicenseRef-* for terms SPDX doesn't list (see NOTICE.md).
 LICENSE = re.compile(r"^(LicenseRef-[\w.-]+|[A-Za-z0-9][\w.+-]*)$")
 LOCAL = {f"{GENERIC}files", f"{GENERIC}structured"}
 
 
-@pytest.fixture(params=NAMES)
-def pack(request) -> Pack:
-    return load_pack(request.param, str(PACKS))
+@pytest.fixture(params=[*NAMES, NEW])
+def pack(request, tmp_path_factory) -> Pack:
+    if request.param != NEW:
+        return load_pack(request.param, str(PACKS))
+    packs = str(tmp_path_factory.mktemp("packs"))
+    new_pack("mine", packs)
+    return load_pack("mine", packs)
 
 
 def local_units(pack: Pack) -> dict[str, list[Chunk]]:

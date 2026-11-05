@@ -1,6 +1,11 @@
+import os
+
 import pytest
 
 from rag_stack.config import Settings
+
+# The engine's tests use the reference pack as their domain, whatever the default or .env selects.
+os.environ["RAG_PACK"] = "cybersecurity"
 
 
 @pytest.fixture(autouse=True)
